@@ -111,7 +111,15 @@ class StokList extends _$StokList {
 
   void deleteStok(int id) {
     final repository = ref.read(stokRepositoryProvider);
-    if (repository.delete(id)) {
+    final syncWorker = ref.read(syncWorkerProvider);
+    
+    // M-P02 FIX: Dapatkan data sebelum dihapus untuk mendapatkan UUID.
+    // Gunakan softDelete agar sinkronisasi ke Cloud bisa dilakukan.
+    final items = repository.getAll();
+    final item = items.cast<Stok?>().firstWhere((e) => e?.id == id, orElse: () => null);
+    
+    if (item != null && repository.softDelete(id)) {
+      syncWorker?.enqueue(entityType: 'stok', entityUuid: item.uuid);
       loadStok();
     }
   }

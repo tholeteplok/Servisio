@@ -176,8 +176,16 @@ class SaleList extends _$SaleList {
 
   void deleteSale(int id) {
     final repository = ref.read(saleRepositoryProvider);
-    repository.softDelete(id);
-    loadSales();
+    final syncWorker = ref.read(syncWorkerProvider);
+    
+    // M-P05 FIX: Dapatkan data sebelum dihapus untuk mendapatkan UUID.
+    final items = repository.getAll();
+    final sale = items.cast<Sale?>().firstWhere((e) => e?.id == id, orElse: () => null);
+
+    if (sale != null && repository.softDelete(id)) {
+      syncWorker?.enqueue(entityType: 'sale', entityUuid: sale.uuid);
+      loadSales();
+    }
   }
 }
 

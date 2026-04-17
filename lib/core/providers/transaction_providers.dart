@@ -330,6 +330,7 @@ class PaginatedTransactionList extends _$PaginatedTransactionList {
 
   /// Refresh dari awal (dipanggil saat pull-to-refresh atau setelah mutasi)
   Future<void> refresh() async {
+    state = state.copyWith(isInitialLoading: true);
     await _loadPage(0, isRefresh: true);
   }
 

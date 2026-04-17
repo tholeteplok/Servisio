@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'objectbox_provider.dart';
+import 'sync_provider.dart';
 import '../../domain/entities/pelanggan.dart';
 import '../../data/repositories/pelanggan_repository.dart';
 
@@ -32,11 +33,15 @@ class PelangganList extends _$PelangganList {
 
   void remove(int id) {
     final repository = ref.read(pelangganRepositoryProvider);
-    // LGK-08 FIX: Gunakan softDelete agar konsisten dengan Transaction dan Sale.
-    // Hard delete (repository.remove) merusak relasi di Firestore jika Pelanggan
-    // sudah tersinkronisasi ke cloud — data cloud jadi orphan (relasi rusak).
-    repository.softDelete(id);
-    load();
+    final syncWorker = ref.read(syncWorkerProvider);
+    
+    // H-P03 FIX: Dapatkan data sebelum dihapus untuk mendapatkan UUID 
+    // agar sinkronisasi ke Cloud (Firestore) bisa dilakukan.
+    final pelanggan = repository.getAll().firstWhere((p) => p.id == id, orElse: () => Pelanggan(nama: '', telepon: ''));
+    if (pelanggan.uuid.isNotEmpty && repository.softDelete(id)) {
+      syncWorker?.enqueue(entityType: 'pelanggan', entityUuid: pelanggan.uuid);
+      load();
+    }
   }
 
   void updateSearch(String query) {

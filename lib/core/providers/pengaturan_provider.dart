@@ -303,11 +303,47 @@ class Settings extends _$Settings {
   }
 
   Future<void> setMonthlyTarget(int value) async {
-    await _prefs.setInt(AppSettings.monthlyTarget, value);
-    state = state.copyWith(monthlyTarget: value);
+    // M-P07 FIX: Tambahkan validasi agar tidak ada target negatif atau terlalu kecil.
+    final validValue = value.clamp(10000, 999999999);
+    await _prefs.setInt(AppSettings.monthlyTarget, validValue);
+    state = state.copyWith(monthlyTarget: validValue);
   }
 
-  Future<void> setHasSeenOnboarding(bool value) async {
+  /// M-P06 FIX: Reload settings from SharedPreferences.
+  /// Digunakan setelah operasi Restore data agar UI segera sinkron.
+  Future<void> reload() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = SettingsState(
+      workshopName: prefs.getString(AppSettings.workshopName) ?? 'ServisLog+',
+      workshopAddress: prefs.getString(AppSettings.workshopAddress) ?? '',
+      workshopWhatsapp: prefs.getString(AppSettings.workshopWhatsapp) ?? '',
+      ownerName: prefs.getString(AppSettings.ownerName) ?? 'Owner',
+      ownerPhone: prefs.getString(AppSettings.ownerPhone) ?? '',
+      themeMode: prefs.getString(AppSettings.themeMode) ?? 'otomatis',
+      themeStartTime: prefs.getString(AppSettings.themeStartTime) ?? '06:00',
+      themeEndTime: prefs.getString(AppSettings.themeEndTime) ?? '18:00',
+      isDemoMode: prefs.getBool(AppSettings.isDemoMode) ?? false,
+      barcodeEnabled: prefs.getBool(AppSettings.barcodeEnabled) ?? true,
+      qrisEnabled: prefs.getBool(AppSettings.qrisEnabled) ?? false,
+      qrisImagePath: prefs.getString(AppSettings.qrisImagePath),
+      lastBackupAt: prefs.getString(AppSettings.lastBackupAt),
+      lastBackupTimestamp: prefs.getInt('last_backup_timestamp'),
+      backupFrequency: prefs.getString('backup_frequency') ?? 'off',
+      isBiometricEnabled: prefs.getBool(AppSettings.isBiometricEnabled) ?? false,
+      autoLockDuration: prefs.getInt(AppSettings.autoLockDuration) ?? 0,
+      requireBiometricSensitive: prefs.getBool(AppSettings.requireBiometricSensitive) ?? false,
+      autoLock30m: prefs.getBool(AppSettings.autoLock30m) ?? false,
+      syncWifiOnly: prefs.getBool(AppSettings.syncWifiOnly) ?? false,
+      syncCompressionMax: prefs.getBool(AppSettings.syncCompressionMax) ?? true,
+      reminderThresholdDays: prefs.getInt(AppSettings.reminderThresholdDays) ?? 7,
+      bengkelId: prefs.getString(AppSettings.workshopId) ?? '',
+      monthlyTarget: prefs.getInt(AppSettings.monthlyTarget) ?? 10000000,
+      hasSeenOnboarding: prefs.getBool(AppSettings.hasSeenOnboarding) ?? false,
+      hasCheckedBackupDiscovery: prefs.getBool(AppSettings.hasCheckedBackupDiscovery) ?? false,
+    );
+  }
+
+  void setHasSeenOnboarding(bool value) async {
     await _prefs.setBool(AppSettings.hasSeenOnboarding, value);
     state = state.copyWith(hasSeenOnboarding: value);
   }

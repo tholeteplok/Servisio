@@ -60,14 +60,9 @@ void main() async {
   // Initialize Encryption
   await EncryptionService().init();
 
-  // Initialize ObjectBox
-  final objectBox = await ObjectBoxProvider.create();
-
   runApp(
     ProviderScope(
       overrides: [
-        // We override the instance provider with the initial objectBox instance
-        dbInstanceProvider.overrideWith((ref) => objectBox),
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
       child: Phoenix(
@@ -183,8 +178,18 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final dbAsync = ref.watch(dbInstanceProvider);
     final authAsync = ref.watch(authStateProvider);
     final settings = ref.watch(settingsProvider);
+
+    // Ensure database is ready first
+    if (dbAsync.isLoading) {
+      return const SplashScreen();
+    }
+
+    if (dbAsync.hasError) {
+      return _buildErrorScreen(context, dbAsync.error!);
+    }
 
     return authAsync.when(
       data: (container) {

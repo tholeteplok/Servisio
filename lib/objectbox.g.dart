@@ -14,7 +14,6 @@ import 'package:objectbox/internal.dart'
 import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
-import 'core/services/transaction_number_service.dart';
 import 'domain/entities/pelanggan.dart';
 import 'domain/entities/sale.dart';
 import 'domain/entities/service_master.dart';
@@ -25,6 +24,7 @@ import 'domain/entities/stok_history.dart';
 import 'domain/entities/sync_queue_item.dart';
 import 'domain/entities/transaction.dart';
 import 'domain/entities/transaction_item.dart';
+import 'domain/entities/trx_counter.dart';
 import 'domain/entities/vehicle.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
@@ -1022,24 +1022,24 @@ final _entities = <obx_int.ModelEntity>[
       relations: <obx_int.ModelRelation>[],
       backlinks: <obx_int.ModelBacklink>[]),
   obx_int.ModelEntity(
-      id: const obx_int.IdUid(13, 1544516814584306382),
+      id: const obx_int.IdUid(14, 1285982151749798191),
       name: 'TrxCounter',
-      lastPropertyId: const obx_int.IdUid(3, 1138415339049082105),
+      lastPropertyId: const obx_int.IdUid(3, 7759286734023676862),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(1, 3633920374411291746),
+            id: const obx_int.IdUid(1, 4842330257592906181),
             name: 'id',
             type: 6,
             flags: 1),
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(2, 3968233899538006727),
+            id: const obx_int.IdUid(2, 7856140364798222636),
             name: 'date',
             type: 9,
             flags: 2080,
-            indexId: const obx_int.IdUid(37, 5889893864035660952)),
+            indexId: const obx_int.IdUid(38, 2010711523540310772)),
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(3, 1138415339049082105),
+            id: const obx_int.IdUid(3, 7759286734023676862),
             name: 'count',
             type: 6,
             flags: 0)
@@ -1083,11 +1083,11 @@ Future<obx.Store> openStore(
 obx_int.ModelDefinition getObjectBoxModel() {
   final model = obx_int.ModelInfo(
       entities: _entities,
-      lastEntityId: const obx_int.IdUid(13, 1544516814584306382),
-      lastIndexId: const obx_int.IdUid(37, 5889893864035660952),
+      lastEntityId: const obx_int.IdUid(14, 1285982151749798191),
+      lastIndexId: const obx_int.IdUid(38, 2010711523540310772),
       lastRelationId: const obx_int.IdUid(0, 0),
       lastSequenceId: const obx_int.IdUid(0, 0),
-      retiredEntityUids: const [1700870677764719325],
+      retiredEntityUids: const [1700870677764719325, 1544516814584306382],
       retiredIndexUids: const [],
       retiredPropertyUids: const [
         1729473330981476020,
@@ -1095,7 +1095,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
         6835213827130394741,
         6617295292592052027,
         8727624652846839627,
-        8722023271082496791
+        8722023271082496791,
+        3633920374411291746,
+        3968233899538006727,
+        1138415339049082105
       ],
       retiredRelationUids: const [],
       modelVersion: 5,

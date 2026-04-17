@@ -91,7 +91,7 @@ class AtelierHeader extends StatelessWidget {
                        ),
                       ),
                     ),
-                  if (leading != null) leading!,
+                  leading ?? const SizedBox.shrink(),
                   const Spacer(),
 
                   ...?actions,
@@ -224,7 +224,7 @@ class AtelierHeaderSub extends StatelessWidget {
                        ),
                       ),
                     ),
-                  if (leading != null) leading!,
+                  leading ?? const SizedBox.shrink(),
                   const Spacer(),
                   ...?actions,
                 ],

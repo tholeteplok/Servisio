@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_theme_extension.dart';
-import '../../../core/providers/staff_provider.dart';
+import '../../../core/providers/master_providers.dart';
 import '../../../domain/entities/staff.dart';
 import '../../../core/widgets/atelier_header.dart';
 

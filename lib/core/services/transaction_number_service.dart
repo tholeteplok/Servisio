@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import '../providers/objectbox_provider.dart';
 import '../../objectbox.g.dart';
+import '../../domain/entities/trx_counter.dart';
 
 /// Service untuk generate nomor transaksi.
 /// Menggunakan ObjectBox untuk persistence yang lebih reliable.
@@ -87,20 +88,4 @@ class TrxNumberService {
   }
 }
 
-/// Entity untuk menyimpan counter transaksi per hari di ObjectBox
-@Entity()
-class TrxCounter {
-  @Id()
-  int id = 0;
-
-  @Unique()
-  String date; // Format: YYYYMMDD
-
-  int count;
-
-  TrxCounter({
-    required this.date,
-    required this.count,
-  });
-}
 

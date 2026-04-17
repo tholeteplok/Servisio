@@ -202,7 +202,7 @@ class _StokHistoryProviderElement
   String get stokUuid => (origin as StokHistoryProvider).stokUuid;
 }
 
-String _$stokListHash() => r'7c475f9af9f25191e3af24e394a7ef9e136d38f3';
+String _$stokListHash() => r'24706157a676f82fe5ee054dea9d8d8f970dc104';
 
 /// See also [StokList].
 @ProviderFor(StokList)

@@ -194,7 +194,7 @@ final transactionListProvider = AutoDisposeAsyncNotifierProvider<
 
 typedef _$TransactionList = AutoDisposeAsyncNotifier<List<Transaction>>;
 String _$paginatedTransactionListHash() =>
-    r'b889eddd1fed00ab3225e25c747230bf5dafcb43';
+    r'83d2ed53c1b694bec6b9709e50f71b76b1decc44';
 
 /// See also [PaginatedTransactionList].
 @ProviderFor(PaginatedTransactionList)

@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../objectbox.g.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/pelanggan.dart';
@@ -8,6 +8,8 @@ import '../../domain/entities/sale.dart';
 import '../../domain/entities/staff.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/sync_queue_item.dart';
+
+part 'objectbox_provider.g.dart';
 
 class ObjectBoxProvider {
   late final Store _store;
@@ -47,17 +49,36 @@ class ObjectBoxProvider {
   }
 }
 
-// Internal state to hold the ObjectBoxProvider instance.
-// This allows us to swap the database connection at runtime (e.g., during Restore).
-final dbInstanceProvider = StateProvider<ObjectBoxProvider?>((ref) => null);
+// ── Database Initialization & Swapping ──
 
-// Global provider for application code to use.
-final dbProvider = Provider<ObjectBoxProvider>((ref) {
-  final instance = ref.watch(dbInstanceProvider);
-  if (instance == null) {
-    throw UnimplementedError('dbProvider must be initialized. Call dbInstanceProvider.notifier.state = ...');
+/// Provider that manages the ObjectBox instance.
+/// It uses [Future] for initial setup and can be updated at runtime.
+@Riverpod(keepAlive: true)
+class DbInstance extends _$DbInstance {
+  @override
+  FutureOr<ObjectBoxProvider> build() async {
+    // Initial creation. 
+    // If already initialized in main.dart and passed here, we could optimize,
+    // but building it here is cleaner for testability.
+    return await ObjectBoxProvider.create();
   }
-  return instance;
+
+  /// Manually update the database instance (e.g. after a restore operation).
+  void setInstance(ObjectBoxProvider newInstance) {
+    state = AsyncData(newInstance);
+  }
+}
+
+/// Global provider for application logic.
+/// WARNING: This should only be accessed when [dbInstanceProvider] is ready.
+final dbProvider = Provider<ObjectBoxProvider>((ref) {
+  final asyncInstance = ref.watch(dbInstanceProvider);
+  return asyncInstance.maybeWhen(
+    data: (instance) => instance,
+    orElse: () => throw UnimplementedError(
+      'dbProvider accessed before initialization. Watch dbInstanceProvider first.',
+    ),
+  );
 });
 
 // Since the store closure is critical, we should ensure the ObjectBoxProvider 

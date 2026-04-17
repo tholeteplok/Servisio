@@ -49,11 +49,11 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
       
       // 1. Close current database connection to release file locks
-      final db = ref.read(dbProvider);
-      db.dispose();
+      final dbAsync = ref.read(dbInstanceProvider);
+      dbAsync.whenData((db) => db.dispose());
       
-      // Clear the provider state so no one accidentally uses the closed handle
-      ref.read(dbInstanceProvider.notifier).state = null;
+      // Invalidate provider so it doesn't keep stale reference
+      ref.invalidate(dbInstanceProvider);
 
       setState(() {
         _status = 'Mengekstrak data...';
@@ -70,7 +70,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
 
       // 3. Re-initialize database with decrypted/restored files
       final newDb = await ObjectBoxProvider.create();
-      ref.read(dbInstanceProvider.notifier).state = newDb;
+      ref.read(dbInstanceProvider.notifier).setInstance(newDb);
 
       setState(() {
         _progress = 1.0;
@@ -84,10 +84,10 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       }
     } catch (e) {
       // Emergency recovery: Try to re-open DB if extraction fails
-      if (ref.read(dbInstanceProvider) == null) {
+      if (ref.read(dbInstanceProvider).hasError || ref.read(dbInstanceProvider).isLoading) {
         try {
           final recoveryDb = await ObjectBoxProvider.create();
-          ref.read(dbInstanceProvider.notifier).state = recoveryDb;
+          ref.read(dbInstanceProvider.notifier).setInstance(recoveryDb);
         } catch (_) {}
       }
 

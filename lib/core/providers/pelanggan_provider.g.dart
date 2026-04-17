@@ -23,7 +23,7 @@ final pelangganRepositoryProvider =
 );
 
 typedef PelangganRepositoryRef = AutoDisposeProviderRef<PelangganRepository>;
-String _$pelangganListHash() => r'f3dca2e90bce452034044c80f1edbce8d2b853f4';
+String _$pelangganListHash() => r'0dcbc9e7cab62fd85e524ed340283efc827c431a';
 
 /// See also [PelangganList].
 @ProviderFor(PelangganList)
