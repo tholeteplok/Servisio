@@ -170,7 +170,7 @@ class _CustomerSalesProviderElement
   String get customerName => (origin as CustomerSalesProvider).customerName;
 }
 
-String _$saleListHash() => r'b290a7b5b184cb09825da86cca608de0155c579a';
+String _$saleListHash() => r'296d1acecbca42a106c8bba1048970e55d148b34';
 
 /// See also [SaleList].
 @ProviderFor(SaleList)

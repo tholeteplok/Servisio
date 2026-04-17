@@ -2,6 +2,7 @@
 // Future-proof abstraction layer untuk biometric authentication
 // Support: 3x retry, PIN fallback, emergency mode
 
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
@@ -170,9 +171,24 @@ class BiometricService {
         }
 
         lastError = 'Verifikasi gagal';
+      } on PlatformException catch (e) {
+        lastError = e.message ?? e.code;
+        debugPrint('❌ Biometric PlatformException (attempt ${retry + 1}): ${e.code}');
+        
+        // 🛑 Stop retrying if user cancelled or hardware isn't available
+        if (e.code == 'NotAvailable' || 
+            e.code == 'NotEnrolled' || 
+            e.code == 'LockedOut' || 
+            e.code == 'PermanentlyLockedOut') {
+          return BiometricResult(
+            success: false,
+            retryCount: retry,
+            error: lastError,
+          );
+        }
       } catch (e) {
         lastError = e.toString();
-        debugPrint('⚠️ Biometric attempt ${retry + 1} failed: $e');
+        debugPrint('⚠️ Biometric unexpected error (attempt ${retry + 1}): $e');
       }
 
       // ─────────────────────────────────────────────────────────────

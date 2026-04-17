@@ -35,6 +35,7 @@ import '../../core/providers/sync_provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
 import '../../core/services/device_session_service.dart';
+import '../../core/services/session_manager.dart';
 import '../../core/widgets/standard_dialog.dart';
 import '../home/home_screen.dart';
 import '../pelanggan/pelanggan_screen.dart';
@@ -88,26 +89,26 @@ class _NavItem {
 const _navItems = [
   _NavItem(
     index: 0,
-    icon: SolarIconsOutline.home,
-    iconSelected: SolarIconsBold.home,
+    icon: AppIcons.navHome,
+    iconSelected: AppIcons.navHomeSelected,
     label: 'Beranda',
   ),
   _NavItem(
     index: 1,
-    icon: SolarIconsOutline.box,
-    iconSelected: SolarIconsBold.box,
+    icon: AppIcons.navInventory,
+    iconSelected: AppIcons.navInventorySelected,
     label: 'Inventaris',
   ),
   _NavItem(
     index: 2,
-    icon: SolarIconsOutline.usersGroupTwoRounded,
-    iconSelected: SolarIconsBold.usersGroupTwoRounded,
+    icon: AppIcons.navCustomers,
+    iconSelected: AppIcons.navCustomersSelected,
     label: 'Pelanggan',
   ),
   _NavItem(
     index: 3,
-    icon: SolarIconsOutline.history,
-    iconSelected: SolarIconsBold.history,
+    icon: AppIcons.navHistory,
+    iconSelected: AppIcons.navHistorySelected,
     label: 'Riwayat',
   ),
 ];
@@ -136,9 +137,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   void _startStatusPolling() {
+    // 🎯 SEC-FIX: Background Refresh every 15 minutes
     _statusTimer = Timer.periodic(const Duration(minutes: 15), (_) {
       if (ref.read(isWipingProvider)) return;
+      
+      // 1. Invalidate providers to update UI status indicators
+      ref.invalidate(sessionStatusProvider);
       ref.invalidate(deviceSessionStatusProvider);
+
+      // 2. Trigger background handshake if needed (age > 30m)
+      ref.read(sessionManagerProvider).refreshSessionIfNeeded();
     });
   }
 

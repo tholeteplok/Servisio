@@ -15,6 +15,12 @@ class LogicConstants {
   static const String trxCompleted = 'completed';
   static const String trxLunas = 'lunas';
 
+  // Service Workflow Statuses
+  static const String serviceStatusAntri = 'antri';
+  static const String serviceStatusDikerjakan = 'dikerjakan';
+  static const String serviceStatusSelesai = 'selesai';
+  static const String serviceStatusSiapAmbil = 'siap_ambil';
+
   // Staff Roles
   static const String roleMekanik = 'mekanik';
   static const String roleAdmin = 'admin';

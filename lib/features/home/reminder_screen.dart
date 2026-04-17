@@ -60,18 +60,25 @@ class ReminderScreen extends ConsumerWidget {
 
 }
 
-class _ReminderCard extends ConsumerWidget {
+class _ReminderCard extends ConsumerStatefulWidget {
   final Transaction trx;
   final SettingsState settings;
 
   const _ReminderCard({required this.trx, required this.settings});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReminderCard> createState() => _ReminderCardState();
+}
+
+class _ReminderCardState extends ConsumerState<_ReminderCard> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOverdue = trx.isOverdue;
+    final isOverdue = widget.trx.isOverdue;
     final statusColor = isOverdue ? Colors.red : Colors.orange;
-    final nextDate = trx.nextServiceDate;
+    final nextDate = widget.trx.nextServiceDate;
     final dateStr = nextDate != null
         ? DateFormat(AppStrings.date.displayDate).format(nextDate)
         : '-';
@@ -133,7 +140,7 @@ class _ReminderCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          trx.customerName,
+                          widget.trx.customerName,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
@@ -154,7 +161,7 @@ class _ReminderCard extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                trx.vehiclePlate,
+                                widget.trx.vehiclePlate,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -164,7 +171,7 @@ class _ReminderCard extends ConsumerWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              trx.vehicleModel,
+                              widget.trx.vehicleModel,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 color: Colors.grey,
@@ -200,7 +207,7 @@ class _ReminderCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        if (trx.targetServiceKm != null) ...[
+                        if (widget.trx.targetServiceKm != null) ...[
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -219,7 +226,7 @@ class _ReminderCard extends ConsumerWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${trx.targetServiceKm}${AppStrings.reminder.kmSuffix}',
+                                '${widget.trx.targetServiceKm}${AppStrings.reminder.kmSuffix}',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
@@ -235,31 +242,46 @@ class _ReminderCard extends ConsumerWidget {
 
                   // WhatsApp Button
                   Material(
-                    color: Colors.green.withValues(alpha: 0.1),
+                    color: _isLoading 
+                        ? Colors.grey.withValues(alpha: 0.1)
+                        : Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
-                      onTap: () async {
-                        AppHaptic.light();
-                        await ref.read(documentServiceProvider).sendReminderWhatsApp(
-                          phone: trx.customerPhone,
-                          transaction: trx,
-                          bengkelName: settings.workshopName,
-                        );
+                      onTap: _isLoading ? null : () async {
+                        setState(() => _isLoading = true);
+                        try {
+                          AppHaptic.light();
+                          await ref.read(documentServiceProvider).sendReminderWhatsApp(
+                            phone: widget.trx.customerPhone,
+                            transaction: widget.trx,
+                            bengkelName: widget.settings.workshopName,
+                          );
 
-                        // 🔥 Anti-Spam: Update waktu pengiriman terakhir
-                        // Ini akan otomatis menyembunyikan kartu ini dari daftar selama 7 hari
-                        trx.lastReminderSentAt = DateTime.now();
-                        await ref
-                            .read(transactionListProvider.notifier)
-                            .updateTransaction(trx);
+                          // 🔥 Anti-Spam: Update waktu pengiriman terakhir
+                          widget.trx.lastReminderSentAt = DateTime.now();
+                          await ref
+                              .read(transactionListProvider.notifier)
+                              .updateTransaction(widget.trx);
+                        } finally {
+                          if (mounted) setState(() => _isLoading = false);
+                        }
                       },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.all(16),
-                        child: const Icon(
-                          SolarIconsBold.outgoingCall,
-                          color: Colors.green,
-                        ),
+                        child: _isLoading 
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.green,
+                              ),
+                            )
+                          : const Icon(
+                            SolarIconsBold.outgoingCall,
+                            color: Colors.green,
+                          ),
                       ),
                     ),
                   ),

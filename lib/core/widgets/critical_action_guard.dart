@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/session_manager.dart';
 import '../services/biometric_service.dart';
 import '../providers/pengaturan_provider.dart';
+import 'security_dialogs.dart';
 
 // 🛡️ Critical Action Guard Widget
 class CriticalActionGuard extends ConsumerStatefulWidget {
@@ -42,8 +43,31 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
     final sessionManager = ref.read(sessionManagerProvider);
     final biometricService = ref.read(biometricServiceProvider);
 
-    // 1. Check access level
-    final accessLevel = await sessionManager.getAccessLevel();
+    // 0. QUICK CHECK (REACTIVE/CACHED)
+    // Avoid blocking UI if access is already known to be blocked.
+    final currentAccess = ref.read(accessLevelProvider);
+    if (currentAccess == AccessLevel.blocked) {
+      if (context.mounted) showBlockedDialog(context);
+      return false;
+    }
+
+    // 1. VALIDATE SESSION (WITH TIMEOUT)
+    // Ensure we don't hang forever on network handshake.
+    AccessLevel accessLevel;
+    try {
+      accessLevel = await sessionManager.getAccessLevel().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⚠️ CriticalActionGuard: Session validation timeout');
+          // If timeout, fallback to current cached state
+          return ref.read(accessLevelProvider);
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ CriticalActionGuard: Session validation error: $e');
+      accessLevel = ref.read(accessLevelProvider);
+    }
+
     if (accessLevel == AccessLevel.blocked) {
       if (context.mounted) showBlockedDialog(context);
       return false;
@@ -63,25 +87,29 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
       }
     }
 
-    // 3. Re-auth dengan biometric
+    // 3. Re-auth dengan biometric (UI Wrapper)
     final reason = customReason ?? getAuthReason(actionType);
-    final result = await biometricService.verifyWithRetry(
-      reason: reason,
-      maxRetry: 3,
-    );
-
-    if (result.success) {
-      return true;
-    } else {
-      // 🚀 Fallback to Master Password
+    
+    // ✅ Use SecurityDialogs for centralized premium UI & fallback
+    // instead of calling service directly for better UX.
+    try {
       if (!context.mounted) return false;
-
-      final pinVerified = await showMasterPasswordDialog(context, ref);
-      if (pinVerified) {
+      final verified = await SecurityDialogs.verify(context, reason: reason).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('⚠️ CriticalActionGuard: Security verification timeout');
+          return false;
+        },
+      );
+      
+      if (verified) {
         await biometricService.resetFailures();
         return true;
       }
+    } catch (e) {
+      debugPrint('❌ CriticalActionGuard: Verification error: $e');
     }
+
     return false;
   }
 

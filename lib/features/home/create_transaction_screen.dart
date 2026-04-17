@@ -1181,14 +1181,33 @@ class _CreateTransactionScreenState
   }
 
   void _addItemFromStok(Stok stok) {
+    if (stok.jumlah <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok "${stok.nama}" habis!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       final existingIndex = _selectedItems.indexWhere(
         (item) => item.stok.targetId == stok.id,
       );
 
       if (existingIndex != -1) {
-        _selectedItems[existingIndex].quantity++;
-        _selectedItems[existingIndex].recalculateSubtotal();
+        if (_selectedItems[existingIndex].quantity < stok.jumlah) {
+          _selectedItems[existingIndex].quantity++;
+          _selectedItems[existingIndex].recalculateSubtotal();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Batas stok "${stok.nama}" tercapai (${stok.jumlah})'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
         int bonus = 0;
         if (_selectedMechanic != null) {
@@ -1521,6 +1540,17 @@ class _CreateTransactionScreenState
                     IconButton(
                       icon: const Icon(LucideIcons.plus, size: 14),
                       onPressed: () {
+                        if (!item.isService && item.stok.target != null) {
+                          if (item.quantity >= item.stok.target!.jumlah) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Batas stok "${item.name}" tercapai (${item.stok.target!.jumlah})'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
+                        }
                         setState(() {
                           item.quantity++;
                           item.recalculateSubtotal();

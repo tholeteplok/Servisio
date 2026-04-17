@@ -27,9 +27,9 @@ class SessionPolicy {
   static const Duration staffWarningThreshold = Duration(hours: 8);
   
   // Handshake Configuration
-  static const Duration handshakeCacheTtl = Duration(minutes: 15);
+  static const Duration handshakeCacheTtl = Duration(minutes: 2);
   static const int handshakeMaxRetry = 3;
-  static const Duration handshakeTimeout = Duration(seconds: 5);
+  static const Duration handshakeTimeout = Duration(seconds: 10);
   
   // Master Password
   static const String masterPasswordKey = 'master_password_hash';
@@ -245,8 +245,89 @@ class SessionManager {
   Future<void> clearSession() async {
     // SEC-01 FIX: Gunakan clearSessionDataOnly agar master key tetap aman.
     await EncryptionService().clearSessionDataOnly();
+    
+    // LGK-04 FIX: Hapus metadata sesi tambahan
+    await _secureStorage.delete(key: 'user_id');
+    await _secureStorage.delete(key: 'user_role');
+    await _secureStorage.delete(key: 'bengkel_id');
+    await _secureStorage.delete(key: 'token_expiry');
+    await _secureStorage.delete(key: 'last_auth_timestamp');
+    await _secureStorage.delete(key: 'handshake_cache');
+    
     await _auth.signOut();
     debugPrint('🚪 Session cleared & Signed out');
+  }
+
+  /// ✅ NEW: Validasi Token ke Firebase Auth Server
+  /// Memastikan masa berlaku token disinkronkan langsung dari server.
+  Future<bool> _validateFirebaseToken() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      // Force refresh token dari server (Source of Truth)
+      final tokenResult = await user.getIdTokenResult(true);
+      final expirationTime = tokenResult.expirationTime;
+
+      if (expirationTime == null) return false;
+
+      // UPDATE metadata di SecureStorage
+      await _secureStorage.write(
+        key: 'token_expiry',
+        value: expirationTime.millisecondsSinceEpoch.toString(),
+      );
+
+      // UPDATE last_auth_timestamp juga agar offline duration tidak blocked prematur
+      await _secureStorage.write(
+        key: 'last_auth_timestamp',
+        value: DateTime.now().millisecondsSinceEpoch.toString(),
+      );
+
+      // Simpan role terbaru dari claims juga
+      final role = tokenResult.claims?['role'] as String? ?? 'teknisi';
+      await _secureStorage.write(key: 'user_role', value: role);
+
+      debugPrint('🛡️ Token validated & updated: Expiry ${expirationTime.toIso8601String()}');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Token validation failed: $e');
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // REFRESH & HANDSHAKE HELPERS
+  // ─────────────────────────────────────────────────────────────
+
+  /// Force refresh the local auth timestamp and clear handshake cache.
+  /// Called upon successful local unlock (Biometric/PIN).
+  Future<void> forceRefreshAuthTimestamp() async {
+    final now = DateTime.now();
+    await _secureStorage.write(
+      key: 'last_auth_timestamp',
+      value: now.millisecondsSinceEpoch.toString(),
+    );
+    await _secureStorage.delete(key: 'handshake_cache');
+    debugPrint('🔄 Local auth timestamp refreshed & handshake cache cleared');
+  }
+
+  /// Check if session needs a background refresh (handshake).
+  /// Called periodically by the main layout.
+  Future<void> refreshSessionIfNeeded() async {
+    final lastAuthStr = await _secureStorage.read(key: 'last_auth_timestamp');
+    if (lastAuthStr == null) return;
+
+    final lastAuth = DateTime.fromMillisecondsSinceEpoch(int.parse(lastAuthStr));
+    final age = DateTime.now().difference(lastAuth);
+
+    // If age > 30 minutes, attempt a handshake to keep session fresh.
+    // 30 mins is safe even for staff (9h grace) and owner (24h grace).
+    if (age > const Duration(minutes: 30)) {
+      debugPrint('🕒 Session age ${age.inMinutes}m — Triggering background refresh');
+      // Clearing handshake cache to ensure validateSession actually performs a network call
+      await _secureStorage.delete(key: 'handshake_cache');
+      await validateSession();
+    }
   }
   
   // ─────────────────────────────────────────────────────────────
@@ -260,6 +341,9 @@ class SessionManager {
       final isConnected = connectivity != ConnectivityResult.none;
       
       if (isConnected) {
+        // ✅ USER FIX 1: Validasi token ke server jika ada internet
+        // Ini memastikan token_expiry selalu update sebelum handshake/offline check
+        await _validateFirebaseToken();
         return await _handshakeOnline();
       } else {
         return await _validateOffline();
@@ -345,7 +429,7 @@ class SessionManager {
           return SessionStatus.valid;
 
         } else if (response.statusCode == 401) {
-          debugPrint('🔐 Handshake rejected (401): ${response.body}');
+          debugPrint('🔐 Handshake rejected (401): Sesi tidak valid atau token kedaluwarsa. Body: ${response.body}');
           return SessionStatus.invalid;
 
         } else if (response.statusCode == 429) {
@@ -361,11 +445,18 @@ class SessionManager {
           return await _validateOffline();
         }
       } catch (e) {
-        debugPrint('⚠️ Handshake attempt ${retry + 1} failed: $e');
+        if (e is http.ClientException) {
+          debugPrint('🌐 Handshake network error (attempt ${retry + 1}): Periksa koneksi internet. $e');
+        } else if (e is SocketException) {
+          debugPrint('🌐 Handshake socket error (attempt ${retry + 1}): Server tidak terjangkau. $e');
+        } else {
+          debugPrint('⚠️ Handshake attempt ${retry + 1} unexpected error: $e');
+        }
         retry++;
         if (retry < SessionPolicy.handshakeMaxRetry) {
           // LGK-04 FIX: Exponential backoff antar retry (2s, 4s, 8s)
           final waitSeconds = 2 * (1 << (retry - 1));
+          debugPrint('🔄 Retrying handshake in $waitSeconds seconds...');
           await Future.delayed(Duration(seconds: waitSeconds));
           continue;
         }
@@ -382,7 +473,14 @@ class SessionManager {
     final tokenExpiryStr = await _secureStorage.read(key: 'token_expiry');
     final role = await _secureStorage.read(key: 'user_role');
     
+    // LGK-04 FIX: Tambahkan logging yang detail untuk diagnosa
+    if (lastAuthStr == null) debugPrint('⚠️ Offline validation: last_auth_timestamp missing');
+    if (tokenExpiryStr == null) debugPrint('⚠️ Offline validation: token_expiry missing');
+    if (role == null) debugPrint('⚠️ Offline validation: user_role missing');
+    
     if (lastAuthStr == null || tokenExpiryStr == null || role == null) {
+      // Jika metadata kritis hilang, kita tidak bisa memvalidasi sesi offline.
+      // Sesi harus diblokir untuk keamanan.
       return SessionStatus.blocked;
     }
     
@@ -393,6 +491,7 @@ class SessionManager {
     
     // JWT expiry = HARD LIMIT
     if (now.isAfter(tokenExpiry)) {
+      debugPrint('🔐 Offline validation: Token Expired (Expiry: $tokenExpiry)');
       return SessionStatus.blocked;
     }
     
@@ -402,8 +501,10 @@ class SessionManager {
     if (offlineDuration < warningThreshold) {
       return SessionStatus.full;
     } else if (offlineDuration < gracePeriod) {
+      debugPrint('⏳ Offline validation: Entering Warning Zone (${offlineDuration.inHours}h offline)');
       return SessionStatus.warning;
     } else {
+      debugPrint('🔐 Offline validation: Blocked — Offline too long (${offlineDuration.inHours}h offline)');
       return SessionStatus.blocked;
     }
   }

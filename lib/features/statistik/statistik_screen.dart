@@ -25,25 +25,47 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   late TabController _tabController;
   bool _isPrivate = true;
   bool _isLoading = true;
+  bool _isVerifying = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _checkSecurity();
+    
+    // 🛡️ SECURITY CHECK: Jalankan setelah frame pertama dirender
+    // agar context valid dan UI sudah siap.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSecurity();
+    });
   }
 
   Future<void> _checkSecurity() async {
-    final verified = await CriticalActionGuard.check(
-      ref,
-      context,
-      CriticalActionType.viewFinancials,
-    );
-    
-    if (verified) {
-      if (mounted) setState(() => _isLoading = false);
-    } else {
+    if (!mounted) return;
+    setState(() => _isVerifying = true);
+
+    try {
+      final verified = await CriticalActionGuard.check(
+        ref,
+        context,
+        CriticalActionType.viewFinancials,
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          debugPrint('⚠️ StatistikScreen: Security check global timeout');
+          return false;
+        },
+      );
+      
+      if (verified) {
+        if (mounted) setState(() => _isLoading = false);
+      } else {
+        if (mounted) Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('❌ StatistikScreen: Security check error: $e');
       if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _isVerifying = false);
     }
   }
 
@@ -65,32 +87,66 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             _buildHeader(theme),
             _buildTabBar(theme),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Row(
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
                       children: [
-                        Expanded(child: AtelierSkeleton.statCard()),
-                        const SizedBox(width: 12),
-                        Expanded(child: AtelierSkeleton.statCard()),
+                        Row(
+                          children: [
+                            Expanded(child: AtelierSkeleton.statCard()),
+                            const SizedBox(width: 12),
+                            Expanded(child: AtelierSkeleton.statCard()),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        AtelierSkeleton.custom(
+                          child: Container(
+                            height: 200,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        AtelierSkeleton.listOf(3, () => AtelierSkeleton.listItem()),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    AtelierSkeleton.custom(
-                      child: Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
+                  ),
+                  if (_isVerifying)
+                    Container(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                              color: AppColors.precisionViolet,
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Menyiapkan Kunci Keamanan...',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Pastikan koneksi internet stabil',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    AtelierSkeleton.listOf(3, () => AtelierSkeleton.listItem()),
-                  ],
-                ),
+                ],
               ),
             ),
           ],

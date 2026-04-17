@@ -467,7 +467,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
       id: const obx_int.IdUid(4, 5087179335593720668),
       name: 'Sale',
-      lastPropertyId: const obx_int.IdUid(13, 754921638426636503),
+      lastPropertyId: const obx_int.IdUid(14, 4407223914985940477),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
@@ -539,6 +539,11 @@ final _entities = <obx_int.ModelEntity>[
             id: const obx_int.IdUid(13, 754921638426636503),
             name: 'stokUuid',
             type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(14, 4407223914985940477),
+            name: 'updatedAt',
+            type: 10,
             flags: 0)
       ],
       relations: <obx_int.ModelRelation>[],
@@ -1555,7 +1560,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
           final stokUuidOffset = object.stokUuid == null
               ? null
               : fbb.writeString(object.stokUuid!);
-          fbb.startTable(14);
+          fbb.startTable(15);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, uuidOffset);
           fbb.addOffset(2, itemNameOffset);
@@ -1569,12 +1574,15 @@ obx_int.ModelDefinition getObjectBoxModel() {
           fbb.addInt64(10, object.costPrice);
           fbb.addInt64(11, object.totalProfit);
           fbb.addOffset(12, stokUuidOffset);
+          fbb.addInt64(13, object.updatedAt?.millisecondsSinceEpoch);
           fbb.finish(fbb.endTable());
           return object.id;
         },
         objectFromFB: (obx.Store store, ByteData fbData) {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
+          final updatedAtValue =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 30);
           final itemNameParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 8, '');
           final quantityParam =
@@ -1595,6 +1603,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
               .vTableGet(buffer, rootOffset, 6, '');
           final createdAtParam = DateTime.fromMillisecondsSinceEpoch(
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 16, 0));
+          final updatedAtParam = updatedAtValue == null
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(updatedAtValue);
           final object = Sale(
               itemName: itemNameParam,
               quantity: quantityParam,
@@ -1604,7 +1615,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
               transactionId: transactionIdParam,
               stokUuid: stokUuidParam,
               uuid: uuidParam,
-              createdAt: createdAtParam)
+              createdAt: createdAtParam,
+              updatedAt: updatedAtParam)
             ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
             ..isDeleted =
                 const fb.BoolReader().vTableGet(buffer, rootOffset, 18, false)
@@ -2517,6 +2529,10 @@ class Sale_ {
   /// See [Sale.stokUuid].
   static final stokUuid =
       obx.QueryStringProperty<Sale>(_entities[3].properties[12]);
+
+  /// See [Sale.updatedAt].
+  static final updatedAt =
+      obx.QueryDateProperty<Sale>(_entities[3].properties[13]);
 }
 
 /// [ServiceMaster] entity fields to define ObjectBox queries.

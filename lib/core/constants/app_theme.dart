@@ -10,7 +10,6 @@ class AppTheme {
     Color? fontAccent,
   }) {
     return ThemeData(
-      // ignore: deprecated_member_use
       useMaterial3: true,
       colorScheme: colorScheme,
       extensions: [
@@ -87,7 +86,7 @@ class AppTheme {
     );
   }
 
-  static ThemeData light() => _base(
+  static ThemeData get light => _base(
     buttonAccent: AppColors.precisionViolet,
     colorScheme:
         ColorScheme.fromSeed(
@@ -104,7 +103,7 @@ class AppTheme {
         ),
   );
 
-  static ThemeData dark() => _base(
+  static ThemeData get dark => _base(
     buttonAccent: AppColors.precisionViolet,
     colorScheme:
         ColorScheme.fromSeed(
@@ -123,6 +122,6 @@ class AppTheme {
   );
 
   // Maintain aliases for backward compatibility if needed, but point to new logic
-  static ThemeData modernSiang() => light();
-  static ThemeData modernMalam() => dark();
+  static ThemeData get modernSiang => light;
+  static ThemeData get modernMalam => dark;
 }

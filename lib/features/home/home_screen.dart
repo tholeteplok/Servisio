@@ -50,6 +50,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -206,7 +208,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             searchController: _searchController,
             searchHint: AppStrings.home.searchHint,
             onSearchChanged: (val) {
-              ref.read(homeSearchQueryProvider.notifier).update(val);
+              if (_debounce?.isActive ?? false) _debounce!.cancel();
+              _debounce = Timer(const Duration(milliseconds: 300), () {
+                ref.read(homeSearchQueryProvider.notifier).update(val);
+              });
             },
             actions: [
               const _InlineZoneBadge(),
@@ -1180,19 +1185,44 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
             if (nextStatus != null) {
               if (nextStatus == ServiceStatus.lunas) {
                 HapticFeedback.mediumImpact();
-                showDialog(
+                final result = await showDialog<bool>(
                   context: context,
                   barrierDismissible: false,
                   builder: (context) => TheCeremonyDialog(transaction: trx),
-                ).then((_) {
-                   ref.invalidate(statsProvider);
-                });
+                );
+                if (result == true) {
+                  ref.invalidate(statsProvider);
+                }
               } else {
-                HapticFeedback.mediumImpact();
-                await ref
-                    .read(transactionListProvider.notifier)
-                    .updateTransactionStatus(trx, nextStatus);
-                ref.invalidate(statsProvider);
+                // Show confirmation for intermediate steps
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(AppStrings.common.confirm),
+                    content: Text('Ubah status transaksi "${trx.trxNumber}" menjadi ${nextStatusLabel.toUpperCase()}?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(AppStrings.common.cancel),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: nextStatusColor,
+                        ),
+                        child: Text(AppStrings.common.confirm),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  HapticFeedback.mediumImpact();
+                  await ref
+                      .read(transactionListProvider.notifier)
+                      .updateTransactionStatus(trx, nextStatus);
+                  ref.invalidate(statsProvider);
+                }
               }
             }
             return false; // Never dismiss via progression

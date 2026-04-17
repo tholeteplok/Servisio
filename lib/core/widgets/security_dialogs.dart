@@ -54,12 +54,28 @@ class SecurityDialogs {
   }) async {
     final bio = BiometricService();
 
-    // Check if biometric is available and authenticated
-    bool authenticated = await bio.verify(reason: reason);
-    if (authenticated) return true;
+    try {
+      // 1. Coba biometric dengan timeout 5 detik
+      // Jika biometrik sub-system hang, kita tidak ingin user menunggu selamanya.
+      final authenticated = await bio
+          .verify(reason: reason)
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              debugPrint('⚠️ SecurityDialogs: Biometric timeout (5s)');
+              return false;
+            },
+          );
 
-    // Fallback to PIN
+      if (authenticated) return true;
+    } catch (e) {
+      debugPrint('❌ SecurityDialogs: Biometric error: $e');
+      // Lanjut ke fallback PIN jika error
+    }
+
+    // 2. Fallback to PIN
     if (context.mounted) {
+      debugPrint('🔐 Falling back to PIN verification');
       final res = await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,

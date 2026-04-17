@@ -541,6 +541,12 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                   labelText: 'Stok Awal',
                                   suffixText: 'pcs',
                                 ),
+                                validator: (v) {
+                                  if (v?.isEmpty ?? true) return null;
+                                  final n = int.tryParse(v!) ?? 0;
+                                  if (n < 0) return 'Stok tidak boleh negatif';
+                                  return null;
+                                },
                                 keyboardType: TextInputType.number,
                               ),
                             ),
@@ -553,6 +559,12 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                   labelText: 'Min. Stok',
                                   suffixText: 'pcs',
                                 ),
+                                validator: (v) {
+                                  if (v?.isEmpty ?? true) return null;
+                                  final n = int.tryParse(v!) ?? 0;
+                                  if (n < 0) return 'Min. stok tidak boleh negatif';
+                                  return null;
+                                },
                                 keyboardType: TextInputType.number,
                               ),
                             ),
@@ -567,6 +579,12 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                             prefixIcon: Icon(SolarIconsOutline.wallet),
                             suffixText: 'IDR',
                           ),
+                          validator: (v) {
+                            if (v?.isEmpty ?? true) return null;
+                            final n = int.tryParse(v!) ?? 0;
+                            if (n < 0) return 'Harga tidak boleh negatif';
+                            return null;
+                          },
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 16),
@@ -582,8 +600,17 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                             suffixText: 'IDR',
                           ),
                           keyboardType: TextInputType.number,
-                          validator: (v) =>
-                              v?.isEmpty ?? true ? 'Wajib diisi' : null,
+                          validator: (v) {
+                            if (v?.isEmpty ?? true) return 'Wajib diisi';
+                            final jual = int.tryParse(v!) ?? 0;
+                            if (jual < 0) return 'Harga tidak boleh negatif';
+                            final beli =
+                                int.tryParse(_hargaBeliController.text) ?? 0;
+                            if (jual < beli) {
+                              return 'Harga jual tidak boleh di bawah harga modal';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),

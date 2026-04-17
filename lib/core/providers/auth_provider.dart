@@ -9,6 +9,9 @@ import '../services/encryption_service.dart';
 import '../services/device_session_service.dart';
 import '../models/user_profile.dart';
 import 'sync_provider.dart';
+import 'pengaturan_provider.dart';
+import '../services/session_manager.dart';
+import '../constants/app_settings.dart';
 
 // ===== Service Providers =====
 
@@ -44,6 +47,8 @@ class AuthStateContainer {
 /// Priority: Custom Claims → Firestore fallback.
 final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
   final authService = ref.watch(authServiceProvider);
+  final sessionManager = SessionManager(); // LGK-04: Session persistence
+  final settings = ref.read(settingsProvider.notifier);
 
   await for (final user in authService.authStateChanges) {
     if (user == null) {
@@ -78,6 +83,34 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
           await DeviceSessionService().registerDevice(user.uid);
         }
 
+        // 🎯 LGK-04 FIX: Inisialisasi metadata sesi dan sinkronisasi pengaturan
+        // Ini memastikan Bengkel ID tampil di UI dan sesi tidak blocked saat offline.
+        final token = await user.getIdToken();
+        await sessionManager.saveSession(
+          token: token ?? '',
+          userId: user.uid,
+          role: profile.role,
+          bengkelId: profile.bengkelId,
+        );
+
+        // Sinkronisasi Bengkel ID ke SharedPreferences agar tampil di UI Pusat Data
+        if (profile.bengkelId.isNotEmpty) {
+          await settings.setBengkelId(profile.bengkelId);
+        }
+
+        // Ambil nama bengkel agar konsisten di settings
+        try {
+          final bengkelDoc = await BengkelService().getBengkel(profile.bengkelId);
+          if (bengkelDoc.exists) {
+            final name = (bengkelDoc.data() as Map<String, dynamic>?)?['name'];
+            if (name != null) {
+              await settings.updateWorkshopInfo(name: name as String);
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Gagal sinkronisasi nama bengkel: $e');
+        }
+
         yield AuthStateContainer(
           state: AuthState.authenticated,
           user: user,
@@ -98,6 +131,32 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
         // 📱 Register device → mencabut sesi perangkat lama (Owner only)
         if (profile.role == 'owner') {
           await DeviceSessionService().registerDevice(user.uid);
+        }
+
+        // 🎯 LGK-04 FIX: Inisialisasi metadata sesi dan sinkronisasi pengaturan
+        final token = await user.getIdToken();
+        await sessionManager.saveSession(
+          token: token ?? '',
+          userId: user.uid,
+          role: profile.role,
+          bengkelId: profile.bengkelId,
+        );
+
+        if (profile.bengkelId.isNotEmpty) {
+          await settings.setBengkelId(profile.bengkelId);
+        }
+
+        // Ambil nama bengkel agar konsisten di settings
+        try {
+          final bengkelDoc = await BengkelService().getBengkel(profile.bengkelId);
+          if (bengkelDoc.exists) {
+            final name = (bengkelDoc.data() as Map<String, dynamic>?)?['name'];
+            if (name != null) {
+              await settings.updateWorkshopInfo(name: name as String);
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Gagal sinkronisasi nama bengkel: $e');
         }
 
         yield AuthStateContainer(
@@ -193,7 +252,7 @@ final logoutProvider = Provider<Future<void> Function()>((ref) {
     // (bengkelId & lastBackupAt tidak sensitif namun harus direset
     // agar tidak bocor ke user berikutnya di perangkat yang sama).
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('bengkel_id');
+    await prefs.remove(AppSettings.workshopId); // LGK-04 FIX: Gunakan key yang benar
     await prefs.remove('last_backup_at');
     // Catatan: key seperti theme, language dipertahankan (preferensi perangkat)
 

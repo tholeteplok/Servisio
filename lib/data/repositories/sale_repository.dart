@@ -37,12 +37,8 @@ class SaleRepository {
     return results;
   }
 
-  Future<int> save(Sale sale) async {
-    return _box.put(sale);
-  }
-
-  /// Synchronous put for use inside ObjectBox runInTransaction blocks.
-  int saveSync(Sale sale) {
+  int save(Sale sale) {
+    sale.updatedAt = DateTime.now();
     return _box.put(sale);
   }
 
@@ -50,6 +46,7 @@ class SaleRepository {
     final s = _box.get(id);
     if (s != null) {
       s.isDeleted = true;
+      s.updatedAt = DateTime.now();
       _box.put(s);
       return true;
     }

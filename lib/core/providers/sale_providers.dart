@@ -30,14 +30,14 @@ class SaleList extends _$SaleList {
 
   Future<void> addSale(Sale sale) async {
     final repository = ref.read(saleRepositoryProvider);
-    await repository.save(sale);
+    repository.save(sale);
     loadSales();
   }
 
   Future<void> addSales(List<Sale> sales) async {
     final repository = ref.read(saleRepositoryProvider);
     for (var sale in sales) {
-      await repository.save(sale);
+      repository.save(sale);
     }
     loadSales();
   }
@@ -90,7 +90,7 @@ class SaleList extends _$SaleList {
         }
 
         sale.paymentMethod = paymentMethod;
-        repository.saveSync(sale); // synchronous put inside transaction
+        repository.save(sale); 
       });
 
       // Enqueue SETELAH ObjectBox commit
@@ -155,7 +155,7 @@ class SaleList extends _$SaleList {
           }
 
           sale.paymentMethod = paymentMethod;
-          repository.saveSync(sale);
+          repository.save(sale);
         }
       });
 

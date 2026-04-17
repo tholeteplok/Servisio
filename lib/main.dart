@@ -149,8 +149,8 @@ class _MainAppState extends ConsumerState<MainApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'ServisLog+',
-      theme: AppTheme.modernSiang(),
-      darkTheme: AppTheme.modernMalam(),
+      theme: AppTheme.modernSiang,
+      darkTheme: AppTheme.modernMalam,
       themeMode: mode,
       home: const AuthGate(),
       // Text scale factor clamping for accessibility (WCAG compliant)

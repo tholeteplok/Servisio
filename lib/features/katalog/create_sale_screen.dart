@@ -51,6 +51,16 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
       _selectedItems.fold(0, (sum, item) => sum + item.total);
 
   void _addItem(Stok stok) {
+    if (stok.jumlah <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok "${stok.nama}" habis!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       final existingIndex = _selectedItems.indexWhere(
         (item) => item.stok.uuid == stok.uuid,
@@ -58,6 +68,13 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
       if (existingIndex != -1) {
         if (_selectedItems[existingIndex].quantity < stok.jumlah) {
           _selectedItems[existingIndex].quantity++;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Batas stok "${stok.nama}" tercapai (${stok.jumlah})'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       } else {
         _selectedItems.add(_SelectedSaleItem(stok: stok));
@@ -70,8 +87,16 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
   }
 
   void _incrementQty(int index) {
-    if (_selectedItems[index].quantity < _selectedItems[index].stok.jumlah) {
-      setState(() => _selectedItems[index].quantity++);
+    final item = _selectedItems[index];
+    if (item.quantity < item.stok.jumlah) {
+      setState(() => item.quantity++);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Batas stok "${item.stok.nama}" tercapai (${item.stok.jumlah})'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

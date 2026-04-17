@@ -27,7 +27,15 @@ class Stok {
   int hargaBeli; // Modal (Precision: Rp)
   int hargaJual; // Harga ke konsumen (Precision: Rp)
 
-  int jumlah; // Stok saat ini
+  int _jumlah; // Stok saat ini
+  int get jumlah => _jumlah;
+  set jumlah(int value) {
+    if (value < 0) {
+      _jumlah = 0;
+    } else {
+      _jumlah = value;
+    }
+  }
   int minStok; // Batas peringatan stok menipis
 
   @Index()
@@ -49,12 +57,13 @@ class Stok {
     this.sku,
     this.hargaBeli = 0,
     this.hargaJual = 0,
-    this.jumlah = 0,
+    int jumlah = 0,
     this.minStok = 5,
     this.kategori = LogicConstants.catSparepart,
     this.photoLocalPath,
     String? uuid,
-  }) : uuid = uuid ?? const Uuid().v4(),
+  }) : _jumlah = jumlah < 0 ? 0 : jumlah,
+       uuid = uuid ?? const Uuid().v4(),
        createdAt = DateTime.now(),
        updatedAt = DateTime.now();
 

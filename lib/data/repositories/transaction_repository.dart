@@ -6,7 +6,7 @@ class TransactionRepository {
 
   TransactionRepository(this._box);
 
-  Future<int> save(Transaction transaction) async {
+  int save(Transaction transaction) {
     transaction.updatedAt = DateTime.now();
     return _box.put(transaction);
   }

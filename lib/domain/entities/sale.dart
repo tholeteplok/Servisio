@@ -30,6 +30,9 @@ class Sale {
   @Index()
   DateTime createdAt;
 
+  @Property(type: PropertyType.date)
+  DateTime? updatedAt;
+
   Sale({
     required this.itemName,
     required this.quantity,
@@ -37,11 +40,13 @@ class Sale {
     this.costPrice = 0,
     this.customerName,
     this.transactionId,
-    this.stokUuid, // ✅ FIX #1: Tambahkan sebagai parameter opsional
+    this.stokUuid,
     String? uuid,
     DateTime? createdAt,
+    this.updatedAt,
   }) : uuid = uuid ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now() {
+    updatedAt ??= createdAt;
     totalProfit = totalPrice - (costPrice * quantity);
   }
 }

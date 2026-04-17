@@ -9,6 +9,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/migration_service.dart';
 import '../../../core/models/user_profile.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../../core/services/session_manager.dart';
 import '../../../core/widgets/atelier_header.dart';
 
 class SyncSettingsScreen extends ConsumerStatefulWidget {
@@ -84,12 +85,8 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     final settings = ref.watch(settingsProvider);
     final profile = ref.watch(currentProfileProvider);
 
-    // Consolidate bengkelId logic: Priority Profile -> Settings
-    final bengkelId = (profile?.bengkelId != null && profile!.bengkelId.isNotEmpty)
-        ? profile.bengkelId
-        : settings.bengkelId;
-
-    final isActive = bengkelId.isNotEmpty;
+    final sessionStatus = ref.watch(sessionStatusStreamProvider).value ?? SessionStatus.full;
+    final isActive = settings.bengkelId.isNotEmpty;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -107,10 +104,10 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionHeader('Status Penyimpanan'),
-                  _buildStatusCard(theme, isDark, isActive),
+                  _buildStatusCard(theme, isDark, isActive, sessionStatus),
                   const SizedBox(height: 24),
                   _buildSectionHeader('Informasi Bengkel'),
-                  _buildInfoCard(theme, isDark, settings, profile, bengkelId),
+                  _buildInfoCard(theme, isDark, settings, profile, settings.bengkelId),
                   const SizedBox(height: 32),
                   _buildSectionHeader('Aksi Pemeliharaan'),
                   _buildMigrationButton(theme, isDark),
@@ -140,8 +137,28 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     );
   }
 
-  Widget _buildStatusCard(ThemeData theme, bool isDark, bool isActive) {
-    final statusColor = isActive ? AppColors.success : AppColors.error;
+  Widget _buildStatusCard(ThemeData theme, bool isDark, bool isActive, SessionStatus sessionStatus) {
+    var statusColor = isActive ? AppColors.success : AppColors.error;
+    var statusTitle = isActive ? 'Sudah Terhubung' : 'Belum Terhubung';
+    var statusSubtitle = isActive
+        ? 'Semua data bengkel Anda sudah aman di internet.'
+        : 'Hubungkan ke bengkel untuk mulai menyimpan data.';
+    var statusIcon = isActive ? SolarIconsOutline.cloudCheck : SolarIconsOutline.cloudCross;
+
+    // UX-05: Override UI if session is restricted or blocked
+    if (isActive) {
+      if (sessionStatus == SessionStatus.blocked || sessionStatus == SessionStatus.invalid) {
+        statusColor = AppColors.error;
+        statusTitle = 'Sesi Terkunci';
+        statusSubtitle = 'Akses ditutup karena terlalu lama offline. Hubungkan internet segera.';
+        statusIcon = SolarIconsOutline.shieldWarning;
+      } else if (sessionStatus == SessionStatus.warning) {
+        statusColor = AppColors.warning;
+        statusTitle = 'Sesi Terbatas';
+        statusSubtitle = 'Segera hubungkan internet untuk memulihkan akses penuh.';
+        statusIcon = SolarIconsOutline.shieldMinimalistic;
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -161,9 +178,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isActive
-                  ? SolarIconsOutline.cloudCheck
-                  : SolarIconsOutline.cloudCross,
+              statusIcon,
               color: statusColor,
             ),
           ),
@@ -173,7 +188,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isActive ? 'Sudah Terhubung' : 'Belum Terhubung',
+                  statusTitle,
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
@@ -181,9 +196,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                   ),
                 ),
                 Text(
-                  isActive
-                      ? 'Semua data bengkel Anda sudah aman di internet.'
-                      : 'Hubungkan ke bengkel untuk mulai menyimpan data.',
+                  statusSubtitle,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,

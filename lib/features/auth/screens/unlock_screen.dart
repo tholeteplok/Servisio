@@ -9,6 +9,8 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/constants/app_strings.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/services/session_manager.dart';
 import 'sync_restore_screen.dart';
 
 class UnlockScreen extends ConsumerStatefulWidget {
@@ -53,7 +55,17 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     }
   }
 
-  void _handleSuccessfulUnlock() {
+  Future<void> _handleSuccessfulUnlock() async {
+    // 🎯 FIX: Reset session duration on successful local auth
+    final sessionManager = ref.read(sessionManagerProvider);
+    await sessionManager.forceRefreshAuthTimestamp();
+
+    // LGK-04 USER FIX: Clear handshake cache to force fresh validation
+    // and remove any potential rate-limit blocks.
+    final storage = const FlutterSecureStorage();
+    await storage.delete(key: 'handshake_cache');
+    await storage.delete(key: 'rate_limit_until');
+
     final db = ref.read(dbProvider);
 
     // UX-04 FIX: txCount == 0 saja tidak cukup — bengkel baru yang baru
@@ -96,7 +108,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
             await _biometric.resetFailures();
             
             await _encryption.init(); // LGK-07: Ensure in-memory encrypter is ready
-            _handleSuccessfulUnlock();
+            await _handleSuccessfulUnlock();
             return;
           }
         }
@@ -162,7 +174,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
         }
 
         await _encryption.init(); // LGK-07: Ensure in-memory encrypter is ready
-        _handleSuccessfulUnlock();
+        await _handleSuccessfulUnlock();
       } else {
         setState(() => _errorText = AppStrings.auth.pinIncorrect);
         _pinController.clear();

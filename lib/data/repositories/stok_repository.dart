@@ -6,7 +6,7 @@ class StokRepository {
 
   StokRepository(this._box);
 
-  Future<int> save(Stok stok) async {
+  int save(Stok stok) {
     // 🛡️ Logic Guard: Barcode/SKU Uniqueness
     if (stok.sku != null && stok.sku!.trim().isNotEmpty) {
       final existing = _box

@@ -37,7 +37,7 @@ class TransactionList extends _$TransactionList {
       final repository = ref.read(transactionRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
       transaction.calculateTotals();
-      await repository.save(transaction);
+      repository.save(transaction);
       syncWorker?.enqueue(
         entityType: 'transaction',
         entityUuid: transaction.uuid,
@@ -54,7 +54,7 @@ class TransactionList extends _$TransactionList {
       final repository = ref.read(transactionRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
       transaction.calculateTotals();
-      await repository.save(transaction);
+      repository.save(transaction);
       syncWorker?.enqueue(
         entityType: 'transaction',
         entityUuid: transaction.uuid,
@@ -80,7 +80,7 @@ class TransactionList extends _$TransactionList {
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
-      await repository.save(transaction);
+      repository.save(transaction);
       syncWorker?.enqueue(
         entityType: 'transaction',
         entityUuid: transaction.uuid,
@@ -108,7 +108,7 @@ class TransactionList extends _$TransactionList {
       final repository = ref.read(transactionRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
       transaction.calculateTotals();
-      await repository.save(transaction);
+      repository.save(transaction);
       syncWorker?.enqueue(
         entityType: 'transaction',
         entityUuid: transaction.uuid,
@@ -233,7 +233,7 @@ class TransactionList extends _$TransactionList {
       final repository = ref.read(transactionRepositoryProvider);
       tx.isDeleted = false;
       tx.updatedAt = DateTime.now();
-      await repository.save(tx);
+      repository.save(tx);
       return repository.getAll();
     });
     _syncPaginated(); // LGK-02
@@ -379,7 +379,7 @@ class PaginatedTransactionList extends _$PaginatedTransactionList {
 
     tx.isDeleted = false;
     tx.updatedAt = DateTime.now();
-    await repository.save(tx);
+    repository.save(tx);
 
     await refresh();
   }

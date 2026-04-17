@@ -38,7 +38,7 @@ class StokList extends _$StokList {
     final historyRepository = ref.read(stokHistoryRepositoryProvider);
     final syncWorker = ref.read(syncWorkerProvider);
     
-    final id = await repository.save(stok);
+    final id = repository.save(stok);
     stok.id = id;
     final history = StokHistory(
       stokUuid: stok.uuid,
@@ -64,7 +64,7 @@ class StokList extends _$StokList {
     final oldItem = repository.getByUuid(stok.uuid);
     final previousQty = oldItem?.jumlah ?? 0;
 
-    await repository.save(stok);
+    repository.save(stok);
     syncWorker?.enqueue(entityType: 'stok', entityUuid: stok.uuid);
 
     if (stok.jumlah != previousQty) {
@@ -91,7 +91,7 @@ class StokList extends _$StokList {
     if (item != null) {
       final oldQty = item.jumlah;
       item.jumlah += amount;
-      await repository.save(item);
+      repository.save(item);
       syncWorker?.enqueue(entityType: 'stok', entityUuid: item.uuid);
 
       final history = StokHistory(

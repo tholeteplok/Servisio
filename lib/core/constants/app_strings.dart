@@ -545,18 +545,11 @@ class SyncStrings {
   final error = 'Terjadi kesalahan sinkronisasi';
 
   // State labels for UI
-  String statusLabel(String state) {
-    switch (state.toLowerCase()) {
-      case 'pending':
-        return pending;
-      case 'syncing':
-        return syncing;
-      case 'synced':
-        return synced;
-      case 'failed':
-        return failed;
-      default:
-        return state;
-    }
-  }
+  String statusLabel(String state) => switch (state.toLowerCase()) {
+        'pending' => pending,
+        'syncing' => syncing,
+        'synced' => synced,
+        'failed' => failed,
+        _ => state,
+      };
 }
