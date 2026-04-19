@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import '../../domain/entities/sync_queue_item.dart';
 import '../../domain/entities/staff.dart';
@@ -21,6 +20,7 @@ import 'device_session_service.dart';
 import '../constants/app_strings.dart';
 import '../constants/logic_constants.dart';
 import 'session_manager.dart';
+import '../utils/app_logger.dart';
 
 /// 🏎️ SyncWorker — Optimized background worker with Concurrency Pool(2).
 /// Implements the ServisLog+ Sync Framework v1.4 for production reliability.
@@ -29,8 +29,10 @@ class SyncWorker {
   final FirestoreSyncService _syncService;
   final DeviceSessionService? _deviceService;
   final SessionManager? _sessionManager;
+  final SyncLockManager _lockManager;
   final String bengkelId;
   final String? userId;
+  final Connectivity _connectivity;
 
   // FIX [PERINGATAN]: Tambah parameter syncWifiOnly agar setting dari UI
   // pengaturan benar-benar diterapkan saat memproses antrian sync.
@@ -39,10 +41,10 @@ class SyncWorker {
   Timer? _timer;
   bool _isRunning = false;
   bool _isDisposed = false;
+  bool _isProcessing = false;
   StreamSubscription? _connectivitySubscription;
 
   // Framework Components
-  final _lockManager = SyncLockManager();
   final _circuitBreaker = HierarchicalCircuitBreaker();
   final _pool = Pool(2); // Concurrency Level 2
 
@@ -56,12 +58,16 @@ class SyncWorker {
     this.userId,
     DeviceSessionService? deviceService,
     SessionManager? sessionManager,
+    SyncLockManager? lockManager,
+    Connectivity? connectivity,
     this.onStateChanged,
     this.syncWifiOnly = false, // default: sync di semua koneksi
   })  : _db = db,
         _syncService = syncService,
         _deviceService = deviceService,
-        _sessionManager = sessionManager;
+        _sessionManager = sessionManager,
+        _lockManager = lockManager ?? SyncLockManager(),
+        _connectivity = connectivity ?? Connectivity();
 
   /// Start background sync — checks every 30 seconds + on network change.
   void start() {
@@ -71,16 +77,16 @@ class SyncWorker {
     // Process immediately
     _processQueue();
 
-    // Check every 30 seconds
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!_isDisposed && _isRunning) {
+    // Check every 120 seconds for automatic retries
+    _timer = Timer.periodic(const Duration(seconds: 120), (_) {
+      if (!_isDisposed && _isRunning && !_isProcessing) {
         _processQueue();
       }
     });
 
     // Also process on network change
     _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((result) {
+        _connectivity.onConnectivityChanged.listen((result) {
       if (result != ConnectivityResult.none && !_isDisposed && _isRunning) {
         _processQueue();
       }
@@ -134,20 +140,21 @@ class SyncWorker {
       priority: priority.code,
     );
     _db.syncQueueBox.put(item);
-
-    // Try to process immediately for critical items
-    if (priority == SyncPriority.critical) {
+    
+    // Efficiency: Process immediately for ANY item if not already processing
+    if (_isRunning && !_isProcessing) {
       _processQueue();
     }
   }
 
   /// Process the queue — using SyncLockManager and Concurrency Pool.
   Future<void> _processQueue() async {
-    if (_db.store.isClosed()) return;
+    if (_db.store.isClosed() || _isProcessing) return;
+    _isProcessing = true;
 
     // 1. Acquire lock with heartbeat
     if (!await _lockManager.acquire()) {
-      debugPrint('SyncWorker: ${AppStrings.sync.anotherActive}'); // Localized log
+      appLogger.info(AppStrings.sync.anotherActive, context: 'SyncWorker'); 
       return;
     }
 
@@ -163,7 +170,7 @@ class SyncWorker {
 
       // FIX [PERINGATAN]: Pemeriksaan koneksi sekarang menghormati
       // setting syncWifiOnly dari pengaturan pengguna.
-      final connectivity = await Connectivity().checkConnectivity();
+      final connectivity = await _connectivity.checkConnectivity();
 
       if (connectivity == ConnectivityResult.none) {
         // Tidak ada koneksi sama sekali — skip
@@ -172,7 +179,7 @@ class SyncWorker {
 
       if (syncWifiOnly && connectivity != ConnectivityResult.wifi) {
         // User memilih "Sync hanya via WiFi" tapi sedang pakai data seluler
-        debugPrint('SyncWorker: ${AppStrings.sync.wifiOnlyNotice}'); // Localized log
+        appLogger.info(AppStrings.sync.wifiOnlyNotice, context: 'SyncWorker'); 
         SyncTelemetry().log(SyncEvent(
           type: 'sync_skipped_wifi_only',
           metadata: {'connectivity': connectivity.toString()},
@@ -187,7 +194,7 @@ class SyncWorker {
         final sessionStatus = await _sessionManager.validateSession();
         if (sessionStatus == SessionStatus.blocked || 
             sessionStatus == SessionStatus.invalid) {
-          debugPrint('SyncWorker: Sync paused (Session Blocked/Invalid)');
+          appLogger.warning('Sync paused (Session Blocked/Invalid)', context: 'SyncWorker');
           return;
         }
       }
@@ -232,8 +239,9 @@ class SyncWorker {
       onStateChanged?.call(SyncWorkerState.error);
     } finally {
       await _lockManager.release();
-      _lockManager.stopAutoHeartbeat(); // SEC-FIX: Stop heartbeat on release
+      _lockManager.stopAutoHeartbeat(); 
       SyncTelemetry().lockReleased();
+      _isProcessing = false;
     }
   }
 

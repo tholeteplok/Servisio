@@ -4,6 +4,7 @@ import 'package:solar_icons/solar_icons.dart';
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/utils/phone_formatter.dart';
 import '../../../core/widgets/atelier_header.dart';
 import '../../auth/screens/login_screen.dart';
 
@@ -125,6 +126,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         hintText: '62812...',
                       ),
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [IndonesianPhoneFormatter()],
                     ),
 
                     const SizedBox(height: 32),
@@ -149,6 +151,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         prefixIcon: Icon(Icons.phone_android),
                       ),
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [IndonesianPhoneFormatter()],
                     ),
 
                     const SizedBox(height: 48),

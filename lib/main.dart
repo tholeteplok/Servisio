@@ -22,6 +22,7 @@ import 'core/services/encryption_service.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'core/sync/sync_telemetry.dart';
+import 'core/utils/app_logger.dart';
 import 'dart:io';
 
 void main() async {
@@ -229,7 +230,7 @@ class AuthGate extends ConsumerWidget {
   Widget _buildErrorScreen(BuildContext context, Object error) {
     // ✅ FIX #3: Tampilkan pesan ramah user, bukan raw exception string.
     // Detail error tetap dicetak ke console untuk debugging.
-    debugPrint('❌ AuthGate Error: $error');
+    appLogger.error('AuthGate Error', error: error);
     return Scaffold(
       body: Center(
         child: Padding(

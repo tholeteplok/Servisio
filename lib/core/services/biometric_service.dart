@@ -5,8 +5,9 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'encryption_service.dart';
+import '../utils/app_logger.dart';
 
 // 📊 Biometric Verification Result
 class BiometricResult {
@@ -25,11 +26,23 @@ class BiometricResult {
 
 // 🛠️ Biometric Service Class
 class BiometricService {
-  final LocalAuthentication _localAuth = LocalAuthentication();
-  final _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-  );
+  final LocalAuthentication _localAuth;
+  final FlutterSecureStorage _secureStorage;
+  final EncryptionService _encryptionService;
+
+  BiometricService({
+    LocalAuthentication? localAuth,
+    FlutterSecureStorage? secureStorage,
+    EncryptionService? encryptionService,
+  })  : _localAuth = localAuth ?? LocalAuthentication(),
+        _secureStorage = secureStorage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(),
+              iOptions: IOSOptions(
+                  accessibility: KeychainAccessibility.first_unlock_this_device),
+            ),
+        _encryptionService = encryptionService ?? EncryptionService();
+
   static const _pinKey = 'biometric_pin';
   static const _failureCountKey = 'biometric_fail_count';
   static const _lockoutKey = 'biometric_lockout_until';
@@ -44,7 +57,7 @@ class BiometricService {
     try {
       return await _localAuth.canCheckBiometrics;
     } catch (e) {
-      debugPrint('❌ Biometric availability check failed: $e');
+      logError('Biometric availability check failed', error: e);
       return false;
     }
   }
@@ -88,7 +101,7 @@ class BiometricService {
     try {
       final canCheck = await canCheckBiometrics();
       if (!canCheck) {
-        debugPrint('⚠️ Biometric not available');
+        logWarning('Biometric not available');
         return false;
       }
       
@@ -101,7 +114,7 @@ class BiometricService {
         ),
       );
     } catch (e) {
-      debugPrint('❌ Biometric verification error: $e');
+      logError('Biometric verification error', error: e);
       return false;
     }
   }
@@ -162,7 +175,7 @@ class BiometricService {
         );
 
         if (verified) {
-          debugPrint('✅ Biometric verified (retry: $retry)');
+          logInfo('Biometric verified', context: 'attempt=$retry');
           await resetFailures(); // Success resets all counters
           return BiometricResult(
             success: true,
@@ -173,7 +186,7 @@ class BiometricService {
         lastError = 'Verifikasi gagal';
       } on PlatformException catch (e) {
         lastError = e.message ?? e.code;
-        debugPrint('❌ Biometric PlatformException (attempt ${retry + 1}): ${e.code}');
+        logWarning('Biometric PlatformException', context: 'attempt=${retry + 1}', error: e.code);
         
         // 🛑 Stop retrying if user cancelled or hardware isn't available
         if (e.code == 'NotAvailable' || 
@@ -188,7 +201,7 @@ class BiometricService {
         }
       } catch (e) {
         lastError = e.toString();
-        debugPrint('⚠️ Biometric unexpected error (attempt ${retry + 1}): $e');
+        logWarning('Biometric unexpected error', context: 'attempt=${retry + 1}', error: e);
       }
 
       // ─────────────────────────────────────────────────────────────
@@ -225,7 +238,7 @@ class BiometricService {
       }
     }
 
-    debugPrint('❌ Biometric max retry reached ($maxRetry)');
+    logWarning('Biometric max retry reached', context: 'max=$maxRetry');
     return BiometricResult(
       success: false,
       retryCount: retry,
@@ -241,7 +254,7 @@ class BiometricService {
     final countStr = await _secureStorage.read(key: _failureCountKey) ?? '0';
     final count = int.parse(countStr) + 1;
     await _secureStorage.write(key: _failureCountKey, value: count.toString());
-    debugPrint('🛑 Biometric failure count incremented: $count');
+    logWarning('Biometric failure count incremented', context: 'count=$count');
     return count;
   }
 
@@ -249,7 +262,7 @@ class BiometricService {
     await _secureStorage.delete(key: _failureCountKey);
     await _secureStorage.delete(key: _lockoutKey);
     await _secureStorage.delete(key: _disabledKey);
-    debugPrint('🧹 Biometric failure counters reset');
+    logInfo('Biometric failure counters reset');
   }
   
   // ─────────────────────────────────────────────────────────────
@@ -257,21 +270,27 @@ class BiometricService {
   // ─────────────────────────────────────────────────────────────
   
   /// Save PIN to secure storage (called after biometric enrollment)
-  Future<void> savePin(String pin) async {
-    await _secureStorage.write(key: _pinKey, value: pin);
-    debugPrint('🔐 Biometric PIN saved');
+  /// SEC-FIX: Hash PIN with bengkelId before storage (Priority High).
+  Future<void> savePin(String pin, String bengkelId) async {
+    final hashedPin = _encryptionService.hashPin(pin, bengkelId);
+    await _secureStorage.write(key: _pinKey, value: hashedPin);
+    logInfo('Biometric PIN hashed and saved');
   }
 
   /// Clear stored PIN (called when disabling biometric)
   Future<void> clearPin() async {
     await _secureStorage.delete(key: _pinKey);
-    debugPrint('🗑️ Biometric PIN cleared');
+    logInfo('Biometric PIN cleared');
   }
   
   /// Verify PIN against the stored PIN
-  Future<bool> verifyPin(String pin) async {
+  /// SEC-FIX: Compare hashed values with bengkelId salt (Priority High).
+  Future<bool> verifyPin(String pin, String bengkelId) async {
     final stored = await _secureStorage.read(key: _pinKey);
-    return stored != null && stored == pin;
+    if (stored == null) return false;
+    
+    final inputHash = _encryptionService.hashPin(pin, bengkelId);
+    return stored == inputHash;
   }
   
   /// Check if PIN is set
@@ -306,7 +325,11 @@ class BiometricService {
 }
 
 // 🔄 Riverpod Providers
-final biometricServiceProvider = Provider<BiometricService>((ref) => BiometricService());
+final biometricServiceProvider = Provider<BiometricService>((ref) {
+  return BiometricService(
+    encryptionService: ref.read(encryptionServiceProvider),
+  );
+});
 
 final biometricAvailableProvider = FutureProvider<bool>((ref) async {
   final service = ref.read(biometricServiceProvider);

@@ -4,13 +4,45 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart' as launch_url;
+import 'package:url_launcher/url_launcher.dart'; // Keep for LaunchMode etc if needed
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/sale.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_strings.dart';
 
+/// Interface for platform-dependent actions in DocumentService
+abstract class DocumentPlatformActions {
+  Future<bool> launchUrl(Uri url, {LaunchMode mode = LaunchMode.platformDefault});
+  Future<bool> canLaunchUrl(Uri url);
+  Future<void> layoutPdf({required Future<Uint8List> Function(PdfPageFormat) onLayout});
+  Future<void> shareXFiles(List<XFile> files, {String? subject});
+}
+
+/// Default implementation using real plugins
+class DefaultDocumentPlatformActions implements DocumentPlatformActions {
+  @override
+  Future<bool> launchUrl(Uri url, {LaunchMode mode = LaunchMode.platformDefault}) =>
+      launch_url.launchUrl(url, mode: mode);
+
+  @override
+  Future<bool> canLaunchUrl(Uri url) => launch_url.canLaunchUrl(url);
+
+  @override
+  Future<void> layoutPdf({required Future<Uint8List> Function(PdfPageFormat) onLayout}) =>
+      Printing.layoutPdf(onLayout: onLayout);
+
+  @override
+  Future<void> shareXFiles(List<XFile> files, {String? subject}) =>
+      Share.shareXFiles(files, subject: subject);
+}
+
 class DocumentService {
+  final DocumentPlatformActions _actions;
+
+  DocumentService({DocumentPlatformActions? actions})
+      : _actions = actions ?? DefaultDocumentPlatformActions();
+
   final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: AppStrings.date.localeID,
     symbol: '${AppStrings.common.currencySymbol} ',
@@ -34,14 +66,14 @@ class DocumentService {
 
     if (kIsWeb) {
       final webUrl = "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
-      await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
+      await _actions.launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
     } else {
       final appUrl = "whatsapp://send?phone=$cleanedPhone&text=${Uri.encodeComponent(message)}";
-      if (await canLaunchUrl(Uri.parse(appUrl))) {
-        await launchUrl(Uri.parse(appUrl));
+      if (await _actions.canLaunchUrl(Uri.parse(appUrl))) {
+        await _actions.launchUrl(Uri.parse(appUrl));
       } else {
         final webUrl = "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
-        await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
+        await _actions.launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
       }
     }
   }
@@ -72,14 +104,14 @@ class DocumentService {
 
     if (kIsWeb) {
       final webUrl = "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
-      await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
+      await _actions.launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
     } else {
       final appUrl = "whatsapp://send?phone=$cleanedPhone&text=${Uri.encodeComponent(message)}";
-      if (await canLaunchUrl(Uri.parse(appUrl))) {
-        await launchUrl(Uri.parse(appUrl));
+      if (await _actions.canLaunchUrl(Uri.parse(appUrl))) {
+        await _actions.launchUrl(Uri.parse(appUrl));
       } else {
         final webUrl = "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
-        await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
+        await _actions.launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
       }
     }
   }
@@ -340,7 +372,7 @@ class DocumentService {
 
     if (isShare) {
       final bytes = await pdf.save();
-      await Share.shareXFiles([
+      await _actions.shareXFiles([
         XFile.fromData(
           bytes,
           name: 'Nota-$dateStr.pdf',
@@ -348,7 +380,7 @@ class DocumentService {
         ),
       ]);
     } else {
-      await Printing.layoutPdf(
+      await _actions.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdf.save(),
       );
     }

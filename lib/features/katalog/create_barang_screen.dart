@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../domain/entities/stok.dart';
 import '../../core/providers/stok_provider.dart';
@@ -51,7 +52,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
     );
     _skuController = TextEditingController(text: widget.itemToEdit?.sku);
     _jumlahController = TextEditingController(
-      text: widget.itemToEdit?.jumlah.toString() ?? '0',
+      text: widget.itemToEdit?.jumlah.toString() ?? '1',
     );
     _hargaBeliController = TextEditingController(
       text: widget.itemToEdit?.hargaBeli.toString() ?? '0',
@@ -544,7 +545,11 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                 validator: (v) {
                                   if (v?.isEmpty ?? true) return null;
                                   final n = int.tryParse(v!) ?? 0;
-                                  if (n < 0) return 'Stok tidak boleh negatif';
+                                  if (isEdit) {
+                                    if (n < 0) return AppStrings.error.minStockZero;
+                                  } else {
+                                    if (n < 1) return AppStrings.error.minStockOne;
+                                  }
                                   return null;
                                 },
                                 keyboardType: TextInputType.number,

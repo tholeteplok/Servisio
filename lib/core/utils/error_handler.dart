@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'app_logger.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ERROR HANDLER — Centralized (Phase 4 — UX)
@@ -43,7 +43,7 @@ class AppErrorHandler {
 
   /// Konversi exception apa saja menjadi [AppError] yang user-friendly.
   static AppError from(dynamic error, {String? context}) {
-    debugPrint('⚠️ [AppErrorHandler] context=$context error=$error');
+    appLogger.warning('Error handled', context: context, error: error);
 
     // ── Firebase Auth Errors ──────────────────────────────────
     if (error is FirebaseAuthException) {
@@ -232,7 +232,11 @@ class AppErrorHandler {
   /// Tampilkan error sebagai log debug yang terformat
   static void log(dynamic error, {String? context, StackTrace? stack}) {
     final appError = from(error, context: context);
-    debugPrint('❌ [${appError.category.name.toUpperCase()}] ${appError.title}: ${appError.message}');
-    if (stack != null) debugPrintStack(stackTrace: stack, maxFrames: 5);
+    appLogger.error(
+      '${appError.title}: ${appError.message}',
+      context: 'ERROR_${appError.category.name.toUpperCase()}',
+      error: error,
+      stackTrace: stack,
+    );
   }
 }

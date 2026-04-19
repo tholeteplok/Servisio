@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/biometric_service.dart';
 import '../constants/app_colors.dart';
+import '../utils/app_logger.dart';
 
 class SecurityDialogs {
   /// Dialog for setup 6-digit PIN
@@ -50,6 +51,7 @@ class SecurityDialogs {
   /// Verify Biometric with PIN Fallback
   static Future<bool> verify(
     BuildContext context, {
+    required String bengkelId,
     String reason = 'Verifikasi Keamanan',
   }) async {
     final bio = BiometricService();
@@ -62,25 +64,25 @@ class SecurityDialogs {
           .timeout(
             const Duration(seconds: 5),
             onTimeout: () {
-              debugPrint('⚠️ SecurityDialogs: Biometric timeout (5s)');
+              appLogger.warning('Biometric timeout (5s)', context: 'SecurityDialogs');
               return false;
             },
           );
 
       if (authenticated) return true;
     } catch (e) {
-      debugPrint('❌ SecurityDialogs: Biometric error: $e');
+      appLogger.error('Biometric error', context: 'SecurityDialogs', error: e);
       // Lanjut ke fallback PIN jika error
     }
 
     // 2. Fallback to PIN
     if (context.mounted) {
-      debugPrint('🔐 Falling back to PIN verification');
+      appLogger.info('Falling back to PIN verification', context: 'SecurityDialogs');
       final res = await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (ctx) => _PINVerifySheet(reason: reason),
+        builder: (ctx) => _PINVerifySheet(reason: reason, bengkelId: bengkelId),
       );
       return res ?? false;
     }
@@ -254,7 +256,8 @@ class _PINInputSheetState extends State<_PINInputSheet> {
 
 class _PINVerifySheet extends StatefulWidget {
   final String reason;
-  const _PINVerifySheet({required this.reason});
+  final String bengkelId;
+  const _PINVerifySheet({required this.reason, required this.bengkelId});
 
   @override
   State<_PINVerifySheet> createState() => _PINVerifySheetState();
@@ -289,7 +292,7 @@ class _PINVerifySheetState extends State<_PINVerifySheet>
         _error = false;
       });
       if (_code.length == 6) {
-        final success = await BiometricService().verifyPin(_code);
+        final success = await BiometricService().verifyPin(_code, widget.bengkelId);
         if (success) {
           HapticFeedback.mediumImpact();
           if (mounted) Navigator.pop(context, true);

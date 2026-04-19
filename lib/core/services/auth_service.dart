@@ -1,22 +1,27 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:http/http.dart' as http;
+import '../utils/app_logger.dart';
 
 /// Firebase Auth Service — handles Google Sign-In and auth state.
 /// Replaces the old Google-Drive-only AuthService.
 class AuthService {
-  static final AuthService _instance = AuthService._internal();
-  factory AuthService() => _instance;
-  AuthService._internal();
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      'https://www.googleapis.com/auth/drive.appdata',
-    ],
-  );
+  AuthService({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              scopes: [
+                'https://www.googleapis.com/auth/drive.appdata',
+              ],
+            );
 
   /// Stream untuk listen auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -61,7 +66,7 @@ class AuthService {
 
       return await _auth.signInWithCredential(credential);
     } catch (e) {
-      debugPrint('Google Sign-In Error: $e');
+      appLogger.error('Google Sign-In Error', context: 'AuthService', error: e);
       rethrow;
     }
   }
@@ -72,7 +77,7 @@ class AuthService {
   Future<UserCredential?> signInSilently() async {
     // 1. If already signed in to Firebase, return immediately
     if (_auth.currentUser != null) {
-      debugPrint('Silent Sign-In: Already signed in to Firebase');
+      appLogger.info('Silent Sign-In: Already signed in to Firebase', context: 'AuthService');
       return UserCredentialImpl(
         user: _auth.currentUser,
         credential: null,
@@ -82,7 +87,7 @@ class AuthService {
     // 2. Check if Google account is available without prompting
     final canSilentSignIn = await _canSignInSilentlyInternal();
     if (!canSilentSignIn) {
-      debugPrint('Silent Sign-In: No Google account available, skipping');
+      appLogger.info('Silent Sign-In: No Google account available, skipping', context: 'AuthService');
       return null;
     }
 
@@ -90,7 +95,7 @@ class AuthService {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
       if (googleUser == null) {
-        debugPrint('Silent Sign-In: Google signInSilently returned null');
+        appLogger.info('Silent Sign-In: Google signInSilently returned null', context: 'AuthService');
         return null;
       }
 
@@ -102,7 +107,7 @@ class AuthService {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
-      debugPrint('Silent Sign-In: Success for user ${userCredential.user?.uid}');
+      appLogger.info('Silent Sign-In: Success for user ${userCredential.user?.uid}', context: 'AuthService');
       return userCredential;
     } catch (e) {
       // Silent failure - don't show any error dialog
@@ -130,7 +135,7 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
       return googleUser != null;
     } catch (e) {
-      debugPrint('canSignInSilently check failed: $e');
+      appLogger.info('canSignInSilently check failed', context: 'AuthService', error: e);
       return false;
     }
   }
@@ -162,6 +167,11 @@ class AuthService {
     return await _googleSignIn.signIn();
   }
 }
+
+// 🔄 Riverpod Provider
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService();
+});
 
 /// Helper class to create UserCredential from existing user
 class UserCredentialImpl implements UserCredential {

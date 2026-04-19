@@ -62,7 +62,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
 
     // LGK-04 USER FIX: Clear handshake cache to force fresh validation
     // and remove any potential rate-limit blocks.
-    final storage = const FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     await storage.delete(key: 'handshake_cache');
     await storage.delete(key: 'rate_limit_until');
 

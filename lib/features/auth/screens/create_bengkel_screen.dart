@@ -147,7 +147,7 @@ class _CreateBengkelScreenState extends ConsumerState<CreateBengkelScreen> {
 
         if (authOk) {
           await _encryptionService.saveDerivedKeyForBiometric(pin, bengkelId);
-          await _biometricService.savePin(pin);
+          await _biometricService.savePin(pin, bengkelId);
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -264,10 +264,10 @@ class _CreateBengkelScreenState extends ConsumerState<CreateBengkelScreen> {
                     const Spacer(),
                     TextButton.icon(
                       onPressed: _regenerateId,
-                      icon: Icon(
+                      icon: const Icon(
                         SolarIconsOutline.refresh,
                         size: 16,
-                        color: const Color(0xFF7C3AED),
+                        color: Color(0xFF7C3AED),
                       ),
                       label: Text(
                         'Generate Ulang',

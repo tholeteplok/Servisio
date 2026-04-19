@@ -6,35 +6,35 @@ class StatistikSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Range Selector Shimmer
-          const ShimmerWidget.rectangular(height: 48),
-          const SizedBox(height: 20),
+          ShimmerWidget.rectangular(height: 48),
+          SizedBox(height: 20),
           
           // Summary Cards
           Row(
-            children: const [
+            children: [
               Expanded(child: ShimmerWidget.rectangular(height: 120)),
               SizedBox(width: 16),
               Expanded(child: ShimmerWidget.rectangular(height: 120)),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           
           // Cash Flow Tracker
-          const ShimmerWidget.rectangular(height: 200),
-          const SizedBox(height: 20),
+          ShimmerWidget.rectangular(height: 200),
+          SizedBox(height: 20),
           
           // Chart Card
-          const ShimmerWidget.rectangular(height: 250),
-          const SizedBox(height: 16),
+          ShimmerWidget.rectangular(height: 250),
+          SizedBox(height: 16),
           
           // Info Box
-          const ShimmerWidget.rectangular(height: 80),
+          ShimmerWidget.rectangular(height: 80),
         ],
       ),
     );

@@ -21,6 +21,8 @@ import '../../domain/entities/stok.dart';
 import '../../domain/entities/transaction_item.dart';
 import '../../core/widgets/barcode_scanner_dialog.dart';
 import '../../core/widgets/step_indicator.dart';
+import '../../core/utils/phone_formatter.dart';
+import '../../core/utils/license_plate_formatter.dart';
 import '../katalog/create_service_master_screen.dart';
 import '../katalog/create_barang_screen.dart';
 
@@ -472,6 +474,9 @@ class _CreateTransactionScreenState
                           fontSize: 18,
                           letterSpacing: 2,
                         ),
+                        inputFormatters: [
+                          IndonesianLicensePlateFormatter(),
+                        ],
                         decoration: InputDecoration(
                           labelText: AppStrings.transaction.plateNumber,
                           prefixIcon: const Icon(SolarIconsOutline.mapArrowSquare),
@@ -567,7 +572,7 @@ class _CreateTransactionScreenState
                         controller: _vehicleYearController,
                         enabled: !isHeaderInfoLocked,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Tahun',
                           prefixIcon: Icon(SolarIconsOutline.calendarMinimalistic),
                         ),
@@ -582,7 +587,7 @@ class _CreateTransactionScreenState
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           labelText: AppStrings.transaction.color,
-                          prefixIcon: Icon(LucideIcons.palette),
+                          prefixIcon: const Icon(LucideIcons.palette),
                         ),
                       ),
                     ),
@@ -655,6 +660,7 @@ class _CreateTransactionScreenState
                   controller: _customerPhoneController,
                   enabled: !isHeaderInfoLocked,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [IndonesianPhoneFormatter()],
                   decoration: InputDecoration(
                     labelText: AppStrings.transaction.phoneNumber,
                     prefixIcon: const Icon(SolarIconsOutline.phoneCalling),
@@ -820,7 +826,7 @@ class _CreateTransactionScreenState
               TextField(
                 controller: nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Nama Lengkap',
                   prefixIcon: Icon(LucideIcons.user),
                 ),
@@ -828,12 +834,13 @@ class _CreateTransactionScreenState
               const SizedBox(height: 16),
               TextField(
                 controller: phoneCtrl,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Nomor HP',
                   prefixIcon: Icon(LucideIcons.phone),
                   hintText: '628...',
                 ),
                 keyboardType: TextInputType.phone,
+                inputFormatters: [IndonesianPhoneFormatter()],
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -1813,7 +1820,7 @@ class _CreateTransactionScreenState
                                 child: Text(p.nama[0].toUpperCase(), style: const TextStyle(color: AppColors.amethyst, fontWeight: FontWeight.bold)),
                               ),
                               title: Text(p.nama, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(plateStr, style: TextStyle(color: AppColors.amethyst, fontWeight: FontWeight.w600, fontSize: 12)),
+                              subtitle: Text(plateStr, style: const TextStyle(color: AppColors.amethyst, fontWeight: FontWeight.w600, fontSize: 12)),
                               trailing: Text(p.telepon, style: const TextStyle(fontSize: 12)),
                               onTap: () {
                                 setState(() {
@@ -2243,7 +2250,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                     );
                   }
                 },
-                icon: Icon(LucideIcons.plusCircle, size: 14),
+                icon: const Icon(LucideIcons.plusCircle, size: 14),
                 label: Text(
                   _isService ? AppStrings.transaction.addNewService : AppStrings.transaction.addNewPart,
                   style: GoogleFonts.plusJakartaSans(
@@ -2318,7 +2325,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                             setState(() {});
                           }
                         },
-                        icon: Icon(LucideIcons.minusCircle),
+                        icon: const Icon(LucideIcons.minusCircle),
                         color: AppColors.amethyst,
                       ),
                       Padding(
@@ -2337,7 +2344,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                           _qtyController.text = (qty + 1).toString();
                           setState(() {});
                         },
-                        icon: Icon(LucideIcons.plusCircle),
+                        icon: const Icon(LucideIcons.plusCircle),
                         color: AppColors.amethyst,
                       ),
                     ],

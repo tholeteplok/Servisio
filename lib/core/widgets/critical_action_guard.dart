@@ -94,7 +94,11 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
     // instead of calling service directly for better UX.
     try {
       if (!context.mounted) return false;
-      final verified = await SecurityDialogs.verify(context, reason: reason).timeout(
+      final verified = await SecurityDialogs.verify(
+        context,
+        reason: reason,
+        bengkelId: settings.bengkelId,
+      ).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           debugPrint('⚠️ CriticalActionGuard: Security verification timeout');

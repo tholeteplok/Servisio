@@ -35,7 +35,6 @@
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../../domain/entities/staff.dart';
 import '../../domain/entities/transaction.dart' as entity;
 import '../../domain/entities/pelanggan.dart';
@@ -45,10 +44,19 @@ import '../../domain/entities/stok_history.dart';
 import '../sync/sync_telemetry.dart';
 import 'encryption_service.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/app_logger.dart';
+
 /// Full-featured Firestore sync service for CRUD operations with collision handling.
 class FirestoreSyncService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final EncryptionService _encryption = EncryptionService();
+  final FirebaseFirestore _firestore;
+  final EncryptionService _encryption;
+
+  FirestoreSyncService({
+    FirebaseFirestore? firestore,
+    EncryptionService? encryption,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _encryption = encryption ?? EncryptionService();
 
   // ===== IDEMPOTENCY HELPERS =====
 
@@ -425,12 +433,12 @@ class FirestoreSyncService {
                   items.add(decryptTransactionItem(itemData));
                 } catch (e) {
                   failedItems[doc.id] = e;
-                  debugPrint('Failed to decrypt item for ${doc.id}: $e');
+                  appLogger.error('Failed to decrypt item for ${doc.id}', error: e);
                 }
               }
             }).catchError((e) {
               failedItems[doc.id] = e;
-              debugPrint('Failed to fetch items for ${doc.id}: $e');
+              appLogger.error('Failed to fetch items for ${doc.id}', error: e);
             })
           );
         }
@@ -489,7 +497,7 @@ class FirestoreSyncService {
 
       return results;
     } catch (e) {
-      debugPrint('Pull All Data Error: $e');
+      appLogger.error('Pull All Data Error', error: e);
       rethrow;
     }
   }
@@ -598,3 +606,9 @@ class FirestoreSyncService {
     };
   }
 }
+
+// 🔄 Riverpod Provider
+final firestoreSyncServiceProvider = Provider<FirestoreSyncService>((ref) {
+  final encryption = ref.watch(encryptionServiceProvider);
+  return FirestoreSyncService(encryption: encryption);
+});

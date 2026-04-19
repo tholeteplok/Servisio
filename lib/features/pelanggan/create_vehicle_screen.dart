@@ -11,6 +11,7 @@ import '../../core/providers/master_providers.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../domain/entities/pelanggan.dart';
 import '../../domain/entities/vehicle.dart';
+import '../../core/utils/license_plate_formatter.dart';
 
 class CreateVehicleScreen extends ConsumerStatefulWidget {
   final Pelanggan pelanggan;
@@ -198,6 +199,7 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
                             FilteringTextInputFormatter.allow(
                               RegExp(r'[a-zA-Z0-9 ]'),
                             ),
+                            IndonesianLicensePlateFormatter(),
                           ],
                           validator: (v) {
                             if (v?.isEmpty ?? true) return AppStrings.common.requiredField;

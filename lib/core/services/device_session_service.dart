@@ -70,8 +70,20 @@ class DeviceSessionService {
   static const _deviceIdKey = 'device_session_id';
   static const _gracePeriod = Duration(seconds: 3);
 
-  final _firestore = FirebaseFirestore.instance;
-  final _deviceInfoPlugin = DeviceInfoPlugin();
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final DeviceInfoPlugin _deviceInfoPlugin;
+  final EncryptionService _encryption;
+
+  DeviceSessionService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    DeviceInfoPlugin? deviceInfoPlugin,
+    EncryptionService? encryption,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance,
+        _deviceInfoPlugin = deviceInfoPlugin ?? DeviceInfoPlugin(),
+        _encryption = encryption ?? EncryptionService();
 
   // ── Device ID (persistent per install) ─────────────────────
 
@@ -236,7 +248,7 @@ class DeviceSessionService {
   /// Return false jika network error (Safe Stop).
   Future<bool> verifyAccountStatusBeforeWipe() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user == null) return true; // Sudah logout/hilang
 
       // Reload untuk memaksa sinkronisasi status terbaru dari server
@@ -286,11 +298,11 @@ class DeviceSessionService {
 
       // 5. Clear Secure Storage (Additional wipe)
       // SEC-01 FIX: Gunakan centralized clearSecureStorage dari EncryptionService.
-      await EncryptionService().clearSecureStorage();
+      await _encryption.clearSecureStorage();
       debugPrint('☢️ Step 6: Secure storage cleared');
 
       // 6. Clear Auth Session in Firestore (Explicitly reset active state)
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user != null) {
         await _firestore.collection('users').doc(user.uid).update({
           'activeDeviceId': FieldValue.delete(),
@@ -300,14 +312,14 @@ class DeviceSessionService {
       }
 
       // 7. Auth Sign Out
-      await FirebaseAuth.instance.signOut();
+      await _auth.signOut();
       debugPrint('☢️ Step 8: FirebaseAuth signed out');
 
       debugPrint('☢️ NUCLEAR SEQUENCE COMPLETE');
     } catch (e) {
       debugPrint('❌ Nuclear sequence error: $e');
       // Tetap paksa logout sekalipun wipe parsial gagal
-      await FirebaseAuth.instance.signOut();
+      await _auth.signOut();
     }
   }
 
@@ -385,9 +397,14 @@ class DeviceSessionService {
 // RIVERPOD PROVIDERS
 // ──────────────────────────────────────────────────────────────
 
-final deviceSessionServiceProvider = Provider<DeviceSessionService>(
-  (ref) => DeviceSessionService(),
-);
+final deviceSessionServiceProvider = Provider<DeviceSessionService>((ref) {
+  return DeviceSessionService(
+    firestore: FirebaseFirestore.instance,
+    auth: FirebaseAuth.instance,
+    deviceInfoPlugin: DeviceInfoPlugin(),
+    encryption: ref.watch(encryptionServiceProvider),
+  );
+});
 
 /// State global untuk menandai proses penghapusan data sedang berjalan
 final isWipingProvider = StateProvider<bool>((ref) => false);

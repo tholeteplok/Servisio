@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/providers/master_providers.dart';
+import '../../../core/utils/phone_formatter.dart';
 import '../../../domain/entities/staff.dart';
 import '../../../core/widgets/atelier_header.dart';
 
@@ -58,6 +59,7 @@ class TeknisiScreen extends ConsumerWidget {
                   hintText: '628...',
                 ),
                 keyboardType: TextInputType.phone,
+                inputFormatters: [IndonesianPhoneFormatter()],
               ),
               const SizedBox(height: 16),
               TextField(

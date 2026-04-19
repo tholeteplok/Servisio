@@ -5,6 +5,7 @@ import 'package:solar_icons/solar_icons.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/pelanggan_provider.dart';
+import '../../core/utils/phone_formatter.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../domain/entities/pelanggan.dart';
 
@@ -116,6 +117,7 @@ class _CreatePelangganScreenState extends ConsumerState<CreatePelangganScreen> {
                             prefixIcon: const Icon(SolarIconsOutline.phone),
                           ),
                           keyboardType: TextInputType.phone,
+                          inputFormatters: [IndonesianPhoneFormatter()],
                           validator: (v) =>
                               v?.isEmpty ?? true ? AppStrings.common.requiredField : null,
                         ),

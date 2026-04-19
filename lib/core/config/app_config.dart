@@ -72,10 +72,10 @@ class AppConfig {
 
   /// ✅ NEW: Get environment name for logging
   static String get environmentName {
-    if (bool.fromEnvironment('PRODUCTION', defaultValue: false)) {
+    if (const bool.fromEnvironment('PRODUCTION', defaultValue: false)) {
       return 'PRODUCTION';
     }
-    if (bool.fromEnvironment('STAGING', defaultValue: false)) {
+    if (const bool.fromEnvironment('STAGING', defaultValue: false)) {
       return 'STAGING';
     }
     return 'DEVELOPMENT';

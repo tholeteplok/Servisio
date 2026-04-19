@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'device_session_service.dart';
 import 'encryption_service.dart';
+import '../utils/app_logger.dart';
 import '../config/app_config.dart';
 import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
@@ -95,13 +96,34 @@ enum CriticalActionType {
 
 // 🛠️ Session Manager Class
 class SessionManager {
-  final _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-  );
-  
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
+  final FlutterSecureStorage _secureStorage;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+  final EncryptionService _encryptionService;
+  final DeviceSessionService _deviceSessionService;
+  final http.Client _httpClient;
+  final Connectivity _connectivity;
+
+  SessionManager({
+    FlutterSecureStorage? secureStorage,
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    EncryptionService? encryptionService,
+    DeviceSessionService? deviceSessionService,
+    http.Client? httpClient,
+    Connectivity? connectivity,
+  })  : _secureStorage = secureStorage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(),
+              iOptions: IOSOptions(
+                  accessibility: KeychainAccessibility.first_unlock_this_device),
+            ),
+        _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _encryptionService = encryptionService ?? EncryptionService(secureStorage: secureStorage),
+        _deviceSessionService = deviceSessionService ?? DeviceSessionService(),
+        _httpClient = httpClient ?? http.Client(),
+        _connectivity = connectivity ?? Connectivity();
 
   // ─────────────────────────────────────────────────────────────
   // CONFIGURATION
@@ -125,7 +147,7 @@ class SessionManager {
     final envUrl = AppConfig.handshakeUrl;
     if (envUrl != AppConfig.defaultHandshakeUrl) {
       _cachedHandshakeUrl = envUrl;
-      debugPrint('🔧 Using handshake URL from env: $envUrl');
+      appLogger.info('Using handshake URL from env: $envUrl', context: 'SessionManager');
       return envUrl;
     }
 
@@ -140,12 +162,12 @@ class SessionManager {
         final firestoreUrl = doc.data()?['url'] as String?;
         if (firestoreUrl != null && firestoreUrl.isNotEmpty) {
           _cachedHandshakeUrl = firestoreUrl;
-          debugPrint('🔧 Using handshake URL from Firestore: $firestoreUrl');
+          appLogger.info('Using handshake URL from Firestore: $firestoreUrl', context: 'SessionManager');
           return firestoreUrl;
         }
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to fetch handshake config from Firestore: $e');
+      appLogger.warning('Failed to fetch handshake config from Firestore', context: 'SessionManager', error: e);
     }
 
     // 4. Final fallback to default
@@ -171,7 +193,7 @@ class SessionManager {
       key: SessionPolicy.masterPasswordKey, 
       value: '$salt:$hash',
     );
-    debugPrint('🔐 Master Password setup complete (Salted & Hashed)');
+    appLogger.info('Master Password setup complete (Salted & Hashed)', context: 'SessionManager');
   }
   
   /// Verify Master Password using constant-time comparison to prevent timing attacks.
@@ -234,9 +256,9 @@ class SessionManager {
       await _secureStorage.write(key: 'token_expiry', value: expiry.millisecondsSinceEpoch.toString());
       await _secureStorage.write(key: 'session_version', value: '2.0');
       
-      debugPrint('✅ Session saved for user: $userId (role: $role)');
+      appLogger.info('Session saved for user: $userId (role: $role)', context: 'SessionManager');
     } catch (e) {
-      debugPrint('❌ Error saving session: $e');
+      appLogger.error('Error saving session', context: 'SessionManager', error: e);
       rethrow;
     }
   }
@@ -244,7 +266,7 @@ class SessionManager {
   /// Clear session (logout)
   Future<void> clearSession() async {
     // SEC-01 FIX: Gunakan clearSessionDataOnly agar master key tetap aman.
-    await EncryptionService().clearSessionDataOnly();
+    await _encryptionService.clearSessionDataOnly();
     
     // LGK-04 FIX: Hapus metadata sesi tambahan
     await _secureStorage.delete(key: 'user_id');
@@ -255,7 +277,7 @@ class SessionManager {
     await _secureStorage.delete(key: 'handshake_cache');
     
     await _auth.signOut();
-    debugPrint('🚪 Session cleared & Signed out');
+    appLogger.info('Session cleared & Signed out', context: 'SessionManager');
   }
 
   /// ✅ NEW: Validasi Token ke Firebase Auth Server
@@ -286,11 +308,11 @@ class SessionManager {
       // Simpan role terbaru dari claims juga
       final role = tokenResult.claims?['role'] as String? ?? 'teknisi';
       await _secureStorage.write(key: 'user_role', value: role);
-
-      debugPrint('🛡️ Token validated & updated: Expiry ${expirationTime.toIso8601String()}');
+      
+      appLogger.info('Token validated & updated: Expiry ${expirationTime.toIso8601String()}', context: 'SessionManager');
       return true;
     } catch (e) {
-      debugPrint('❌ Token validation failed: $e');
+      appLogger.error('Token validation failed', context: 'SessionManager', error: e);
       return false;
     }
   }
@@ -308,7 +330,7 @@ class SessionManager {
       value: now.millisecondsSinceEpoch.toString(),
     );
     await _secureStorage.delete(key: 'handshake_cache');
-    debugPrint('🔄 Local auth timestamp refreshed & handshake cache cleared');
+    appLogger.info('Local auth timestamp refreshed & handshake cache cleared', context: 'SessionManager');
   }
 
   /// Check if session needs a background refresh (handshake).
@@ -323,7 +345,7 @@ class SessionManager {
     // If age > 30 minutes, attempt a handshake to keep session fresh.
     // 30 mins is safe even for staff (9h grace) and owner (24h grace).
     if (age > const Duration(minutes: 30)) {
-      debugPrint('🕒 Session age ${age.inMinutes}m — Triggering background refresh');
+      appLogger.info('Session age ${age.inMinutes}m — Triggering background refresh', context: 'SessionManager');
       // Clearing handshake cache to ensure validateSession actually performs a network call
       await _secureStorage.delete(key: 'handshake_cache');
       await validateSession();
@@ -337,8 +359,8 @@ class SessionManager {
   /// Validate session (online → handshake, offline → local validation)
   Future<SessionStatus> validateSession() async {
     try {
-      final connectivity = await Connectivity().checkConnectivity();
-      final isConnected = connectivity != ConnectivityResult.none;
+      final connectivityResult = await _connectivity.checkConnectivity();
+      final isConnected = connectivityResult != ConnectivityResult.none;
       
       if (isConnected) {
         // ✅ USER FIX 1: Validasi token ke server jika ada internet
@@ -349,7 +371,7 @@ class SessionManager {
         return await _validateOffline();
       }
     } catch (e) {
-      debugPrint('❌ Session validation error: $e');
+      appLogger.error('Session validation error', context: 'SessionManager', error: e);
       return SessionStatus.blocked;
     }
   }
@@ -372,7 +394,7 @@ class SessionManager {
     if (rateLimitStr != null) {
       final rateLimitUntil = DateTime.fromMillisecondsSinceEpoch(int.parse(rateLimitStr));
       if (DateTime.now().isBefore(rateLimitUntil)) {
-        debugPrint('⏳ Handshake skipped — rate limit cooldown aktif hingga $rateLimitUntil');
+        appLogger.info('Handshake skipped — rate limit cooldown aktif hingga $rateLimitUntil', context: 'SessionManager');
         return await _validateOffline();
       } else {
         // Cooldown sudah lewat, hapus flag
@@ -381,8 +403,7 @@ class SessionManager {
     }
 
     // ── PHASE 1.3: Build Device Fingerprint Payload ────────────
-    final deviceService = DeviceSessionService();
-    final deviceId = await deviceService.getOrCreateDeviceId();
+    final deviceId = await _deviceSessionService.getOrCreateDeviceId();
     String platform = 'unknown';
     try {
       if (Platform.isAndroid) platform = 'android';
@@ -412,7 +433,7 @@ class SessionManager {
 
         final handshakeUrl = await _getHandshakeUrl();
 
-        final response = await http.post(
+        final response = await _httpClient.post(
           Uri.parse(handshakeUrl),
           headers: {
             'Authorization': 'Bearer $token',
@@ -429,7 +450,7 @@ class SessionManager {
           return SessionStatus.valid;
 
         } else if (response.statusCode == 401) {
-          debugPrint('🔐 Handshake rejected (401): Sesi tidak valid atau token kedaluwarsa. Body: ${response.body}');
+          appLogger.warning('Handshake rejected (401): Sesi tidak valid atau token kedaluwarsa. Body: ${response.body}', context: 'SessionManager');
           return SessionStatus.invalid;
 
         } else if (response.statusCode == 429) {
@@ -441,22 +462,22 @@ class SessionManager {
             key: 'rate_limit_until',
             value: cooldownUntil.millisecondsSinceEpoch.toString(),
           );
-          debugPrint('⚠️ Handshake rate limited (429). Cooldown $backoffMinutes menit hingga $cooldownUntil.');
+          appLogger.warning('Handshake rate limited (429). Cooldown $backoffMinutes menit hingga $cooldownUntil.', context: 'SessionManager');
           return await _validateOffline();
         }
       } catch (e) {
         if (e is http.ClientException) {
           debugPrint('🌐 Handshake network error (attempt ${retry + 1}): Periksa koneksi internet. $e');
         } else if (e is SocketException) {
-          debugPrint('🌐 Handshake socket error (attempt ${retry + 1}): Server tidak terjangkau. $e');
+          appLogger.warning('Handshake socket error (attempt ${retry + 1}): Server tidak terjangkau.', context: 'SessionManager', error: e);
         } else {
-          debugPrint('⚠️ Handshake attempt ${retry + 1} unexpected error: $e');
+          appLogger.warning('Handshake attempt ${retry + 1} unexpected error', context: 'SessionManager', error: e);
         }
         retry++;
         if (retry < SessionPolicy.handshakeMaxRetry) {
           // LGK-04 FIX: Exponential backoff antar retry (2s, 4s, 8s)
           final waitSeconds = 2 * (1 << (retry - 1));
-          debugPrint('🔄 Retrying handshake in $waitSeconds seconds...');
+          appLogger.info('Retrying handshake in $waitSeconds seconds...', context: 'SessionManager');
           await Future.delayed(Duration(seconds: waitSeconds));
           continue;
         }
@@ -474,9 +495,9 @@ class SessionManager {
     final role = await _secureStorage.read(key: 'user_role');
     
     // LGK-04 FIX: Tambahkan logging yang detail untuk diagnosa
-    if (lastAuthStr == null) debugPrint('⚠️ Offline validation: last_auth_timestamp missing');
-    if (tokenExpiryStr == null) debugPrint('⚠️ Offline validation: token_expiry missing');
-    if (role == null) debugPrint('⚠️ Offline validation: user_role missing');
+    if (lastAuthStr == null) appLogger.warning('Offline validation: last_auth_timestamp missing', context: 'SessionManager');
+    if (tokenExpiryStr == null) appLogger.warning('Offline validation: token_expiry missing', context: 'SessionManager');
+    if (role == null) appLogger.warning('Offline validation: user_role missing', context: 'SessionManager');
     
     if (lastAuthStr == null || tokenExpiryStr == null || role == null) {
       // Jika metadata kritis hilang, kita tidak bisa memvalidasi sesi offline.
@@ -491,7 +512,7 @@ class SessionManager {
     
     // JWT expiry = HARD LIMIT
     if (now.isAfter(tokenExpiry)) {
-      debugPrint('🔐 Offline validation: Token Expired (Expiry: $tokenExpiry)');
+      appLogger.warning('Offline validation: Token Expired (Expiry: $tokenExpiry)', context: 'SessionManager');
       return SessionStatus.blocked;
     }
     
@@ -501,10 +522,10 @@ class SessionManager {
     if (offlineDuration < warningThreshold) {
       return SessionStatus.full;
     } else if (offlineDuration < gracePeriod) {
-      debugPrint('⏳ Offline validation: Entering Warning Zone (${offlineDuration.inHours}h offline)');
+      appLogger.info('Offline validation: Entering Warning Zone (${offlineDuration.inHours}h offline)', context: 'SessionManager');
       return SessionStatus.warning;
     } else {
-      debugPrint('🔐 Offline validation: Blocked — Offline too long (${offlineDuration.inHours}h offline)');
+      appLogger.warning('Offline validation: Blocked — Offline too long (${offlineDuration.inHours}h offline)', context: 'SessionManager');
       return SessionStatus.blocked;
     }
   }
@@ -525,7 +546,7 @@ class SessionManager {
       final bengkelId = await _secureStorage.read(key: 'bengkel_id');
       if (bengkelId == null) return;
       
-      debugPrint('🚀 Syncing ${logs.length} emergency logs to Firestore...');
+      appLogger.info('Syncing ${logs.length} emergency logs to Firestore...', context: 'SessionManager');
       
       final batch = _firestore.batch();
       for (var log in logs) {
@@ -542,7 +563,7 @@ class SessionManager {
       
       await batch.commit();
       await _secureStorage.delete(key: 'emergency_logs');
-      debugPrint('✅ Audit logs synced and cleared');
+      appLogger.info('Audit logs synced and cleared', context: 'SessionManager');
     } catch (e) {
       debugPrint('❌ Failed to sync emergency logs: $e');
     }
@@ -578,7 +599,7 @@ class SessionManager {
       
       await _secureStorage.write(key: 'emergency_logs', value: jsonEncode(trimmedLogs));
     } catch (e) {
-      debugPrint('❌ Error recording security event: $e');
+      appLogger.error('Error recording security event', context: 'SessionManager', error: e);
     }
   }
   
@@ -598,7 +619,7 @@ class SessionManager {
       final claimsRole = tokenResult.claims?['role'] as String?;
 
       if (claimsRole != 'owner') {
-        debugPrint('🚫 Emergency override ditolak — role dari Firebase: $claimsRole');
+        appLogger.warning('Emergency override ditolak — role dari Firebase: $claimsRole', context: 'SessionManager');
         return false;
       }
 
@@ -613,7 +634,7 @@ class SessionManager {
       });
       return true;
     } catch (e) {
-      debugPrint('❌ Emergency override failed: $e');
+      appLogger.error('Emergency override failed', context: 'SessionManager', error: e);
       return false;
     }
   }
@@ -653,7 +674,31 @@ class SessionManager {
 }
 
 // 🔄 Riverpod Providers
-final sessionManagerProvider = Provider<SessionManager>((ref) => SessionManager());
+
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) => const FlutterSecureStorage(
+      aOptions: AndroidOptions(),
+      iOptions: IOSOptions(
+          accessibility: KeychainAccessibility.first_unlock_this_device),
+    ));
+
+final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
+
+final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
+
+// SEC-FIX: encryptionServiceProvider sudah didefinisikan di encryption_service.dart
+final httpClientProvider = Provider<http.Client>((ref) => http.Client());
+
+final connectivityProvider = Provider<Connectivity>((ref) => Connectivity());
+
+final sessionManagerProvider = Provider<SessionManager>((ref) => SessionManager(
+      secureStorage: ref.watch(secureStorageProvider),
+      auth: ref.watch(firebaseAuthProvider),
+      firestore: ref.watch(firestoreProvider),
+      encryptionService: ref.watch(encryptionServiceProvider),
+      deviceSessionService: ref.watch(deviceSessionServiceProvider),
+      httpClient: ref.watch(httpClientProvider),
+      connectivity: ref.watch(connectivityProvider),
+    ));
 
 /// 🛡️ Unified Access Level Provider (H-04 FIX)
 /// Synchronously derives access status from the consolidated AuthStateContainer.

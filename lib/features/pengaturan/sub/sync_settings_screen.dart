@@ -271,9 +271,9 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
               : () {
                   Clipboard.setData(ClipboardData(text: bengkelId));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Bengkel ID disalin ke clipboard'),
-                      duration: const Duration(seconds: 2),
+                    const SnackBar(
+                      content: Text('Bengkel ID disalin ke clipboard'),
+                      duration: Duration(seconds: 2),
                       backgroundColor: AppColors.success,
                     ),
                   );

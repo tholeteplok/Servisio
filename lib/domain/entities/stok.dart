@@ -29,13 +29,7 @@ class Stok {
 
   int _jumlah; // Stok saat ini
   int get jumlah => _jumlah;
-  set jumlah(int value) {
-    if (value < 0) {
-      _jumlah = 0;
-    } else {
-      _jumlah = value;
-    }
-  }
+  set jumlah(int value) => _jumlah = value;
   int minStok; // Batas peringatan stok menipis
 
   @Index()
@@ -62,7 +56,7 @@ class Stok {
     this.kategori = LogicConstants.catSparepart,
     this.photoLocalPath,
     String? uuid,
-  }) : _jumlah = jumlah < 0 ? 0 : jumlah,
+  }) : _jumlah = jumlah,
        uuid = uuid ?? const Uuid().v4(),
        createdAt = DateTime.now(),
        updatedAt = DateTime.now();

@@ -63,7 +63,7 @@ class AppColors {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (isDark) {
       return RadialGradient(
-        center: Alignment(-1.1, -1.1),
+        center: const Alignment(-1.1, -1.1),
         radius: 1.5,
         colors: [
           precisionViolet,
@@ -72,13 +72,13 @@ class AppColors {
       );
     }
     return RadialGradient(
-      center: Alignment(-1.1, -1.1),
+      center: const Alignment(-1.1, -1.1),
       radius: 2,
       colors: [
         precisionViolet, 
         mintMajesty.withValues(alpha: 0.5),
       ],
-      stops: [0.6, 1.0],
+      stops: const [0.6, 1.0],
     );
   }
 

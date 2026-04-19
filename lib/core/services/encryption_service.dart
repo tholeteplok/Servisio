@@ -1,21 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/app_logger.dart';
 import 'package:pointycastle/pointycastle.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'dart:convert';
 
 /// Service untuk encrypt/decrypt PII (Personally Identifiable Information)
 /// seperti nama dan no HP pelanggan sebelum disimpan ke database lokal/cloud.
 class EncryptionService {
-  static final EncryptionService _instance = EncryptionService._internal();
-  factory EncryptionService() => _instance;
-  EncryptionService._internal();
-
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage;
   encrypt.Encrypter? _encrypter;
+
+  EncryptionService({FlutterSecureStorage? secureStorage})
+      : _storage = secureStorage ?? const FlutterSecureStorage();
 
   /// Kunci master dalam memory (plaintext). Tidak disimpan permanen untuk
   /// mencegah PIN bypass saat restart app (Session-only).
@@ -46,7 +48,7 @@ class EncryptionService {
         keyBase64 = await _storage.read(key: _keyAlias);
         
         if (keyBase64 != null) {
-          debugPrint('🛡️ EncryptionService: Migrating legacy persistent key to memory...');
+          appLogger.info('Migrating legacy persistent key to memory', context: 'EncryptionService');
           _masterKeyBase64 = keyBase64;
           // Hapus dari storage agar restart berikutnya WAJIB lewat PIN screen
           await _storage.delete(key: _keyAlias);
@@ -55,12 +57,12 @@ class EncryptionService {
 
       if (keyBase64 != null) {
         _activateMasterKey(keyBase64);
-        debugPrint('🛡️ EncryptionService initialized (Session-only mode)');
+        appLogger.info('Initialized (Session-only mode)', context: 'EncryptionService');
       } else {
-        debugPrint('🛡️ EncryptionService NOT initialized (Session key missing)');
+        appLogger.warning('NOT initialized (Session key missing)', context: 'EncryptionService');
       }
-    } catch (e) {
-      debugPrint('EncryptionService Error: $e');
+    } catch (e, stack) {
+      appLogger.error('Init error', context: 'EncryptionService', error: e, stackTrace: stack);
     }
   }
 
@@ -83,12 +85,28 @@ class EncryptionService {
     
     // SEC-01 FIX: Simpan di memory saja, JANGAN tulis ke _storage.write
     _activateMasterKey(keyBase64);
-    debugPrint('🛡️ EncryptionService: New master key generated (Memory-only)');
+    appLogger.info('New master key generated (Memory-only)', context: 'EncryptionService');
+  }
+
+  /// Hash PIN with SHA-256 + salt before any further processing.
+  /// SEC-FIX: Reduces plaintext PIN exposure — the raw PIN is never passed
+  /// directly into PBKDF2. Instead, a SHA-256 hash (with bengkelId as salt)
+  /// is used as the PBKDF2 input.
+  String hashPin(String pin, String bengkelId) {
+    final saltedPin = '$bengkelId:$pin';
+    final bytes = utf8.encode(saltedPin);
+    final digest = crypto.sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Derive a 256-bit key from a 6-digit PIN using PBKDF2-HMAC-SHA256.
   /// Standard: OWASP 2023 (100,000 iterations minimum).
+  /// SEC-FIX: PIN is hashed with SHA-256 + salt before PBKDF2 derivation.
   Future<encrypt.Key> deriveKey(String pin, String salt) async {
+    // Step 1: Hash PIN with SHA-256 + bengkelId salt
+    final hashedPin = hashPin(pin, salt);
+
+    // Step 2: PBKDF2 key derivation from hashed PIN
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
     final params = Pbkdf2Parameters(
       Uint8List.fromList(utf8.encode(salt)),
@@ -97,7 +115,7 @@ class EncryptionService {
     );
     pbkdf2.init(params);
     
-    final keyBytes = pbkdf2.process(Uint8List.fromList(utf8.encode(pin)));
+    final keyBytes = pbkdf2.process(Uint8List.fromList(utf8.encode(hashedPin)));
     return encrypt.Key(keyBytes);
   }
 
@@ -128,7 +146,7 @@ class EncryptionService {
   void lock() {
     _encrypter = null;
     _masterKeyBase64 = null;
-    debugPrint('🛡️ EncryptionService locked');
+    appLogger.info('Locked', context: 'EncryptionService');
   }
 
   /// Clear specific session data (biometrics, derived keys) but KEEP Master Key.
@@ -142,7 +160,7 @@ class EncryptionService {
     // Hapus paksa in-memory key
     _encrypter = null;
     _masterKeyBase64 = null;
-    debugPrint('🛡️ EncryptionService: Session data cleared & Locked (Memory wiped)');
+    appLogger.info('Session data cleared & Locked (Memory wiped)', context: 'EncryptionService');
   }
 
   /// Hapus semua key dari secure storage
@@ -150,7 +168,7 @@ class EncryptionService {
     await _storage.deleteAll();
     _encrypter = null;
     _masterKeyBase64 = null;
-    debugPrint('🔐 EncryptionService: Secure storage cleared');
+    appLogger.info('Secure storage cleared', context: 'EncryptionService');
   }
 
 
@@ -209,8 +227,12 @@ class EncryptionService {
         ? encryptedText.substring(encryptionPrefix.length) 
         : encryptedText;
 
+    if (!hasPrefix) {
+      return DecryptionResult.unencrypted(encryptedText);
+    }
+
     if (!workingText.contains(':')) {
-      return DecryptionResult.unencrypted(workingText);
+       return DecryptionResult.failed(status: DecryptionStatus.invalidFormat);
     }
 
     try {
@@ -222,8 +244,8 @@ class EncryptionService {
 
       final decrypted = _encrypter!.decrypt64(ciphertext, iv: iv);
       return DecryptionResult.success(decrypted);
-    } catch (e) {
-      debugPrint('DecryptText Error: $e');
+    } catch (e, stack) {
+      appLogger.error('Decrypt error', context: 'EncryptionService', error: e, stackTrace: stack);
       return DecryptionResult.failed(status: DecryptionStatus.failed);
     }
   }
@@ -267,8 +289,8 @@ class EncryptionService {
       if (success) return true;
 
       return success;
-    } catch (e) {
-      debugPrint('UnwrapMasterKey Error: $e');
+    } catch (e, stack) {
+      appLogger.error('Unwrap master key error', context: 'EncryptionService', error: e, stackTrace: stack);
       return false;
     }
   }
@@ -306,6 +328,7 @@ class EncryptionService {
       return true;
     } catch (e) {
       // Silently fail as this is used in fallback logic
+      appLogger.debug('Unwrap with key failed (fallback)', context: 'EncryptionService');
       return false;
     }
   }
@@ -339,3 +362,7 @@ class DecryptionResult {
     }
   }
 }
+
+final encryptionServiceProvider = Provider<EncryptionService>((ref) {
+  return EncryptionService();
+});

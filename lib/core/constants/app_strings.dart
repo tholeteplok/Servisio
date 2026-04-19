@@ -460,6 +460,9 @@ class ErrorStrings {
   
   String stockInsufficient(String itemName, int available) => 
       'Stok $itemName tidak mencukupi. Tersedia: $available';
+
+  final minStockOne = 'Minimum stok awal adalah 1';
+  final minStockZero = 'Stok tidak boleh negatif';
 }
 
 class SuccessStrings {

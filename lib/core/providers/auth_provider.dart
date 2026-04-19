@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -15,7 +16,19 @@ import '../constants/app_settings.dart';
 
 // ===== Service Providers =====
 
-final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+final googleSignInProvider = Provider<GoogleSignIn>((ref) => GoogleSignIn(
+      scopes: [
+        'https://www.googleapis.com/auth/drive.appdata',
+      ],
+    ));
+
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService(
+    auth: ref.watch(firebaseAuthProvider), // From session_manager.dart or defined here
+    googleSignIn: ref.watch(googleSignInProvider),
+  );
+});
+
 final bengkelServiceProvider = Provider<BengkelService>(
   (ref) => BengkelService(),
 );

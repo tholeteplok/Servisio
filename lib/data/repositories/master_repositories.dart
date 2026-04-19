@@ -24,7 +24,14 @@ class VehicleRepository {
   }
 
   Vehicle? getByPlate(String plate) {
-    final query = _box.query(Vehicle_.plate.equals(plate)).build();
+    final query = _box.query(Vehicle_.plate.equals(plate).and(Vehicle_.isDeleted.equals(false))).build();
+    final result = query.findFirst();
+    query.close();
+    return result;
+  }
+
+  Vehicle? getByUuid(String uuid) {
+    final query = _box.query(Vehicle_.uuid.equals(uuid)).build();
     final result = query.findFirst();
     query.close();
     return result;
@@ -73,6 +80,13 @@ class StaffRepository {
     return _box.get(id);
   }
 
+  Staff? getByUuid(String uuid) {
+    final query = _box.query(Staff_.uuid.equals(uuid)).build();
+    final result = query.findFirst();
+    query.close();
+    return result;
+  }
+
   bool softDelete(int id) {
     final s = _box.get(id);
     if (s != null) {
@@ -99,6 +113,13 @@ class ServiceMasterRepository {
     final results = query.find();
     query.close();
     return results;
+  }
+
+  ServiceMaster? getByUuid(String uuid) {
+    final query = _box.query(ServiceMaster_.uuid.equals(uuid)).build();
+    final result = query.findFirst();
+    query.close();
+    return result;
   }
 
   bool softDelete(int id) {

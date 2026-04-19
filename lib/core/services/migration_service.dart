@@ -20,8 +20,14 @@ class MigrationCheckpoint {
 }
 
 class MigrationService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final EncryptionService _encryption = EncryptionService();
+  final FirebaseFirestore _firestore;
+  final EncryptionService _encryption;
+
+  MigrationService({
+    FirebaseFirestore? firestore,
+    EncryptionService? encryption,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _encryption = encryption ?? EncryptionService();
 
   /// Jalankan migrasi enkripsi untuk satu bengkel secara atomik dan resumable.
   /// Menggunakan checkpoint system sehingga migrasi yang terputus bisa dilanjutkan.

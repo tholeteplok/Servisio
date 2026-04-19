@@ -198,7 +198,7 @@ class BackupService {
       final metadata = data['metadata'] as Map<String, dynamic>?;
       
       bool isEncrypted = metadata?['isEncrypted'] ?? false;
-      String? bengkelId = metadata?['bengkelId'];
+      String? bengkelId = metadata?['bengkelId']?.toString();
 
       if (isEncrypted) {
         if (userPin == null || bengkelId == null) {

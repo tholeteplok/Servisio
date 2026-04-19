@@ -7,6 +7,18 @@ class StokRepository {
   StokRepository(this._box);
 
   int save(Stok stok) {
+    // 🛡️ Business Rule: Negative stock validation
+    if (stok.jumlah < 0) {
+      throw Exception("Jumlah stok tidak boleh negatif.");
+    }
+
+    // 🛡️ Business Rule: Price Integrity
+    if (stok.hargaJual < stok.hargaBeli && stok.hargaJual > 0) {
+      // Only warn if hargaJual is not 0 (0 might be a placeholder for services or draft items, 
+      // but for Stok it usually means invalid if Beli > 0)
+      throw Exception("Harga jual (${stok.hargaJual}) tidak boleh lebih rendah dari modal (${stok.hargaBeli}).");
+    }
+
     // 🛡️ Logic Guard: Barcode/SKU Uniqueness
     if (stok.sku != null && stok.sku!.trim().isNotEmpty) {
       final existing = _box

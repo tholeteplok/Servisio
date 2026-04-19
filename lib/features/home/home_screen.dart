@@ -38,6 +38,7 @@ import '../../core/services/session_manager.dart';
 import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../main/responsive_layout_builder.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -47,15 +48,29 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
+  
+  // Hint Animation & State
+  late AnimationController _hintController;
+  bool _shouldShowSwipeHint = false;
+  bool _shouldShowChevron = false;
+  static const int _chevronThreshold = 5; // Menghilang setelah 5x interaksi (swipe)
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    
+    // Initialize Hint Controller
+    _hintController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _checkDailyHint();
   }
 
   void _onScroll() {
@@ -70,7 +85,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     _debounce?.cancel();
+    _hintController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkDailyHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastHintDate = prefs.getString('swipe_hint_last_date');
+    final today = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD
+    
+    // Check Interaction Count
+    final interactionCount = prefs.getInt('daily_swipe_count_$today') ?? 0;
+
+    if (lastHintDate != today && mounted) {
+      setState(() => _shouldShowSwipeHint = true);
+      
+      // Reset interaction count for new day
+      await prefs.setInt('daily_swipe_count_$today', 0);
+      setState(() => _shouldShowChevron = true);
+
+      // Jalankan animasi geser (delay sedikit agar layar stabil)
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (!mounted) return;
+      
+      await _hintController.forward();
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      await _hintController.reverse();
+      
+      // Tandai sudah ditampilkan hari ini
+      await prefs.setString('swipe_hint_last_date', today);
+      
+      if (mounted) {
+        setState(() => _shouldShowSwipeHint = false);
+      }
+    } else {
+      // Jika sudah hari yang sama, cek apakah chevron masih harus muncul
+      if (interactionCount < _chevronThreshold && mounted) {
+        setState(() => _shouldShowChevron = true);
+      }
+    }
+  }
+
+  Future<void> _onSwipeInteracted() async {
+    if (!_shouldShowChevron) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final currentCount = (prefs.getInt('daily_swipe_count_$today') ?? 0) + 1;
+    
+    await prefs.setInt('daily_swipe_count_$today', currentCount);
+    
+    if (currentCount >= _chevronThreshold && mounted) {
+      setState(() => _shouldShowChevron = false);
+    }
   }
 
   bool _isToday(DateTime date) {
@@ -419,7 +487,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     )
                                   : Row(
                                       children: [
-                                        Icon(
+                                        const Icon(
                                           SolarIconsBold.checkCircle,
                                           color: Colors.green,
                                           size: 20,
@@ -590,10 +658,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 )
                               : const SizedBox(height: 100);
                         }
-                        return _ActivityCard(
+                        final activityCard = _ActivityCard(
                           trx: todayTrx[index],
                           onDelete: () => _handleDelete(context, todayTrx[index]),
+                          showChevronHint: _shouldShowChevron,
+                          onSwiped: _onSwipeInteracted,
                         );
+
+                        if (index == 0 && _shouldShowSwipeHint) {
+                          return AnimatedBuilder(
+                            animation: _hintController,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(
+                                  _hintController.value *
+                                      MediaQuery.of(context).size.width *
+                                      0.25,
+                                  0,
+                                ),
+                                child: child,
+                              );
+                            },
+                            child: activityCard,
+                          );
+                        }
+
+                        return activityCard;
                       },
                       childCount: todayTrx.length + 1,
                     ),
@@ -612,8 +702,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ? AppColors.darkSurfaceLighter
                         : AppColors.amethyst.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
-                    image: DecorationImage(
-                      image: const AssetImage(
+                    image: const DecorationImage(
+                      image: AssetImage(
                         'assets/images/bg_pattern.png',
                       ), // Fallback pattern
                       opacity: 0.05,
@@ -1071,9 +1161,14 @@ class _ActivityCard extends ConsumerStatefulWidget {
   final Transaction trx;
   final VoidCallback? onDelete;
 
+  final bool showChevronHint;
+  final VoidCallback? onSwiped;
+
   const _ActivityCard({
     required this.trx,
     this.onDelete,
+    this.showChevronHint = false,
+    this.onSwiped,
   });
 
   @override
@@ -1228,6 +1323,8 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
             return false; // Never dismiss via progression
           } else {
             // DELETE (Swipe Left)
+            // Interaction Trigger for Hint
+            widget.onSwiped?.call();
             if (trx.serviceStatus == ServiceStatus.antri) {
               if (_swipeDeleteCount == 0) {
                 HapticFeedback.lightImpact();
@@ -1393,32 +1490,43 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
                 ],
               ),
               subtitle: trx.customerName,
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(statusIcon, size: 12, color: statusColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      statusLabel,
-                      style: GoogleFonts.manrope(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: statusColor,
-                      ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.showChevronHint && trx.serviceStatus == ServiceStatus.antri)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: _PulseChevron(),
                     ),
-                  ],
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 12, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          statusLabel,
+                          style: GoogleFonts.manrope(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               onTap: () {
+                widget.onSwiped?.call();
                 if (trx.serviceStatus == ServiceStatus.antri ||
                     trx.serviceStatus == ServiceStatus.dikerjakan) {
                   Navigator.push(
@@ -1762,6 +1870,63 @@ class _InlineZoneBadge extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PulseChevron extends StatefulWidget {
+  const _PulseChevron();
+
+  @override
+  State<_PulseChevron> createState() => _PulseChevronState();
+}
+
+class _PulseChevronState extends State<_PulseChevron>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _opacityAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Icon(
+              SolarIconsOutline.doubleAltArrowRight,
+              size: 20,
+              color: Colors.blue.withValues(alpha: 0.7),
+            ),
+          ),
+        );
+      },
     );
   }
 }

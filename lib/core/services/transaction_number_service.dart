@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import '../providers/objectbox_provider.dart';
@@ -87,5 +88,11 @@ class TrxNumberService {
     debugPrint('🧹 Cleaned up ${oldCounters.length} old transaction counters');
   }
 }
+
+// 🔄 Riverpod Provider
+final trxNumberServiceProvider = Provider<TrxNumberService>((ref) {
+  final db = ref.watch(dbProvider);
+  return TrxNumberService(db);
+});
 
 

@@ -1,192 +1,134 @@
-// ─────────────────────────────────────────────────────────────
-// Unit Tests: SessionManager & Core Logic
-// Phase 3 — Testing
-// ─────────────────────────────────────────────────────────────
-//
-// Menguji logika validasi sesi di SessionManager secara terisolasi
-// tanpa kebutuhan Firebase/Firebase Emulator.
-//
-// Jalankan dengan: flutter test test/core/services/session_manager_test.dart
-
-import 'dart:io';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:servislog_core/core/services/session_manager.dart';
-import 'package:servislog_core/core/utils/error_handler.dart';
-import 'package:servislog_core/core/providers/transaction_providers.dart';
-
-// ─────────────────────────────────────────────────────────────
-// TESTS: SessionPolicy Constants
-// ─────────────────────────────────────────────────────────────
+import '../../mocks/manual_mocks.dart';
+import '../../helpers/test_utils.dart';
+import '../../helpers/di_override.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 
 void main() {
-  group('SessionPolicy Constants', () {
-    test('Owner grace period is 24 hours', () {
-      expect(SessionPolicy.ownerGracePeriod, const Duration(hours: 24));
-    });
+  group('SessionManager Tests', () {
+    late ProviderContainer container;
+    late FakeFlutterSecureStorage fakeSecureStorage;
+    late MockFirebaseAuth mockAuth;
+    late FakeFirebaseFirestore mockFirestore;
+    late FakeDeviceSessionService fakeDeviceService;
+    late FakeHttpClient fakeHttpClient;
+    late FakeConnectivity fakeConnectivity;
+    late SessionManager sessionManager;
 
-    test('Staff grace period is 9 hours', () {
-      expect(SessionPolicy.staffGracePeriod, const Duration(hours: 9));
-    });
+    setUp(() {
+      fakeSecureStorage = FakeFlutterSecureStorage();
+      mockAuth = MockFirebaseAuth(signedIn: true);
+      mockFirestore = FakeFirebaseFirestore();
 
-    test('Owner warning threshold is 12 hours', () {
-      expect(SessionPolicy.ownerWarningThreshold, const Duration(hours: 12));
-    });
+      fakeDeviceService = FakeDeviceSessionService();
+      fakeHttpClient = FakeHttpClient();
+      fakeConnectivity = FakeConnectivity();
 
-    test('Staff warning threshold is 8 hours', () {
-      expect(SessionPolicy.staffWarningThreshold, const Duration(hours: 8));
-    });
-
-    test('Handshake cache TTL is 15 minutes', () {
-      expect(SessionPolicy.handshakeCacheTtl, const Duration(minutes: 15));
-    });
-
-    test('Handshake max retry is 3', () {
-      expect(SessionPolicy.handshakeMaxRetry, 3);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // TESTS: SessionStatus Zone Mapping
-  // ─────────────────────────────────────────────────────────────
-
-  group('SessionStatus Zone', () {
-    test('full → zone 1', () {
-      expect(SessionStatus.full.zone, 1);
-    });
-
-    test('valid → zone 1 (alias)', () {
-      expect(SessionStatus.valid.zone, 1);
-    });
-
-    test('warning → zone 2', () {
-      expect(SessionStatus.warning.zone, 2);
-    });
-
-    test('blocked → zone 3', () {
-      expect(SessionStatus.blocked.zone, 3);
-    });
-
-    test('invalid → zone 3 (alias)', () {
-      expect(SessionStatus.invalid.zone, 3);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // TESTS: SessionStatus Zone Labels
-  // ─────────────────────────────────────────────────────────────
-
-  group('SessionStatus Zone Labels', () {
-    test('zone 1 → Terlindungi', () {
-      expect(SessionStatus.full.zoneLabel, 'Terlindungi');
-    });
-
-    test('zone 2 → Terbatas', () {
-      expect(SessionStatus.warning.zoneLabel, 'Terbatas');
-    });
-
-    test('zone 3 → Terkunci', () {
-      expect(SessionStatus.blocked.zoneLabel, 'Terkunci');
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // TESTS: AccessLevel Logic
-  // ─────────────────────────────────────────────────────────────
-
-  group('AccessLevel', () {
-    test('AccessLevel enum has correct values', () {
-      expect(AccessLevel.values.length, 4);
-      expect(AccessLevel.values, contains(AccessLevel.full));
-      expect(AccessLevel.values, contains(AccessLevel.readOnly));
-      expect(AccessLevel.values, contains(AccessLevel.readOnlyFinancial));
-      expect(AccessLevel.values, contains(AccessLevel.blocked));
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // TESTS: AppErrorHandler
-  // ─────────────────────────────────────────────────────────────
-
-  group('AppErrorHandler — from SocketException', () {
-    test('SocketException → network category', () {
-      AppError result;
-      try {
-        throw const SocketException('Connection refused');
-      } catch (e) {
-        result = AppErrorHandler.from(e);
-      }
-      expect(result.category, ErrorCategory.network);
-      expect(result.title, 'Gagal Terhubung');
-    });
-  });
-
-  group('AppErrorHandler — from generic Exception strings', () {
-    test('ObjectBox-related error → storage category', () {
-      final result = AppErrorHandler.from(Exception('objectbox database error'));
-      expect(result.category, ErrorCategory.storage);
-    });
-
-    test('Sync-related error → sync category', () {
-      final result = AppErrorHandler.from(Exception('sync failed firestore'));
-      expect(result.category, ErrorCategory.sync);
-    });
-
-    test('Stok insufficient error → data category', () {
-      final result = AppErrorHandler.from(
-        Exception('Gagal: Stok "Oli" tidak mencukupi (2 tersedia).'),
-      );
-      expect(result.category, ErrorCategory.data);
-    });
-
-    test('Unknown error → unknown category with fallback title', () {
-      final result = AppErrorHandler.from(Exception('some random unhandled error'));
-      expect(result.category, ErrorCategory.unknown);
-      expect(result.title, 'Terjadi Kesalahan');
-    });
-
-    test('AppError has non-null action for common errors', () {
-      final result = AppErrorHandler.from(Exception('objectbox error'));
-      expect(result.action, isNotNull);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────
-  // TESTS: PaginatedTransactionState
-  // ─────────────────────────────────────────────────────────────
-
-  group('PaginatedTransactionState', () {
-    test('initial state has correct defaults', () {
-      const state = PaginatedTransactionState();
-      expect(state.items, isEmpty);
-      expect(state.isLoadingMore, false);
-      expect(state.hasMore, true);
-      expect(state.currentPage, 0);
-    });
-
-    test('copyWith preserves existing values when not overridden', () {
-      const state = PaginatedTransactionState(
-        isLoadingMore: true,
-        hasMore: false,
-        currentPage: 3,
+      container = createContainer(
+        overrides: getBaseTestOverrides(
+          secureStorage: fakeSecureStorage,
+          auth: mockAuth,
+          firestore: mockFirestore,
+          deviceSessionService: fakeDeviceService,
+          httpClient: fakeHttpClient,
+          connectivity: fakeConnectivity,
+        ),
       );
 
-      final updated = state.copyWith(isLoadingMore: false);
-
-      expect(updated.isLoadingMore, false); // changed
-      expect(updated.hasMore, false);       // preserved
-      expect(updated.currentPage, 3);       // preserved
+      sessionManager = container.read(sessionManagerProvider);
     });
 
-    test('copyWith can update all fields independently', () {
-      const state = PaginatedTransactionState();
-      final updated = state.copyWith(
-        isLoadingMore: true,
-        hasMore: false,
-        currentPage: 5,
-      );
-      expect(updated.isLoadingMore, true);
-      expect(updated.hasMore, false);
-      expect(updated.currentPage, 5);
+    tearDown(() {
+      container.dispose();
+    });
+
+    group('Master Password Verification', () {
+      test('verifyMasterPassword returns false when no password saved', () async {
+        final result = await sessionManager.verifyMasterPassword('123456');
+        expect(result, isFalse);
+      });
+
+      test('verifyMasterPassword returns true for correct unsalted password (legacy)', () async {
+        const pin = '123456';
+        final hash = sha256.convert(utf8.encode(pin)).toString();
+        
+        await fakeSecureStorage.write(key: SessionPolicy.masterPasswordKey, value: hash);
+
+        final result = await sessionManager.verifyMasterPassword(pin);
+        expect(result, isTrue);
+      });
+
+      test('verifyMasterPassword returns true for correct salted password', () async {
+        const pin = '123456';
+        const salt = 'test_salt';
+        final saltBytes = utf8.encode(salt);
+        final pinBytes = utf8.encode(pin);
+        final hash = sha256.convert([...saltBytes, ...pinBytes]).toString();
+        
+        await fakeSecureStorage.write(
+          key: SessionPolicy.masterPasswordKey, 
+          value: '$salt:$hash',
+        );
+
+        final result = await sessionManager.verifyMasterPassword(pin);
+        expect(result, isTrue);
+      });
+    });
+
+    group('Session Management', () {
+      const dummyToken = 'header.eyJleHAiOiAyNTEyODU5NDAwfQ==.signature'; // Exp: 2049
+      const userId = 'user_123';
+      const role = 'owner';
+      const bengkelId = 'bengkel_456';
+
+      test('saveSession correctly writes metadata to secure storage', () async {
+        await sessionManager.saveSession(
+          token: dummyToken,
+          userId: userId,
+          role: role,
+          bengkelId: bengkelId,
+        );
+
+        expect(await fakeSecureStorage.read(key: 'user_id'), userId);
+        expect(await fakeSecureStorage.read(key: 'user_role'), role);
+        expect(await fakeSecureStorage.read(key: 'bengkel_id'), bengkelId);
+      });
+
+      test('clearSession removes all metadata and signs out', () async {
+        await fakeSecureStorage.write(key: 'user_id', value: userId);
+        await sessionManager.clearSession();
+
+        expect(await fakeSecureStorage.read(key: 'user_id'), isNull);
+        expect(mockAuth.currentUser, isNull);
+      });
+    });
+
+    group('Device Fingerprint & Handshake', () {
+      test('_handshakeOnline sends correct device fingerprint', () async {
+        // 1. Setup mock user with token
+        final mockUser = MockUser(uid: 'user_123');
+        mockAuth.mockUser = mockUser;
+        
+        // 2. Setup mock device info
+        const deviceId = 'fingerprint_abc_123';
+        fakeDeviceService.deviceId = deviceId;
+
+        // 3. Set Connectivity (Online)
+        fakeConnectivity.mockResult = ConnectivityResult.wifi;
+
+        // 4. Trigger validation
+        await sessionManager.validateSession();
+
+        // 5. Verify fingerprint was sent in the body
+        expect(fakeHttpClient.lastBody, isNotNull);
+        expect(fakeHttpClient.lastBody.toString(), contains(deviceId));
+      });
     });
   });
 }

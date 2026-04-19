@@ -41,39 +41,39 @@ class AtelierSkeleton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.all(16),
-          child: Column(
+          child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header row: avatar + title
               Row(
                 children: [
                   _ShimmerBox(width: 44, height: 44, radius: 22),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _ShimmerBox(width: double.infinity, height: 14, radius: 6),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         _ShimmerBox(width: 120, height: 12, radius: 6),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   _ShimmerBox(width: 70, height: 28, radius: 8),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // Divider placeholder
               _ShimmerBox(width: double.infinity, height: 1, radius: 0),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // Footer row: info chips
               Row(
                 children: [
                   _ShimmerBox(width: 80, height: 22, radius: 11),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _ShimmerBox(width: 60, height: 22, radius: 11),
-                  const Spacer(),
+                  Spacer(),
                   _ShimmerBox(width: 90, height: 14, radius: 6),
                 ],
               ),
@@ -91,22 +91,22 @@ class AtelierSkeleton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            _ShimmerBox(width: 48, height: 48, radius: 12),
+            const _ShimmerBox(width: 48, height: 48, radius: 12),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ShimmerBox(width: double.infinity, height: 14, radius: 6),
+                  const _ShimmerBox(width: double.infinity, height: 14, radius: 6),
                   if (hasSubtitle) ...[
                     const SizedBox(height: 6),
-                    _ShimmerBox(width: 160, height: 12, radius: 6),
+                    const _ShimmerBox(width: 160, height: 12, radius: 6),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            _ShimmerBox(width: 60, height: 12, radius: 6),
+            const _ShimmerBox(width: 60, height: 12, radius: 6),
           ],
         ),
       ),
@@ -122,13 +122,13 @@ class AtelierSkeleton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _ShimmerBox(width: 40, height: 40, radius: 12),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _ShimmerBox(width: 100, height: 24, radius: 6),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             _ShimmerBox(width: 80, height: 12, radius: 6),
           ],
         ),

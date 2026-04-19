@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/app_logger.dart';
 
 /// 🛡️ SyncLockManager — Stale lock recovery + heartbeat pattern + Instance Validation
 /// Prevents concurrent sync operations from multiple app instances or workers.
@@ -41,17 +41,17 @@ class SyncLockManager {
 
       // Case 1: Active lock from ANOTHER instance with recent heartbeat → skip
       if (age < _validLockThreshold) {
-        debugPrint('🔒 SyncLockManager: Active lock detected (age: ${age.inSeconds}s, instance: ${lock.instanceId.substring(0, 8)})');
+        appLogger.info('Active lock detected (age: ${age.inSeconds}s, instance: ${lock.instanceId.substring(0, 8)})', context: 'SyncLockManager');
         return false;
       }
 
       // Case 2: Stale lock > 5 minutes → force break
       if (age > _maxLockAge) {
-        debugPrint('⚠️ SyncLockManager: Breaking stale lock (age: ${age.inMinutes}m, instance: ${lock.instanceId.substring(0, 8)})');
+        appLogger.warning('Breaking stale lock (age: ${age.inMinutes}m, instance: ${lock.instanceId.substring(0, 8)})', context: 'SyncLockManager');
         await file.delete();
       } else {
         // Case 3: Lock exists but no recent heartbeat → wait for recovery window and retry
-        debugPrint('⏳ SyncLockManager: Lock stale detected from instance ${lock.instanceId.substring(0, 8)}, waiting for recovery...');
+        appLogger.info('Lock stale detected from instance ${lock.instanceId.substring(0, 8)}, waiting for recovery...', context: 'SyncLockManager');
         await Future.delayed(_heartbeatInterval);
         return acquire(); // Recursive retry
       }
@@ -92,10 +92,10 @@ class SyncLockManager {
     if (lock != null && lock.instanceId == _instanceId) {
       if (await file.exists()) {
         await file.delete();
-        debugPrint('🔓 SyncLockManager: Lock released by owner ($_instanceId)');
+        appLogger.info('Lock released by owner ($_instanceId)', context: 'SyncLockManager');
       }
     } else {
-      debugPrint('ℹ️ SyncLockManager: Release ignored (not the lock owner)');
+      appLogger.info('Release ignored (not the lock owner)', context: 'SyncLockManager');
     }
   }
 
@@ -106,7 +106,7 @@ class SyncLockManager {
       final content = await file.readAsString();
       return _LockData.fromJson(jsonDecode(content));
     } catch (e) {
-      debugPrint('⚠️ SyncLockManager: Error reading lock file: $e');
+      appLogger.warning('Error reading lock file', context: 'SyncLockManager', error: e);
       return null;
     }
   }

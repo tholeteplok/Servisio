@@ -1,30 +1,95 @@
-// This is a basic Flutter widget test.
+// ─────────────────────────────────────────────────────────────
+// Widget Tests: ServisLog Core App
+// Phase 3 — Testing
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Testing SettingsState without complex provider setup.
+// Jalankan dengan: flutter test test/widget_test.dart
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/main.dart';
+import 'package:servislog_core/core/providers/pengaturan_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const ProviderScope(child: MainApp()));
+  group('SettingsState Tests', () {
+    test('SettingsState has correct default values', () {
+      final settings = SettingsState(
+        workshopName: 'Bengkel Saya',
+        workshopAddress: 'Jl. Merdeka No. 1',
+        workshopWhatsapp: '081234567890',
+        ownerName: 'Pak Budi',
+        ownerPhone: '081234567890',
+        themeMode: 'system',
+        isDemoMode: false,
+        barcodeEnabled: true,
+        qrisEnabled: true,
+        bengkelId: 'test-bengkel-123',
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      expect(settings.workshopName, 'Bengkel Saya');
+      expect(settings.themeMode, 'system');
+      expect(settings.barcodeEnabled, true);
+      expect(settings.hasSeenOnboarding, false);
+      expect(settings.autoLockDuration, 0);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('SettingsState copyWith preserves values', () {
+      final settings = SettingsState(
+        workshopName: 'Bengkel Saya',
+        workshopAddress: 'Jl. Merdeka No. 1',
+        workshopWhatsapp: '081234567890',
+        ownerName: 'Pak Budi',
+        ownerPhone: '081234567890',
+        themeMode: 'light',
+        isDemoMode: false,
+        barcodeEnabled: true,
+        qrisEnabled: true,
+        bengkelId: 'test-bengkel-123',
+      );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      final updated = settings.copyWith(
+        themeMode: 'dark',
+        workshopName: 'Bengkel Baru',
+      );
+
+      expect(updated.themeMode, 'dark');
+      expect(updated.workshopName, 'Bengkel Baru');
+      expect(updated.barcodeEnabled, true); // preserved
+      expect(updated.bengkelId, 'test-bengkel-123'); // preserved
+    });
+
+    test('SettingsState with default theme time values', () {
+      final settings = SettingsState(
+        workshopName: 'Test',
+        workshopAddress: 'Test',
+        workshopWhatsapp: '0812',
+        ownerName: 'Test',
+        ownerPhone: '0812',
+        themeMode: 'time',
+        isDemoMode: false,
+        barcodeEnabled: true,
+        qrisEnabled: true,
+        bengkelId: '',
+      );
+
+      expect(settings.themeStartTime, '06:00');
+      expect(settings.themeEndTime, '18:00');
+    });
+
+    test('SettingsState default backup frequency is off', () {
+      final settings = SettingsState(
+        workshopName: 'Test',
+        workshopAddress: 'Test',
+        workshopWhatsapp: '0812',
+        ownerName: 'Test',
+        ownerPhone: '0812',
+        themeMode: 'system',
+        isDemoMode: false,
+        barcodeEnabled: true,
+        qrisEnabled: true,
+        bengkelId: '',
+      );
+
+      expect(settings.backupFrequency, 'off');
+      expect(settings.syncWifiOnly, false);
+    });
   });
 }

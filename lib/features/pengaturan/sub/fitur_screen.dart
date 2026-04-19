@@ -71,6 +71,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
 
   Future<void> _toggleBiometric(bool value) async {
     final bio = BiometricService();
+    final settings = ref.read(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
 
     if (value) {
@@ -99,7 +100,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
       if (!mounted) return;
 
       if (bioOk) {
-        await bio.savePin(pin);
+        await bio.savePin(pin, settings.bengkelId);
         await notifier.setBiometricEnabled(true);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +115,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
       // Step 4: Verify to disable
       final ok = await SecurityDialogs.verify(
         context,
+        bengkelId: settings.bengkelId,
         reason: 'Verifikasi untuk mematikan keamanan',
       );
       if (!mounted) return;
