@@ -19,8 +19,8 @@ service cloud.firestore {
       return request.auth.token.role == 'staff';
     }
 
-    // Bengkels Collection
-    match /bengkels/{bengkelId} {
+    // Bengkel Collection
+    match /bengkel/{bengkelId} {
       // Any authenticated user can create a bengkel
       allow create: if isSignedIn();
       // Only users belonging to this bengkel can read it
@@ -28,45 +28,95 @@ service cloud.firestore {
       // Only the owner of the bengkel can write/update it
       allow update, delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
       
+      // Staff-specific permissions helper
+      function hasStaffPermission(permission) {
+        let staffDoc = get(/databases/$(database)/documents/bengkel/$(bengkelId)/staff/$(request.auth.uid));
+        // Check customPermissions map directly
+        let hasCustom = staffDoc.data.customPermissions != null && staffDoc.data.customPermissions[permission] == true;
+        // If has roleTemplateId, we might need another check, but for now focus on customPermissions
+        // which serves as the override and primary point of truth for staff.
+        return hasCustom;
+      }
+
       // Nested collections inside Bengkel (Transactions, Stok, Pelanggan, Staff)
-      match /{subcollection}/{documentId} {
-        // Staff and Owners can read/write data that belongs to their bengkel
-        // To enforce read scoping, queries must filter by bengkelId matching their token bengkelId.
-        // Wait, since these are subcollections of the bengkel, the bengkelId is in the path!
+      // SEC-FIX: S-02 Granular Staff Write Permissions
+      match /transactions/{documentId} {
         allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
-        
-        // Owners can write to any collection. Staff can write to specific ones if needed, 
-        // or for MVP, staff can write to transactions and stok.
-        allow write: if isSignedIn() && getUserBengkelId() == bengkelId;
+        allow create: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('transaksi_create'));
+        allow update: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('transaksi_update'));
+        allow delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+      }
+
+      match /stok/{documentId} {
+        allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
+        allow create: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('stok_create'));
+        allow update: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('stok_update_jumlah'));
+        allow delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+      }
+
+      match /{subcollection}/{documentId} {
+        allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
+        allow write: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
       }
     }
 
-    // Top-level collections (if used instead of subcollections)
-    // Based on Phase 2 implementation, entities might be top-level or subcollection.
-    // Assuming top-level collections partitioned by `bengkelId` field:
-    
+    // Top-level collections partitioned by `bengkelId` field.
+    // SEC-FIX: T-01 null resource check — consistently used for all operations.
+
+    function getIncomingBengkelId() {
+      return request.resource != null && request.resource.data != null ? request.resource.data.bengkelId : null;
+    }
+
+    function resourceMatchesBengkel(bengkelId) {
+      let incomingId = getIncomingBengkelId();
+      return (request.method == 'create' && incomingId == bengkelId)
+          || (resource != null && resource.data != null && resource.data.bengkelId == bengkelId);
+    }
+
     match /transactions/{id} {
-      allow read, write: if isSignedIn() && resource.data.bengkelId == getUserBengkelId() 
-                         || (request.method == 'create' && request.resource.data.bengkelId == getUserBengkelId());
+      allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
+      allow create: if isSignedIn() && getIncomingBengkelId() == getUserBengkelId();
+      allow update: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId())
+                    && getIncomingBengkelId() == getUserBengkelId();
+      allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
     }
 
     match /stok/{id} {
-      allow read, write: if isSignedIn() && resource.data.bengkelId == getUserBengkelId() 
-                         || (request.method == 'create' && request.resource.data.bengkelId == getUserBengkelId());
+      allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
+      allow create: if isSignedIn() && getIncomingBengkelId() == getUserBengkelId();
+      allow update: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId())
+                    && getIncomingBengkelId() == getUserBengkelId();
+      allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
     }
 
     match /pelanggans/{id} {
-      allow read, write: if isSignedIn() && resource.data.bengkelId == getUserBengkelId() 
-                         || (request.method == 'create' && request.resource.data.bengkelId == getUserBengkelId());
+      allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
+      allow create: if isSignedIn() && (isOwner() || isStaff()) && getIncomingBengkelId() == getUserBengkelId();
+      allow update: if isSignedIn() && (isOwner() || isStaff())
+                    && resourceMatchesBengkel(getUserBengkelId())
+                    && getIncomingBengkelId() == getUserBengkelId();
+      allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
     }
     
     match /staff/{id} {
-      // Anyone in bengkel can read staff directory
-      allow read: if isSignedIn() && resource.data.bengkelId == getUserBengkelId();
-      // Only owner can write to staff collection
-      allow write: if isSignedIn() && isOwner() && (
-        resource.data.bengkelId == getUserBengkelId() || request.resource.data.bengkelId == getUserBengkelId()
-      );
+      allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
+      allow create: if isSignedIn() && isOwner() && getIncomingBengkelId() == getUserBengkelId();
+      allow update: if isSignedIn() && isOwner()
+                    && resourceMatchesBengkel(getUserBengkelId())
+                    && getIncomingBengkelId() == getUserBengkelId();
+      allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
+    }
+
+    // 👤 Users / Profiles collection
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 🛠️ Internal configuration (Read only for authenticated users)
+    match /_internal/{configId} {
+      allow read: if isSignedIn();
     }
   }
 }
+

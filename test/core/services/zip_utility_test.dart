@@ -17,15 +17,19 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp('zip_utility_test_temp');
     appDocDir = await Directory.systemTemp.createTemp('zip_utility_test_appdoc');
 
-    const MethodChannel('plugins.flutter.io/path_provider').setMockMethodCallHandler((MethodCall methodCall) async {
-      if (methodCall.method == 'getTemporaryDirectory') {
-        return tempDir.path;
-      }
-      if (methodCall.method == 'getApplicationDocumentsDirectory') {
-        return appDocDir.path;
-      }
-      return null;
-    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getTemporaryDirectory') {
+          return tempDir.path;
+        }
+        if (methodCall.method == 'getApplicationDocumentsDirectory') {
+          return appDocDir.path;
+        }
+        return null;
+      },
+    );
+
 
     // 2. Setup mock SharedPreferences
     SharedPreferences.setMockInitialValues({});

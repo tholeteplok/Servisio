@@ -41,7 +41,8 @@ void main() {
 
     test('watchSessionValidity() should detect displaced session', () async {
       const userId = 'user-123';
-      final myId = await service.getOrCreateDeviceId();
+      await service.getOrCreateDeviceId();
+
       
       // Register me
       await service.registerDevice(userId);

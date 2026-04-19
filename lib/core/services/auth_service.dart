@@ -1,5 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
@@ -18,10 +18,14 @@ class AuthService {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
+              // ✅ SEC-CONFIG: serverClientId is required to get idToken for Firebase Auth on some platforms
+              serverClientId: '791196654233-5okqrgofucg31k1hk226ns7hn3qgl5pg.apps.googleusercontent.com',
               scopes: [
+                'email',
                 'https://www.googleapis.com/auth/drive.appdata',
               ],
             );
+
 
   /// Stream untuk listen auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -54,17 +58,42 @@ class AuthService {
   /// Google Sign-In → Firebase Auth
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // User cancelled
+      debugPrint('AUTH: Initiating Google Sign-In UI...');
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Waktu habis saat mencoba masuk ke akun Google. Silakan coba lagi.'),
+      );
+      
+      if (googleUser == null) {
+        debugPrint('AUTH: Google Sign-In cancelled by user');
+        return null;
+      }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      debugPrint('AUTH: Fetching Google Authentication tokens...');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication.timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Waktu habis saat mengambil token autentikasi.'),
+      );
+      
+      if (googleAuth.idToken == null) {
+        debugPrint('AUTH ERROR: idToken is null. Potential misconfiguration in Firebase console / serverClientId.');
+        throw Exception('Gagal mendapatkan ID Token. Periksa konfigurasi Firebase (SHA-1).');
+      }
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      return await _auth.signInWithCredential(credential);
+      debugPrint('AUTH: Signing into Firebase with credential...');
+      final userCredential = await _auth.signInWithCredential(credential).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw Exception('Gagal menghubungi server Firebase. Periksa koneksi internet Anda.'),
+      );
+      
+      debugPrint('AUTH: Firebase Sign-In successful for UID: ${userCredential.user?.uid}');
+      return userCredential;
+
     } catch (e) {
       appLogger.error('Google Sign-In Error', context: 'AuthService', error: e);
       rethrow;
@@ -168,10 +197,7 @@ class AuthService {
   }
 }
 
-// 🔄 Riverpod Provider
-final authServiceProvider = Provider<AuthService>((ref) {
-  return AuthService();
-});
+
 
 /// Helper class to create UserCredential from existing user
 class UserCredentialImpl implements UserCredential {

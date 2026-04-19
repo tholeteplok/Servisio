@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/app_logger.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -38,6 +40,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _signIn() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -45,18 +49,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     try {
       final authService = ref.read(authServiceProvider);
-      final result = await authService.signInWithGoogle();
-      if (result == null && mounted) {
+      
+      appLogger.info('DEBUG: Starting Google Sign In process...');
+      final cred = await authService.signInWithGoogle();
+      
+      if (cred == null && mounted) {
+        appLogger.info('DEBUG: Google Sign In cancelled by user or timed out');
         setState(() {
-          _isLoading = false;
-          _error = 'Otentikasi dibatalkan by user';
+          _error = 'Otentikasi dibatalkan atau waktu habis.';
+        });
+        return;
+      }
+
+      appLogger.info('DEBUG: Firebase Auth success for user: ${cred?.user?.uid}');
+      // We don't stop loading here because we expect AuthGate to transition 
+      // when authStateProvider resolves the profile.
+    } catch (e) {
+      appLogger.error('DEBUG: Login process caught error', error: e);
+      if (mounted) {
+        setState(() {
+          _error = 'Otentikasi Gagal: ${e.toString()}';
         });
       }
-    } catch (e) {
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Sistem Otentikasi Gagal: $e';
         });
       }
     }
@@ -64,6 +82,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Watch for background errors from profile resolution
+    // Watch for background errors or state changes
+    ref.listen<AsyncValue<AuthStateContainer>>(authStateProvider, (previous, next) {
+      next.when(
+        data: (container) {
+          if (container.state == AuthState.unauthenticated && container.isError) {
+            if (mounted) {
+              setState(() {
+                _error = container.errorMessage;
+                _isLoading = false;
+              });
+            }
+          }
+        },
+        loading: () {
+          // Keep showing locally initiated loading
+        },
+        error: (err, stack) {
+          if (mounted) {
+            setState(() {
+              _error = 'Kesalahan otentikasi: $err';
+              _isLoading = false;
+            });
+          }
+        },
+      );
+    });
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

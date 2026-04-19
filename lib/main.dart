@@ -86,17 +86,41 @@ class _MainAppState extends ConsumerState<MainApp> {
   @override
   void initState() {
     super.initState();
-    // UX-09 FIX: Tema 'time' menggunakan DateTime.now() saat build, sehingga
-    // tidak berubah jika app tetap terbuka melewati batas waktu (misal jam 18:00).
-    // Timer.periodic men-trigger rebuild setiap jam agar tema diperbarui otomatis.
-    _themeTimer = Timer.periodic(const Duration(hours: 1), (_) {
-      if (mounted) setState(() {});
-    });
+    // UX-09 FIX: Optimasi update tema otomatis.
+    // Menggunakan timer yang ditargetkan tepat pada saat transisi (06:00 & 18:00)
+    // untuk menghemat CPU cycle dibandingkan Timer.periodic per jam.
+    _setupThemeUpdateTimer();
 
     // ✅ FIX #2: InactivityMonitor dii-nisialisasi sekali di initState,
     // bukan di build() agar tidak di-panggil setiap rebuild.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(inactivityMonitorProvider).start();
+    });
+  }
+
+  void _setupThemeUpdateTimer() {
+    _themeTimer?.cancel();
+    
+    final now = DateTime.now();
+    DateTime nextTransition;
+    
+    // Titik transisi: 06:00 (Siang) dan 18:00 (Malam) - menyesuaikan SettingsState default
+    if (now.hour < 6) {
+      nextTransition = DateTime(now.year, now.month, now.day, 6);
+    } else if (now.hour < 18) {
+      nextTransition = DateTime(now.year, now.month, now.day, 18);
+    } else {
+      nextTransition = DateTime(now.year, now.month, now.day + 1, 6);
+    }
+    
+    final duration = nextTransition.difference(now);
+    
+    // Beri buffer sedikit agar transisi waktu sistem sudah benar-benar lewat
+    _themeTimer = Timer(duration + const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {}); // Trigger rebuild untuk update tema
+        _setupThemeUpdateTimer(); // Jadwalkan untuk transisi berikutnya
+      }
     });
   }
 
@@ -193,6 +217,7 @@ class AuthGate extends ConsumerWidget {
     }
 
     return authAsync.when(
+      skipLoadingOnReload: false,
       data: (container) {
         switch (container.state) {
           case AuthState.unauthenticated:

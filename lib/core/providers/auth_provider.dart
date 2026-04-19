@@ -133,12 +133,18 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
       }
 
       // Priority 2: Firestore fallback (first login scenario)
+      debugPrint('AUTH: Fetching user profile from Firestore...');
       final profileDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('Waktu habis saat mengambil profil user. Periksa koneksi internet.'),
+          );
 
       if (profileDoc.exists && profileDoc.data()?['bengkelId'] != null) {
+
         final profile = UserProfile.fromFirestore(profileDoc);
 
         // 📱 Register device → mencabut sesi perangkat lama (Owner only)

@@ -33,7 +33,8 @@ void main() {
       final box = fakeDb.staffBox as FakeBox<Staff>;
       box.put(Staff(name: 'Technician 1', uuid: 't1', role: 'teknisi'));
 
-      final asyncList = container.read(staffListProvider);
+
+
       
       // Wait for future to complete
       final list = await container.read(staffListProvider.future);

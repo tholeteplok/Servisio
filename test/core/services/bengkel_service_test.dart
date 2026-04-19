@@ -15,13 +15,11 @@ void main() {
   late BengkelService service;
   late FakeFirebaseFirestore firestore;
   late FakeEncryptionService encryption;
-  late FakeDeviceInfoPlugin deviceInfoPlugin;
   late FakeDeviceSessionService deviceSession;
 
   setUp(() async {
     firestore = FakeFirebaseFirestore();
     encryption = FakeEncryptionService();
-    deviceInfoPlugin = FakeDeviceInfoPlugin();
     deviceSession = FakeDeviceSessionService();
     
     // Initialize telemetry with NullSink to avoid path_provider errors

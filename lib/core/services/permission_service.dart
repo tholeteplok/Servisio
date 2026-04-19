@@ -20,16 +20,30 @@ final permissionCheckProvider = FutureProvider.family<bool, String>((ref, permis
   return await permissionService.hasPermission(permissionKey);
 });
 
+/// Cache entry with TTL
+class _CacheEntry<T> {
+  final T data;
+  final DateTime expiry;
+
+  _CacheEntry(this.data, {required Duration ttl}) 
+    : expiry = DateTime.now().add(ttl);
+
+  bool get isExpired => DateTime.now().isAfter(expiry);
+}
+
 /// Permission Service - Logic untuk cek permission dengan caching
 /// SEC-FIX: Dynamic Permission System untuk granular access control
+/// N-03: Implementasi TTL (10 menit) untuk mencegah data permission basi
 class PermissionService {
   final AuthService _authService;
   final FirebaseFirestore _firestore;
 
-  // Cache untuk role templates (bengkelId -> roleId -> RoleTemplate)
-  final Map<String, Map<String, RoleTemplate>> _roleTemplateCache = {};
-  // Cache untuk staff permissions (bengkelId -> userId -> StaffWithPermissions)
-  final Map<String, Map<String, StaffWithPermissions>> _staffCache = {};
+  static const Duration _cacheTtl = Duration(minutes: 10);
+
+  // Cache untuk role templates (bengkelId -> roleId -> _CacheEntry<RoleTemplate>)
+  final Map<String, Map<String, _CacheEntry<RoleTemplate>>> _roleTemplateCache = {};
+  // Cache untuk staff permissions (bengkelId -> userId -> _CacheEntry<StaffWithPermissions>)
+  final Map<String, Map<String, _CacheEntry<StaffWithPermissions>>> _staffCache = {};
 
   PermissionService({
     required AuthService authService,
@@ -39,7 +53,8 @@ class PermissionService {
 
   /// Cek apakah current user memiliki permission tertentu
   Future<bool> hasPermission(String permissionKey) async {
-    final currentUser = _authService.getCurrentUser();
+    final currentUser = _authService.currentUser;
+
     if (currentUser == null) return false;
 
     // Get user profile for role and bengkelId
@@ -135,7 +150,9 @@ class PermissionService {
       throw Exception('Hanya owner yang bisa membuat role template');
     }
 
-    final currentUser = _authService.getCurrentUser()!;
+    final currentUser = _authService.currentUser;
+    if (currentUser == null) throw Exception('User not logged in');
+
     final docRef = _firestore
         .collection('bengkels')
         .doc(bengkelId)
@@ -263,11 +280,15 @@ class PermissionService {
     return tokenResult!.claims!['role'] == 'owner';
   }
 
-  /// Get staff with permissions (with caching)
+  /// Get staff with permissions (with caching and TTL)
   Future<StaffWithPermissions?> _getStaffWithPermissions(String bengkelId, String userId) async {
     // Check cache
     if (_staffCache.containsKey(bengkelId) && _staffCache[bengkelId]!.containsKey(userId)) {
-      return _staffCache[bengkelId]![userId];
+      final entry = _staffCache[bengkelId]![userId]!;
+      if (!entry.isExpired) {
+        return entry.data;
+      }
+      _staffCache[bengkelId]!.remove(userId);
     }
 
     final doc = await _firestore
@@ -281,18 +302,22 @@ class PermissionService {
 
     final staff = StaffWithPermissions.fromMap(doc.id, doc.data()!);
 
-    // Cache result
+    // Cache result with TTL
     _staffCache.putIfAbsent(bengkelId, () => {});
-    _staffCache[bengkelId]![userId] = staff;
+    _staffCache[bengkelId]![userId] = _CacheEntry(staff, ttl: _cacheTtl);
 
     return staff;
   }
 
-  /// Get role template (with caching)
+  /// Get role template (with caching and TTL)
   Future<RoleTemplate?> _getRoleTemplate(String bengkelId, String roleId) async {
     // Check cache
     if (_roleTemplateCache.containsKey(bengkelId) && _roleTemplateCache[bengkelId]!.containsKey(roleId)) {
-      return _roleTemplateCache[bengkelId]![roleId];
+      final entry = _roleTemplateCache[bengkelId]![roleId]!;
+      if (!entry.isExpired) {
+        return entry.data;
+      }
+      _roleTemplateCache[bengkelId]!.remove(roleId);
     }
 
     final doc = await _firestore
@@ -306,9 +331,9 @@ class PermissionService {
 
     final roleTemplate = RoleTemplate.fromMap(doc.id, doc.data()!);
 
-    // Cache result
+    // Cache result with TTL
     _roleTemplateCache.putIfAbsent(bengkelId, () => {});
-    _roleTemplateCache[bengkelId]![roleId] = roleTemplate;
+    _roleTemplateCache[bengkelId]![roleId] = _CacheEntry(roleTemplate, ttl: _cacheTtl);
 
     return roleTemplate;
   }
@@ -327,7 +352,7 @@ class PermissionService {
       case Permission.manageStaff:
         return PermissionConstants.staffCreate;
       case Permission.sendReminder:
-        return null; // Not in new system yet
+        return null;
     }
   }
 
