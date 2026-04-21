@@ -137,7 +137,6 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
   final service = ref.watch(authServiceProvider);
   final manager = ref.watch(sessionManagerProvider);
   final settings = ref.read(settingsProvider.notifier);
-  final bengkel = ref.read(bengkelServiceProvider);
   final device = ref.read(deviceSessionServiceProvider);
 
   await for (final user in service.authStateChanges) {
@@ -165,15 +164,8 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
 
         if (profile.bengkelId.isNotEmpty) {
           await settings.setBengkelId(profile.bengkelId);
-          try {
-            final doc = await bengkel.getBengkel(profile.bengkelId);
-            if (doc.exists) {
-              final name = (doc.data() as Map<String, dynamic>?)?['name'];
-              if (name != null) await settings.updateWorkshopInfo(name: name as String);
-            }
-          } catch (e) {
-            debugPrint('⚠️ Workshop name sync error: $e');
-          }
+          // Removed: Auto-syncing workshop name from Firestore overwrites local profile edits.
+          // Now workshop name is independently managed in Profile settings.
         }
 
         yield AuthStateContainer(state: AuthState.authenticated, user: user, profile: profile);

@@ -77,7 +77,7 @@ class AppColors {
         center: const Alignment(-1.1, -1.1),
         radius: 1.5,
         colors: [
-          kiwiGreen,
+          mintMajesty,
           obsidianBase.withValues(alpha: 0.5),
         ],
       );
@@ -87,7 +87,7 @@ class AppColors {
       radius: 2,
       colors: [
         precisionViolet, 
-        mintMajesty.withValues(alpha: 0.5),
+        lightSurfaceLow.withValues(alpha: 0.5),
       ],
       stops: const [0.6, 1.0],
     );

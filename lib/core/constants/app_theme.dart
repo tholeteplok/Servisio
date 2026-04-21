@@ -165,11 +165,11 @@ class AppTheme {
   );
  
   static ThemeData get dark => _base(
-    buttonAccent: AppColors.kiwiGreen,
+    buttonAccent: AppColors.mintMajesty,
     colorScheme:
         ColorScheme.fromSeed(
-          seedColor: AppColors.kiwiGreen,
-          primary: AppColors.kiwiGreen,
+          seedColor: AppColors.mintMajesty,
+          primary: AppColors.mintMajesty,
           secondary: AppColors.precisionViolet,
           surface: AppColors.obsidianBase,
           brightness: Brightness.dark,

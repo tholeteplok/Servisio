@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_icons/solar_icons.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/providers/system_providers.dart';
@@ -25,6 +29,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
 
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
+  String? _workshopLogoPath;
 
   @override
   void initState() {
@@ -35,6 +40,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     _waBengkelCtrl = TextEditingController(text: settings.workshopWhatsapp);
     _namaOwnerCtrl = TextEditingController(text: settings.ownerName);
     _phoneOwnerCtrl = TextEditingController(text: settings.ownerPhone);
+    _workshopLogoPath = settings.workshopLogoPath;
   }
 
   @override
@@ -63,14 +69,44 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
       phone: _phoneOwnerCtrl.text.trim(),
     );
 
+    await notifier.updateWorkshopLogo(_workshopLogoPath);
+    
     if (mounted) {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppStrings.profile.saveSuccess),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'workshop_logo_${DateTime.now().millisecondsSinceEpoch}${path.extension(image.path)}';
+      final savedImage = await File(image.path).copy('${appDir.path}/$fileName');
+      
+      // Clean up old logo if it exists locally
+      if (_workshopLogoPath != null && _workshopLogoPath!.startsWith(appDir.path)) {
+        try {
+          final oldFile = File(_workshopLogoPath!);
+          if (await oldFile.exists()) await oldFile.delete();
+        } catch (_) {}
+      }
+
+      setState(() => _workshopLogoPath = savedImage.path);
     }
   }
 
@@ -97,6 +133,53 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                   children: [
                     Text(AppStrings.profile.workshopInfo, style: theme.sectionLabelStyle),
                     const SizedBox(height: 16),
+                    
+                    // Logo Picker UI
+                    Center(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                  width: 2,
+                                ),
+                                image: _workshopLogoPath != null
+                                    ? DecorationImage(
+                                        image: FileImage(File(_workshopLogoPath!)),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: _workshopLogoPath == null
+                                  ? Icon(
+                                      SolarIconsOutline.camera,
+                                      color: theme.colorScheme.primary,
+                                      size: 32,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(SolarIconsOutline.upload, size: 16),
+                            label: const Text('Ganti Logo Bengkel'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     TextFormField(
                       controller: _namaBengkelCtrl,
                       textCapitalization: TextCapitalization.words,

@@ -777,7 +777,7 @@ class _ExpandedLayout extends StatelessWidget {
 // NAVIGATION RAIL — shared between medium and expanded
 // ─────────────────────────────────────────────────────────────
 
-class _NavigationRail extends StatelessWidget {
+class _NavigationRail extends ConsumerWidget {
   final int currentIndex;
   final void Function(int) onNavigate;
   final VoidCallback onCreateTransaction;
@@ -797,7 +797,7 @@ class _NavigationRail extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final railBg = isDark ? AppColors.surfaceLow : Colors.white;
     final railWidth = extended ? 200.0 : 72.0;
@@ -844,7 +844,7 @@ class _NavigationRail extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'ServisLog+',
+                        ref.watch(settingsProvider).workshopName,
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

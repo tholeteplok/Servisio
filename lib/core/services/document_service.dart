@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
@@ -55,11 +56,15 @@ class DocumentService {
     Transaction? transaction,
     List<Sale>? sales,
     required String bengkelName,
+    String? address,
+    String? workshopWhatsapp,
   }) async {
     final String message = _buildWhatsAppMessage(
       transaction: transaction,
       sales: sales,
       bengkelName: bengkelName,
+      address: address,
+      workshopWhatsapp: workshopWhatsapp,
     );
 
     final cleanedPhone = _cleanPhoneNumber(phone);
@@ -128,9 +133,13 @@ class DocumentService {
     Transaction? transaction,
     List<Sale>? sales,
     required String bengkelName,
+    String? address,
+    String? workshopWhatsapp,
   }) {
     final sb = StringBuffer();
     sb.writeln("*${AppStrings.transaction.whatsappReceiptHeader} - $bengkelName*");
+    if (address != null && address.isNotEmpty) sb.writeln(address);
+    if (workshopWhatsapp != null && workshopWhatsapp.isNotEmpty) sb.writeln("WA: $workshopWhatsapp");
     sb.writeln("-----------------------------------------");
 
     if (transaction != null) {
@@ -149,6 +158,7 @@ class DocumentService {
       sb.writeln("-----------------------------------------");
       sb.writeln("*${AppStrings.transaction.totalLabel}: ${_currencyFormat.format(transaction.totalAmount)}*");
     } else if (sales != null && sales.isNotEmpty) {
+      sb.writeln("${AppStrings.transaction.trxNumberLabel}: ${sales.first.trxNumber}");
       sb.writeln("${AppStrings.common.typeLabel}: ${AppStrings.catalog.salesLabel}");
       sb.writeln("${AppStrings.transaction.labelCustomer}: ${sales.first.customerName ?? AppStrings.common.noCategory}");
       sb.writeln("");
@@ -193,11 +203,25 @@ class DocumentService {
     List<Sale>? sales,
     required String bengkelName,
     String? address,
+    String? workshopWhatsapp,
+    String? logoPath,
     bool isThermal = true,
     bool isShare = false,
   }) async {
     final pdf = pw.Document();
     final dateStr = DateFormat(AppStrings.date.dateTimeReceipt).format(DateTime.now());
+
+    pw.MemoryImage? logoImage;
+    if (logoPath != null) {
+      try {
+        final file = File(logoPath);
+        if (await file.exists()) {
+          logoImage = pw.MemoryImage(await file.readAsBytes());
+        }
+      } catch (e) {
+        debugPrint('Error loading logo for PDF: $e');
+      }
+    }
 
     pdf.addPage(
       pw.Page(
@@ -208,6 +232,14 @@ class DocumentService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
+              if (logoImage != null)
+                pw.Center(
+                  child: pw.Container(
+                    height: isThermal ? 40 : 60,
+                    margin: const pw.EdgeInsets.only(bottom: 5),
+                    child: pw.Image(logoImage),
+                  ),
+                ),
               pw.Center(
                 child: pw.Text(
                   bengkelName,
@@ -217,10 +249,18 @@ class DocumentService {
                   ),
                 ),
               ),
-              if (address != null)
+              if (address != null && address.isNotEmpty)
                 pw.Center(
                   child: pw.Text(
                     address,
+                    style: const pw.TextStyle(fontSize: 8),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+              if (workshopWhatsapp != null && workshopWhatsapp.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    "WhatsApp: $workshopWhatsapp",
                     style: const pw.TextStyle(fontSize: 8),
                   ),
                 ),
@@ -314,6 +354,10 @@ class DocumentService {
                     ),
                 ],
               ] else if (sales != null && sales.isNotEmpty) ...[
+                pw.Text(
+                  "${AppStrings.transaction.trxNumberLabel}: ${sales.first.trxNumber}",
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
                 pw.Text(
                   AppStrings.catalog.salesLabel,
                   style: const pw.TextStyle(fontSize: 9),

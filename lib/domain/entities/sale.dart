@@ -33,6 +33,9 @@ class Sale {
   @Property(type: PropertyType.date)
   DateTime? updatedAt;
 
+  @Index()
+  String trxNumber; // Generated: SLS-20260401-001
+
   Sale({
     required this.itemName,
     required this.quantity,
@@ -41,6 +44,7 @@ class Sale {
     this.customerName,
     this.transactionId,
     this.stokUuid,
+    this.trxNumber = '',
     String? uuid,
     DateTime? createdAt,
     this.updatedAt,

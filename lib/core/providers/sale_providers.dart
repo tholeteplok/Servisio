@@ -6,6 +6,7 @@ import '../../domain/entities/stok_history.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
 import '../../domain/entities/sync_queue_item.dart';
+import '../services/transaction_number_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Notifiers
@@ -30,13 +31,30 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
 
   Future<void> addSale(Sale sale) async {
     final repository = ref.read(saleRepositoryProvider);
+    final trxService = ref.read(trxNumberServiceProvider);
+
+    if (sale.trxNumber.isEmpty) {
+      sale.trxNumber = await trxService.generateTrxNumber(
+        category: 'SALE',
+        prefix: 'SLS',
+      );
+    }
+
     repository.save(sale);
     loadSales();
   }
 
   Future<void> addSales(List<Sale> sales) async {
     final repository = ref.read(saleRepositoryProvider);
+    final trxService = ref.read(trxNumberServiceProvider);
+
     for (var sale in sales) {
+      if (sale.trxNumber.isEmpty) {
+        sale.trxNumber = await trxService.generateTrxNumber(
+          category: 'SALE',
+          prefix: 'SLS',
+        );
+      }
       repository.save(sale);
     }
     loadSales();
@@ -48,8 +66,16 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
       final db = ref.read(dbProvider);
       final repository = ref.read(saleRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
+      final trxService = ref.read(trxNumberServiceProvider);
 
       final itemsToSync = <({String type, String uuid})>[];
+
+      if (sale.trxNumber.isEmpty) {
+        sale.trxNumber = await trxService.generateTrxNumber(
+          category: 'SALE',
+          prefix: 'SLS',
+        );
+      }
 
       db.store.runInTransaction(TxMode.write, () {
         if (sale.stokUuid != null) {
@@ -110,9 +136,19 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
     state = await AsyncValue.guard(() async {
       final db = ref.read(dbProvider);
       final repository = ref.read(saleRepositoryProvider);
+      final trxService = ref.read(trxNumberServiceProvider);
       final syncWorker = ref.read(syncWorkerProvider);
 
       final itemsToSync = <({String type, String uuid})>[];
+
+      for (final sale in sales) {
+        if (sale.trxNumber.isEmpty) {
+          sale.trxNumber = await trxService.generateTrxNumber(
+            category: 'SALE',
+            prefix: 'SLS',
+          );
+        }
+      }
 
       db.store.runInTransaction(TxMode.write, () {
         for (final sale in sales) {

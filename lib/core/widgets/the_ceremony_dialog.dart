@@ -17,7 +17,7 @@ class TheCeremonyDialog extends ConsumerStatefulWidget {
   final List<Sale>? sales;
 
   const TheCeremonyDialog({super.key, this.transaction, this.sales})
-    : assert(transaction != null || sales != null);
+      : assert(transaction != null || sales != null);
 
   @override
   ConsumerState<TheCeremonyDialog> createState() => _TheCeremonyDialogState();
@@ -101,7 +101,7 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
           ],
         ),
         padding: const EdgeInsets.all(24),
-      child: AnimatedSwitcher(
+        child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: _currentStep == 0
               ? _buildPaymentStep()
@@ -245,12 +245,14 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
           label: 'Kirim WhatsApp (Teks)',
           color: Colors.green,
           onTap: () {
-            final phone = widget.transaction?.customerPhone ?? '';
+            final settings = ref.read(settingsProvider);
             ref.read(documentServiceProvider).shareWhatsApp(
-              phone: phone,
+              phone: widget.transaction?.customerPhone ?? '',
               transaction: widget.transaction,
               sales: widget.sales,
-              bengkelName: 'ServisLog+',
+              bengkelName: settings.workshopName,
+              address: settings.workshopAddress,
+              workshopWhatsapp: settings.workshopWhatsapp,
             );
           },
         ),
@@ -258,24 +260,36 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
           icon: SolarIconsOutline.printer,
           label: 'Cetak Struk (Thermal)',
           color: Colors.orange,
-          onTap: () => ref.read(documentServiceProvider).generateAndPrint(
-            transaction: widget.transaction,
-            sales: widget.sales,
-            bengkelName: 'ServisLog+',
-            isThermal: true,
-          ),
+          onTap: () {
+            final settings = ref.read(settingsProvider);
+            ref.read(documentServiceProvider).generateAndPrint(
+              transaction: widget.transaction,
+              sales: widget.sales,
+              bengkelName: settings.workshopName,
+              address: settings.workshopAddress,
+              workshopWhatsapp: settings.workshopWhatsapp,
+              logoPath: settings.workshopLogoPath,
+              isThermal: true,
+            );
+          },
         ),
         _ActionTile(
           icon: SolarIconsOutline.fileLeft,
           label: 'Simpan / Bagikan PDF',
           color: Colors.red,
-          onTap: () => ref.read(documentServiceProvider).generateAndPrint(
-            transaction: widget.transaction,
-            sales: widget.sales,
-            bengkelName: 'ServisLog+',
-            isThermal: false,
-            isShare: true,
-          ),
+          onTap: () {
+            final settings = ref.read(settingsProvider);
+            ref.read(documentServiceProvider).generateAndPrint(
+              transaction: widget.transaction,
+              sales: widget.sales,
+              bengkelName: settings.workshopName,
+              address: settings.workshopAddress,
+              workshopWhatsapp: settings.workshopWhatsapp,
+              logoPath: settings.workshopLogoPath,
+              isThermal: false,
+              isShare: true,
+            );
+          },
         ),
         const SizedBox(height: 24),
         ElevatedButton(

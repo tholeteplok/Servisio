@@ -6,6 +6,7 @@ import '../../domain/entities/stok_history.dart';
 import '../../domain/entities/sync_queue_item.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
+import '../services/transaction_number_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction Notifiers
@@ -36,6 +37,16 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       final syncWorker = ref.read(syncWorkerProvider);
+      final trxService = ref.read(trxNumberServiceProvider);
+
+      // Generate nomor transaksi jika kosong
+      if (transaction.trxNumber.isEmpty) {
+        transaction.trxNumber = await trxService.generateTrxNumber(
+          category: 'SERVICE',
+          prefix: 'SVC',
+        );
+      }
+
       transaction.calculateTotals();
       repository.save(transaction);
       syncWorker?.enqueue(entityType: 'transaction', entityUuid: transaction.uuid, priority: SyncPriority.critical);

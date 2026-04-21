@@ -8,6 +8,9 @@ class AppSettings {
   /// WhatsApp contact number for the workshop.
   static const String workshopWhatsapp = 'workshop_whatsapp';
 
+  /// Local path to the saved workshop logo image.
+  static const String workshopLogoPath = 'workshop_logo_path';
+
   /// Name of the workshop owner.
   static const String ownerName = 'owner_name';
 

@@ -500,6 +500,15 @@ class _HistoryCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
+                  item.trxNumber,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   item.title,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,

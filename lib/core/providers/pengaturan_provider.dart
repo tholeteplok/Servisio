@@ -39,6 +39,7 @@ class SettingsState {
   final String? lastSyncAt;
   final bool hasSeenSwipeHint;
   final bool hasSeenOverscrollHint;
+  final String? workshopLogoPath;
 
   SettingsState({
     required this.workshopName,
@@ -70,6 +71,7 @@ class SettingsState {
     this.lastSyncAt,
     this.hasSeenSwipeHint = false,
     this.hasSeenOverscrollHint = false,
+    this.workshopLogoPath,
   });
 
   SettingsState copyWith({
@@ -102,6 +104,7 @@ class SettingsState {
     String? lastSyncAt,
     bool? hasSeenSwipeHint,
     bool? hasSeenOverscrollHint,
+    String? workshopLogoPath,
   }) {
     return SettingsState(
       workshopName: workshopName ?? this.workshopName,
@@ -133,6 +136,7 @@ class SettingsState {
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       hasSeenSwipeHint: hasSeenSwipeHint ?? this.hasSeenSwipeHint,
       hasSeenOverscrollHint: hasSeenOverscrollHint ?? this.hasSeenOverscrollHint,
+      workshopLogoPath: workshopLogoPath ?? this.workshopLogoPath,
     );
   }
 }
@@ -177,6 +181,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       lastSyncAt: prefs.getString(AppSettings.lastSyncAt),
       hasSeenSwipeHint: prefs.getBool(AppSettings.hasSeenSwipeHint) ?? false,
       hasSeenOverscrollHint: prefs.getBool(AppSettings.hasSeenOverscrollHint) ?? false,
+      workshopLogoPath: prefs.getString(AppSettings.workshopLogoPath),
     );
   }
 
@@ -187,6 +192,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     if (address != null) await _prefs.setString(AppSettings.workshopAddress, address);
     if (whatsapp != null) await _prefs.setString(AppSettings.workshopWhatsapp, whatsapp);
     state = state.copyWith(workshopName: name, workshopAddress: address, workshopWhatsapp: whatsapp);
+  }
+
+  Future<void> updateWorkshopLogo(String? path) async {
+    if (path != null) {
+      await _prefs.setString(AppSettings.workshopLogoPath, path);
+    } else {
+      await _prefs.remove(AppSettings.workshopLogoPath);
+    }
+    state = state.copyWith(workshopLogoPath: path);
   }
 
   Future<void> updateOwnerInfo({String? name, String? phone}) async {

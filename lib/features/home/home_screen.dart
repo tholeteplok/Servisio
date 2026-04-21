@@ -10,6 +10,8 @@ import 'package:solar_icons/solar_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'create_transaction_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/master_providers.dart';
@@ -121,26 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final transactions = paginatedState.items;
     final stats = ref.watch(statsProvider);
     
-    // Trend Calculation
-    String? trendStr;
-    Color? trendColor;
-    if (stats.yesterdayPendapatan > 0) {
-      final diff = stats.todayPendapatan - stats.yesterdayPendapatan;
-      final percent = (stats.yesterdayPendapatan > 0) 
-        ? (diff / stats.yesterdayPendapatan * 100).abs().toStringAsFixed(0)
-        : '100';
-      
-      if (diff > 0) {
-        trendStr = '↑ $percent%';
-        trendColor = Colors.green;
-      } else if (diff < 0) {
-        trendStr = '↓ $percent%';
-        trendColor = Colors.red;
-      }
-    } else if (stats.todayPendapatan > 0) {
-      trendStr = '↑ 100%';
-      trendColor = Colors.green;
-    }
+
     final settings = ref.watch(settingsProvider);
     final searchQueryText = ref.watch(homeSearchQueryProvider);
     final searchQuery = searchQueryText.toLowerCase();
@@ -326,107 +309,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   children: [
-                    // --- 1. STOK (HIGHEST PRIORITY) ---
                     // --- 1. INVENTORY ---
                     StaggeredGridTile.count(
                       crossAxisCellCount: 1,
                       mainAxisCellCount: 0.7,
                       child: _BentoCard(
                         onTap: () => ref.read(navigationProvider.notifier).setIndex(1),
-                        showAccentBar: true,
-                        title: AppStrings.home.inventory,
-                        icon: (stats.lowStockCount + stats.emptyStockCount > 0)
-                            ? SolarIconsBold.box
-                            : SolarIconsBold.checkCircle,
-                        color: (stats.lowStockCount + stats.emptyStockCount > 0)
-                            ? Colors.red
-                            : Colors.green,
-                        valueWidget: (stats.lowStockCount + stats.emptyStockCount > 0)
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  if (stats.lowStockCount > 0)
-                                    Text(
-                                      stats.lowStockCount.toString(),
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.orange.shade700,
-                                      ),
-                                    ),
-                                  if (stats.lowStockCount > 0 && stats.emptyStockCount > 0)
-                                    Text(
-                                      ' / ',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 16,
-                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                  if (stats.emptyStockCount > 0)
-                                    Text(
-                                      stats.emptyStockCount.toString(),
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.red.shade700,
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  const Icon(SolarIconsBold.checkCircle, color: Colors.green, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    AppStrings.home.inventorySafe,
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        subValue: AppStrings.home.inventoryStatus,
+                        title: AppStrings.home.bentoInventory,
+                        value: stats.lowStockCount > 0 ? '${stats.lowStockCount}' : 'AMAN',
+                        subValue: stats.lowStockCount > 0 
+                            ? '${stats.lowStockCount} Item Menipis' 
+                            : 'Kondisi Stok Optimal',
+                        icon: SolarIconsBold.box,
+                        color: stats.lowStockCount > 0 
+                            ? AppColors.strawberryFields 
+                            : AppColors.mintMajesty,
+                        isFullColor: true,
                         chips: [
-                          if (stats.emptyStockCount > 0)
+                          if (stats.lowStockCount > 0)
                             const _BentoChip(
-                              label: 'Perlu Belanja',
-                              color: Colors.red,
+                              label: 'Segera Restok',
+                              color: Colors.white,
                               icon: SolarIconsBold.cart,
-                            ),
-                          if (stats.lowStockCount > 0 && stats.emptyStockCount == 0)
-                            const _BentoChip(
-                              label: 'Stok Menipis',
-                              color: Colors.orange,
                             ),
                         ],
                       ),
                     ),
 
-
-                    // --- 3. PENDAPATAN ---
+                    // --- 2. REVENUE ---
                     StaggeredGridTile.count(
-                      crossAxisCellCount: (stats.todayPendapatan > 1000000) ? 2 : 1,
+                      crossAxisCellCount: 1,
                       mainAxisCellCount: 0.7,
                       child: _BentoCard(
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const StatistikScreen()),
                         ),
-                        showAccentBar: true,
-                        title: AppStrings.home.todayRevenue,
+                        title: AppStrings.home.bentoRevenue,
                         value: _formatCurrencyShort(stats.todayPendapatan.toDouble()),
-                        subValue: AppStrings.home.totalRevenueLabel,
+                        subValue: 'Profit: Rp ${NumberFormat('#,###').format(stats.todayProfit)}',
                         icon: SolarIconsBold.wadOfMoney,
-                        color: theme.colorScheme.primary,
-                        trend: trendStr,
-                        trendColor: trendColor,
+                        color: AppColors.precisionViolet,
+                        isFullColor: true,
+                        chartData: stats.weeklyTrend,
                       ),
                     ),
 
-                    // --- 4. REMINDER ---
+                    // --- 3. REMINDER ---
                     StaggeredGridTile.count(
                       crossAxisCellCount: 1,
                       mainAxisCellCount: 0.7,
@@ -435,29 +364,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           context,
                           MaterialPageRoute(builder: (_) => const ReminderScreen()),
                         ),
-                        showAccentBar: true,
-                        title: AppStrings.home.reminder,
+                        title: AppStrings.home.bentoReminders,
                         value: ref.watch(reminderCountProvider).toString(),
-                        subValue: AppStrings.home.upcoming,
+                        subValue: 'Jadwal Aktif',
                         icon: SolarIconsBold.bell,
-                        color: Colors.orange,
+                        color: AppColors.ninjinOrange,
+                        isFullColor: true,
                       ),
                     ),
 
-                    // --- 5. PENGUNJUNG ---
+                    // --- 4. VISITORS ---
                     StaggeredGridTile.count(
                       crossAxisCellCount: 1,
                       mainAxisCellCount: 0.7,
                       child: _BentoCard(
-                        showAccentBar: true,
-                        title: AppStrings.home.visitors,
+                        title: AppStrings.home.bentoVisitors,
                         value: stats.todayVisitorCount.toString(),
-                        subValue: '${stats.todayActiveCount} ${AppStrings.home.processed}',
+                        subValue: '${stats.todayWaitingCount} Antri • ${stats.todayProcessingCount} Proses',
                         icon: SolarIconsBold.usersGroupTwoRounded,
-                        color: Colors.blue,
+                        color: AppColors.lightSkyBlue,
+                        isFullColor: true,
+                        trend: '${stats.todayActiveCount} Aktif',
+                        trendColor: Colors.white,
+                        onTap: () {},
                       ),
                     ),
                   ],
+
                 ),
               ),
             ),
@@ -610,6 +543,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         final activityCard = _ActivityCard(
                           trx: todayTrx[index],
                           onDelete: () => _handleDelete(context, todayTrx[index]),
+                          showHint: index == 0 && !settings.hasSeenSwipeHint,
                         );
 
                         return activityCard;
@@ -966,45 +900,67 @@ class _ResultCard extends StatelessWidget {
 class _BentoCard extends StatelessWidget {
   final String title;
   final String? value;
-  final Widget? valueWidget;
+
   final String subValue;
   final IconData icon;
   final Color color;
   final String? trend;
   final Color? trendColor;
   final List<Widget>? chips;
-  final bool showAccentBar;
+  final bool isFullColor;
+  final List<TrendData>? chartData;
   final VoidCallback? onTap;
 
   const _BentoCard({
     required this.title,
     this.value,
-    this.valueWidget,
     required this.subValue,
     required this.icon,
     required this.color,
     this.trend,
     this.trendColor,
     this.chips,
-    this.showAccentBar = false,
+    this.isFullColor = false,
+    this.chartData,
     this.onTap,
   });
+
+
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-     return Container(
-      decoration: BoxDecoration(
-        color: isDark
+    final Color cardBg = isFullColor 
+        ? color 
+        : (isDark 
             ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-            : theme.colorScheme.surface,
+            : theme.colorScheme.surface);
+    
+    final Color textColor = isFullColor ? Colors.white : theme.colorScheme.onSurface;
+    final Color subTextColor = isFullColor ? Colors.white.withValues(alpha: 0.7) : theme.colorScheme.outline;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        gradient: isFullColor 
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color,
+                  color.withValues(alpha: 0.8),
+                ],
+              )
+            : null,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : theme.colorScheme.outline.withValues(alpha: 0.12),
+          color: isFullColor 
+              ? Colors.white.withValues(alpha: 0.1)
+              : (isDark 
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : theme.colorScheme.outline.withValues(alpha: 0.12)),
           width: 1.2,
         ),
         boxShadow: isDark
@@ -1018,7 +974,7 @@ class _BentoCard extends StatelessWidget {
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: color.withValues(alpha: isFullColor ? 0.3 : 0.04),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                   spreadRadius: -2,
@@ -1031,40 +987,61 @@ class _BentoCard extends StatelessWidget {
           onTap: onTap,
           child: Stack(
             children: [
-              // Accent Bar
-              if (showAccentBar)
-                Positioned(
-                  left: 0,
-                  top: 12,
-                  bottom: 12,
-                  child: Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: const BorderRadius.horizontal(
-                        right: Radius.circular(4),
+              // Chart Background
+              if (chartData != null && chartData!.isNotEmpty)
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.2,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: LineChart(
+                        LineChartData(
+                          gridData: const FlGridData(show: false),
+                          titlesData: const FlTitlesData(show: false),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: chartData!
+                                  .asMap()
+                                  .entries
+                                  .map((e) => FlSpot(e.key.toDouble(), e.value.revenue.toDouble()))
+                                  .toList(),
+                              isCurved: true,
+                              color: Colors.white,
+                              barWidth: 2,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
+
+
               
               // Watermark Icon
               Positioned(
                 bottom: -15,
                 right: -15,
                 child: Opacity(
-                  opacity: 0.05,
+                  opacity: isFullColor ? 0.15 : 0.05,
                   child: Icon(
                     icon,
-                    size: 60,
-                    color: isDark ? Colors.white : color,
+                    size: 80,
+                    color: isFullColor ? Colors.white : (isDark ? Colors.white : color),
                   ),
                 ),
               ),
               
               // Content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1076,7 +1053,9 @@ class _BentoCard extends StatelessWidget {
                             style: GoogleFonts.manrope(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: color.withValues(alpha: 0.8),
+                              color: isFullColor 
+                                  ? Colors.white.withValues(alpha: 0.9) 
+                                  : color.withValues(alpha: 0.8),
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -1088,7 +1067,9 @@ class _BentoCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: (trendColor ?? color).withValues(alpha: 0.1),
+                              color: isFullColor 
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : (trendColor ?? color).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1096,7 +1077,7 @@ class _BentoCard extends StatelessWidget {
                               style: GoogleFonts.inter(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
-                                color: trendColor ?? color,
+                                color: isFullColor ? Colors.white : (trendColor ?? color),
                               ),
                             ),
                           ),
@@ -1107,20 +1088,16 @@ class _BentoCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        if (valueWidget != null)
-                          valueWidget!
-                        else
                           Text(
                             value ?? '',
                             style: GoogleFonts.manrope(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : theme.colorScheme.onSurface,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: textColor,
                               letterSpacing: -0.5,
                             ),
                           ),
+
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -1128,12 +1105,12 @@ class _BentoCard extends StatelessWidget {
                       subValue,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: theme.colorScheme.outline,
-                        fontWeight: FontWeight.w500,
+                        color: subTextColor,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (chips != null && chips!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
@@ -1150,6 +1127,7 @@ class _BentoCard extends StatelessWidget {
     );
   }
 }
+
 
 class _BentoChip extends StatelessWidget {
   final String label;
@@ -1195,10 +1173,12 @@ class _BentoChip extends StatelessWidget {
 class _ActivityCard extends ConsumerStatefulWidget {
   final Transaction trx;
   final VoidCallback? onDelete;
+  final bool showHint;
 
   const _ActivityCard({
     required this.trx,
     this.onDelete,
+    this.showHint = false,
   });
 
   @override
@@ -1250,6 +1230,7 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = ref.watch(settingsProvider);
     final trx = widget.trx;
 
     // Status color, Label & Icon
@@ -1283,6 +1264,13 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
         statusIcon = SolarIconsBold.checkCircle;
         nextStatus = null; // No more forward progression
         break;
+    }
+
+    // Onboarding: Mark as seen if it was shown
+    if (widget.showHint && !settings.hasSeenSwipeHint) {
+       Future.microtask(() {
+         ref.read(settingsProvider.notifier).setHasSeenSwipeHint(true);
+       });
     }
 
     final Color nextStatusColor = nextStatus == ServiceStatus.dikerjakan 
@@ -1473,77 +1461,96 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
                       )
                     : null,
               ),
-              customTitle: Row(
+              customTitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    trx.vehiclePlate,
+                   Text(
+                    trx.trxNumber,
                     style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  if (trx.serviceStatus == ServiceStatus.dikerjakan &&
-                      trx.startTime != null) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        trx.vehiclePlate,
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            SolarIconsOutline.clockCircle,
-                            size: 10,
-                            color: theme.colorScheme.onSurfaceVariant,
+                      if (trx.serviceStatus == ServiceStatus.dikerjakan &&
+                          trx.startTime != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _getDurationText(trx.startTime!),
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                SolarIconsOutline.clockCircle,
+                                size: 10,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _getDurationText(trx.startTime!),
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
               subtitle: trx.customerName,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 12, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusLabel,
-                          style: GoogleFonts.manrope(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: statusColor,
+                  Tooltip(
+                    message: widget.showHint ? 'Geser ke kanan untuk $nextStatusLabel' : statusLabel,
+                    triggerMode: widget.showHint ? TooltipTriggerMode.manual : TooltipTriggerMode.longPress,
+                    showDuration: widget.showHint ? const Duration(seconds: 5) : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 12, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusLabel,
+                            style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: statusColor,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

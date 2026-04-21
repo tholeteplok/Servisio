@@ -148,6 +148,11 @@ class HomeStrings {
   final setPicture = 'Atur Gambar';
   
   // Bento Cards
+  final bentoInventory = 'INVENTARIS';
+  final bentoRevenue = 'PENDAPATAN';
+  final bentoReminders = 'REMINDER';
+  final bentoVisitors = 'PENGUNJUNG';
+
   final service = 'Servis';
   final sellItems = 'Jual Barang';
   final customers = 'Pelanggan';
@@ -175,6 +180,7 @@ class HomeStrings {
   final noSearchResults = 'Tidak ada hasil untuk';
   final remainingTarget = 'Sisa target: ';
 }
+
 
 class TrxStrings {
   const TrxStrings();

@@ -8,12 +8,16 @@ class TrxCounter {
   int id = 0;
 
   @Unique()
-  String date; // Format: YYYYMMDD
+  String key; // Format: CATEGORY_YYYYMMDD
+
+  // ⚠️ TEMPORARY: Restored for compatibility with objectbox.g.dart until next build
+  String date;
 
   int count;
 
   TrxCounter({
-    required this.date,
-    required this.count,
+    this.key = '',
+    this.date = '',
+    this.count = 0,
   });
 }

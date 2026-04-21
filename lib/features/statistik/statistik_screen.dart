@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons/lucide_icons.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:solar_icons/solar_icons.dart';
+import '../../core/widgets/atelier_header.dart';
+import 'package:servisio_core/core/providers/stats_provider.dart';
 import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';
@@ -188,87 +189,47 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   }
 
   Widget _buildHeader(ThemeData theme) {
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, statusBarHeight + 12, 20, 24),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: AppColors.headerGradient(context),
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(24),
+    return AtelierHeaderSub(
+      title: 'Analisis Bisnis',
+      subtitle: 'Laporan performa bengkel secara real-time',
+      showBackButton: true,
+      onBackPressed: () => Navigator.pop(context),
+      actions: [
+        IconButton(
+          onPressed: () => setState(() => _isPrivate = !_isPrivate),
+          icon: Icon(
+            _isPrivate ? SolarIconsOutline.eyeClosed : SolarIconsOutline.eye,
+            color: Colors.white,
+          ),
+          tooltip: 'Visibilitas',
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  LucideIcons.chevronLeft,
-                  color: theme.colorScheme.onPrimary,
-                ),
-                tooltip: 'Kembali',
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
-                ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => setState(() => _isPrivate = !_isPrivate),
-                    icon: Icon(
-                      _isPrivate ? LucideIcons.eyeOff : LucideIcons.eye,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                    tooltip: 'Visibilitas',
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed: () {
-                        // Refresh logic here if needed, or just visual
-                    },
-                    icon: Icon(
-                      LucideIcons.refreshCw,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                    tooltip: 'Segarkan',
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () {
+            // Refresh logic - invalidating providers
+            ref.invalidate(statsProvider);
+          },
+          icon: const Icon(
+            SolarIconsOutline.refresh,
+            color: Colors.white,
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Analisis Bisnis',
-            style: GoogleFonts.manrope(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onPrimary,
-              letterSpacing: -1.0,
+          tooltip: 'Segarkan',
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          Text(
-            'Laporan performa bengkel secara real-time',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

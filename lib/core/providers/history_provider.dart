@@ -41,6 +41,7 @@ class HistoryItemData {
   final String id;
   final String title;
   final String subtitle;
+  final String trxNumber;
   final int amount;
   final DateTime date;
   final String type;
@@ -51,6 +52,7 @@ class HistoryItemData {
     required this.id,
     required this.title,
     required this.subtitle,
+    required this.trxNumber,
     required this.amount,
     required this.date,
     required this.type,
@@ -159,6 +161,7 @@ class HistoryListNotifier extends StateNotifier<HistoryState> {
                 id: t.uuid,
                 title: t.vehicleModel,
                 subtitle: t.items.isEmpty ? 'Detail Servis' : t.items.map((i) => i.name).join(', '),
+                trxNumber: t.trxNumber,
                 amount: t.totalAmount,
                 date: t.createdAt,
                 type: 'SERVICE',
@@ -181,6 +184,7 @@ class HistoryListNotifier extends StateNotifier<HistoryState> {
                 id: s.uuid,
                 title: s.itemName,
                 subtitle: 'Penjualan Langsung',
+                trxNumber: s.trxNumber,
                 amount: s.totalPrice,
                 date: s.createdAt,
                 type: 'SALE',
