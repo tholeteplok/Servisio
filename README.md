@@ -1,4 +1,4 @@
-# servislog-plus
+# servisio
 
 Aplikasi Mobile Flutter untuk Manajemen Bengkel.
 Platform: Multi-platform (Android, iOS, Windows, macOS, Linux, Web).
