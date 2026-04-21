@@ -92,7 +92,7 @@ class CommonStrings {
 
 class AuthStrings {
   const AuthStrings();
-  final loginTitle = 'Servisio';
+  final loginTitle = 'ServisI/O';
   final loginSubtitle = 'PLATFORM WORKSHOP PROFESIONAL';
   final loginDescription = 'Manajemen rincian Teknisi, Inventaris,\ndan Pendapatan secara real-time.';
   final signInWithGoogle = 'Masuk dengan Akun Google';
@@ -110,7 +110,7 @@ class AuthStrings {
   final restoreChoiceDesc = 'Device baru terdeteksi. Ingin memulihkan data dari Cloud?';
   
   // Onboarding
-  final welcomeTitle = 'Selamat Datang di Servisio';
+  final welcomeTitle = 'Selamat Datang di ServisI/O';
   final welcomeSubtitle = 'Satu platform untuk semua kebutuhan manajemen bengkel Anda.';
   final ownerTitle = 'Saya Pemilik Bengkel';
   final ownerSubtitle = 'Kelola tim, pantau pendapatan, dan kembangkan bisnis Anda.';

@@ -1,15 +1,29 @@
+<<<<<<< HEAD
 # Syarat dan Ketentuan Penggunaan Servisio
 
 **Terakhir Diperbarui: 14 April 2026**
 
 Terima kasih telah menggunakan **Servisio**. Dengan mengunduh, mengakses, atau menggunakan aplikasi ini, Anda setuju untuk terikat oleh Syarat dan Ketentuan berikut. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda tidak diperbolehkan menggunakan aplikasi kami.
+=======
+# Syarat dan Ketentuan Penggunaan ServisI/O
+
+**Terakhir Diperbarui: 14 April 2026**
+
+Terima kasih telah menggunakan **ServisI/O**. Dengan mengunduh, mengakses, atau menggunakan aplikasi ini, Anda setuju untuk terikat oleh Syarat dan Ketentuan berikut. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda tidak diperbolehkan menggunakan aplikasi kami.
+
 
 ---
 
 ## 1. Definisi
+<<<<<<< HEAD
 - **Aplikasi:** Merujuk pada aplikasi Android Servisio.
 - **Pengguna:** Pemilik bengkel atau staf yang terdaftar dan menggunakan layanan ServisLog+.
 - **Kami:** Pengembang ServisLog+ dan tim manajemen terkait.
+=======
+- **Aplikasi:** Merujuk pada aplikasi Android **ServisI/O**.
+- **Pengguna:** Pemilik bengkel atau staf yang terdaftar dan menggunakan layanan **ServisI/O**.
+- **Kami:** Pengembang **ServisI/O** dan tim manajemen terkait.
+
 
 ---
 
@@ -21,7 +35,11 @@ Kami memberikan Anda lisensi terbatas, non-eksklusif, dan tidak dapat dipindahta
 ## 3. Akun dan Keamanan (PENTING)
 
 ### A. Tanggung Jawab Kata Sandi dan Master Key
+<<<<<<< HEAD
 Servisio menggunakan arsitektur **Zero-Knowledge**. Ini berarti kunci enkripsi data Anda hanya disimpan di perangkat Anda atau dilindungi oleh Master Password Anda.
+=======
+**ServisI/O** menggunakan arsitektur **Zero-Knowledge**. Ini berarti kunci enkripsi data Anda hanya disimpan di perangkat Anda atau dilindungi oleh Master Password Anda.
+
 - **Tanggung Jawab Mandiri:** Anda bertanggung jawab penuh untuk menjaga kerahasiaan kata sandi dan Master Password Anda.
 - **Risiko Kehilangan:** Kami tidak memiliki salinan kunci enkripsi Anda. Jika Anda lupa kata sandi atau kehilangan akses ke perangkat tanpa cadangan kunci yang benar, **data Anda tidak dapat dipulihkan oleh kami.**
 
@@ -59,7 +77,7 @@ Kami berhak untuk mengubah, menangguhkan, atau menghentikan bagian apa pun dari 
 
 ## 8. Kontak
 Untuk bantuan teknis atau pertanyaan mengenai ketentuan ini, silakan hubungi:
-- **Email:** support.servislog@gmail.com
+- **Email:** support.servisioapps@gmail.com
 
 ---
-*Dengan menggunakan ServisLog+, Anda mengakui bahwa Anda telah membaca, memahami, dan menyetujui syarat-syarat di atas.*
+*Dengan menggunakan **ServisI/O**, Anda mengakui bahwa Anda telah membaca, memahami, dan menyetujui syarat-syarat di atas.*

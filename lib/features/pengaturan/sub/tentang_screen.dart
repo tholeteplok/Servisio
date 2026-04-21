@@ -91,7 +91,7 @@ class _TentangScreenState extends State<TentangScreen>
 
                   const SizedBox(height: 24),
                   const Text(
-                    'ServisLog+',
+                    'ServisI/O',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
@@ -121,36 +121,36 @@ class _TentangScreenState extends State<TentangScreen>
                     icon: SolarIconsOutline.fileText,
                     title: 'Syarat & Ketentuan',
                     onTap: () =>
-                        _launchUrl('https://servislog-plus.web.app/terms.html'),
+                        _launchUrl('https://servisio.web.app/terms.html'),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.questionCircle,
                     title: 'Bantuan & FAQ',
                     onTap: () =>
-                        _launchUrl('https://servislog-plus.web.app/faq.html'),
+                        _launchUrl('https://servisio.web.app/faq.html'),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.shieldCheck,
                     title: 'Kebijakan Privasi',
                     onTap: () =>
-                        _launchUrl('https://servislog-plus.web.app/index.html'),
+                        _launchUrl('https://servisio.web.app/privacy.html'),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.star,
                     title: 'Beri Rating APLIKASI',
                     onTap: () => _launchUrl(
-                      'https://play.google.com/store/apps/details?id=com.tholeteplok.servislogv2',
+                      'https://play.google.com/store/apps/details?id=com.tholeteplok.servisio',
                     ),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.letter,
                     title: 'Dukungan & Email',
-                    onTap: () => _launchUrl('mailto:support.servislog@gmail.com'),
+                    onTap: () => _launchUrl('mailto:support.servisioapps@gmail.com'),
                   ),
 
                   const SizedBox(height: 60),
                   Text(
-                    'Dibuat dengan ❤️ oleh Pengembang ServisLog+',
+                    'Dibuat dengan ❤️ oleh Pengembang ServisI/O',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.grey.shade500,

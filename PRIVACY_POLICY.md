@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 # Kebijakan Privasi Servisio
+=======
+# Kebijakan Privasi ServisI/O
+
 
 **Terakhir Diperbarui: 14 April 2026**
 
-Selamat datang di **ServisLog+**. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda serta data pelanggan bengkel Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda saat Anda menggunakan aplikasi Android ServisLog+.
+Selamat datang di **ServisI/O**. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda serta data pelanggan bengkel Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda saat Anda menggunakan aplikasi Android ServisI/O.
 
 ---
 
@@ -28,7 +32,7 @@ Aplikasi ini memungkinkan Anda menyimpan data pihak ketiga (pelanggan Anda), yan
 
 ## 2. Bagaimana Kami Menggunakan Informasi Anda
 
-ServisLog+ menggunakan data yang dikumpulkan untuk:
+**ServisI/O** menggunakan data yang dikumpulkan untuk:
 1. **Operasional Aplikasi:** Mengelola inventaris, riwayat servis, dan pencatatan keuangan bengkel Anda.
 2. **Sinkronisasi Awan:** Memungkinkan Anda mengakses data dari berbagai perangkat secara real-time melalui layanan Cloud Firestore.
 3. **Keamanan:** Mencegah akses yang tidak sah melalui verifikasi perangkat dan sesi tunggal (Single Device Policy).
@@ -79,7 +83,7 @@ Kami dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu. Kami akan memb
 ## 7. Kontak Kami
 
 Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami melalui:
-- **Email:** support.servislog@gmail.com
+- **Email:** support.servisioapps@gmail.com
 
 ---
-*Dokumen ini disusun berdasarkan arsitektur teknis ServisLog+ yang menggunakan enkripsi AES-256.*
+*Dokumen ini disusun berdasarkan arsitektur teknis **ServisI/O** yang menggunakan enkripsi AES-256.*
