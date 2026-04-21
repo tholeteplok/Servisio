@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/stats_provider.dart';
 
 class LayananTab extends ConsumerWidget {
@@ -13,10 +12,9 @@ class LayananTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(statsProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     if (stats.topServices.isEmpty) {
-      return _buildEmptyState(isDark);
+      return _buildEmptyState(theme);
     }
 
     return ListView.builder(
@@ -24,12 +22,12 @@ class LayananTab extends ConsumerWidget {
       itemCount: stats.topServices.length,
       itemBuilder: (context, index) {
         final item = stats.topServices[index];
-        return _buildItemCard(item, index + 1, isDark);
+        return _buildItemCard(item, index + 1, theme);
       },
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -37,13 +35,13 @@ class LayananTab extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.precisionViolet.withValues(alpha: 0.05),
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
             child: Icon(
               LucideIcons.wrench,
               size: 40,
-              color: AppColors.precisionViolet.withValues(alpha: 0.2),
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
             ),
           ),
           const SizedBox(height: 24),
@@ -52,7 +50,7 @@ class LayananTab extends ConsumerWidget {
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.38),
             ),
           ),
         ],
@@ -60,12 +58,12 @@ class LayananTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemCard(TopItem item, int rank, bool isDark) {
+  Widget _buildItemCard(TopItem item, int rank, ThemeData theme) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -79,13 +77,13 @@ class LayananTab extends ConsumerWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.precisionViolet,
-                        AppColors.precisionViolet.withValues(alpha: 0.7),
+                        theme.colorScheme.primary,
+                        theme.colorScheme.primary.withValues(alpha: 0.7),
                       ],
                     )
                   : null,
               color: rank > 3
-                  ? AppColors.precisionViolet.withValues(alpha: 0.1)
+                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
                   : null,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -95,7 +93,7 @@ class LayananTab extends ConsumerWidget {
                 style: GoogleFonts.manrope(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: rank <= 3 ? Colors.white : AppColors.precisionViolet,
+                  color: rank <= 3 ? theme.colorScheme.onPrimary : theme.colorScheme.primary,
                 ),
               ),
             ),
@@ -112,7 +110,7 @@ class LayananTab extends ConsumerWidget {
                   style: GoogleFonts.manrope(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -121,7 +119,7 @@ class LayananTab extends ConsumerWidget {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white54 : Colors.black45,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -138,7 +136,7 @@ class LayananTab extends ConsumerWidget {
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.precisionViolet,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -147,7 +145,7 @@ class LayananTab extends ConsumerWidget {
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white30 : Colors.black26,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.26),
                 ),
               ),
             ],

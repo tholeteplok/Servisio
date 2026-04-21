@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../core/providers/master_providers.dart';
@@ -116,7 +115,7 @@ class _CreateServiceMasterScreenState
                           controller: _hargaController,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.amethyst,
+                            color: theme.colorScheme.primary,
                           ),
                           decoration: InputDecoration(
                             labelText: AppStrings.catalog.labelServicePrice,
@@ -134,7 +133,7 @@ class _CreateServiceMasterScreenState
                       onPressed: _submit,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 68),
-                        backgroundColor: AppColors.amethyst,
+                        backgroundColor: theme.colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -147,7 +146,7 @@ class _CreateServiceMasterScreenState
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                           ),
                         ),
                     ),
@@ -162,12 +161,13 @@ class _CreateServiceMasterScreenState
   }
 
   Widget _buildFormCard({required List<Widget> children}) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

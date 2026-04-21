@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/services/zip_utility.dart';
 import '../../../core/providers/objectbox_provider.dart';
 
@@ -100,18 +99,19 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 SolarIconsOutline.cloudDownload,
                 size: 80,
-                color: AppColors.amethyst,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 32),
               Text(
@@ -119,7 +119,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -128,7 +128,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
-                  color: AppColors.textSecondary,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 48),
@@ -137,10 +137,10 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                   children: [
                     LinearProgressIndicator(
                       value: _isVerifying ? null : _progress,
-                      backgroundColor: AppColors.amethyst.withValues(
+                      backgroundColor: theme.colorScheme.primary.withValues(
                         alpha: 0.1,
                       ),
-                      color: AppColors.amethyst,
+                      color: theme.colorScheme.primary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     const SizedBox(height: 16),
@@ -150,7 +150,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                           : '${(_progress * 100).toInt()}%',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.amethyst,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                   ],
@@ -161,7 +161,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                     ElevatedButton(
                       onPressed: _handleRestore,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.amethyst,
+                        backgroundColor: theme.colorScheme.primary,
                         minimumSize: const Size(double.infinity, 56),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -181,7 +181,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
                       child: Text(
                         'Lewati Untuk Sekarang',
                         style: GoogleFonts.plusJakartaSans(
-                          color: AppColors.textSecondary,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),

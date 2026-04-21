@@ -15,7 +15,7 @@ class AppTheme {
       extensions: [
         AppThemeExtension(fontAccent: fontAccent, buttonAccent: buttonAccent),
       ],
-      textTheme: GoogleFonts.interTextTheme(
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(
         ThemeData(brightness: colorScheme.brightness).textTheme,
       ),
       appBarTheme: AppBarTheme(
@@ -28,6 +28,15 @@ class AppTheme {
           fontWeight: FontWeight.w800,
           color: colorScheme.onSurface,
           letterSpacing: -0.5,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        contentTextStyle: GoogleFonts.plusJakartaSans(
+          color: colorScheme.onSurface,
+          fontSize: 14,
         ),
       ),
       cardTheme: CardThemeData(
@@ -65,7 +74,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonAccent,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black87,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -77,11 +86,63 @@ class AppTheme {
           elevation: 0,
         ),
       ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: buttonAccent,
+          side: BorderSide(color: buttonAccent, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: buttonAccent,
+          textStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.precisionViolet,
-        foregroundColor: Colors.black,
+        backgroundColor: buttonAccent,
+        foregroundColor: Colors.black87,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         elevation: 6,
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return buttonAccent;
+          return null;
+        }),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return buttonAccent;
+          return null;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return buttonAccent.withValues(alpha: 0.5);
+          return null;
+        }),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: buttonAccent,
+        inactiveTrackColor: buttonAccent.withValues(alpha: 0.2),
+        thumbColor: buttonAccent,
+        overlayColor: buttonAccent.withValues(alpha: 0.1),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return buttonAccent;
+          return null;
+        }),
       ),
     );
   }
@@ -102,14 +163,14 @@ class AppTheme {
           outline: Colors.transparent,
         ),
   );
-
+ 
   static ThemeData get dark => _base(
-    buttonAccent: AppColors.precisionViolet,
+    buttonAccent: AppColors.kiwiGreen,
     colorScheme:
         ColorScheme.fromSeed(
-          seedColor: AppColors.precisionViolet,
-          primary: AppColors.precisionViolet,
-          secondary: AppColors.neonGreen,
+          seedColor: AppColors.kiwiGreen,
+          primary: AppColors.kiwiGreen,
+          secondary: AppColors.precisionViolet,
           surface: AppColors.obsidianBase,
           brightness: Brightness.dark,
         ).copyWith(
@@ -117,6 +178,7 @@ class AppTheme {
           surfaceContainerHigh: AppColors.surfaceHigh,
           surfaceContainerLow: AppColors.surfaceLow,
           onSurface: const Color(0xFFF5F5F5),
+          onSurfaceVariant: const Color(0xFF9E9E9E), 
           outline: Colors.transparent,
         ),
   );

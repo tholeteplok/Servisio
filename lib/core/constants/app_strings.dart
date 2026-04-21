@@ -92,7 +92,7 @@ class CommonStrings {
 
 class AuthStrings {
   const AuthStrings();
-  final loginTitle = 'ServisLog+';
+  final loginTitle = 'Servisio';
   final loginSubtitle = 'PLATFORM WORKSHOP PROFESIONAL';
   final loginDescription = 'Manajemen rincian Teknisi, Inventaris,\ndan Pendapatan secara real-time.';
   final signInWithGoogle = 'Masuk dengan Akun Google';
@@ -110,7 +110,7 @@ class AuthStrings {
   final restoreChoiceDesc = 'Device baru terdeteksi. Ingin memulihkan data dari Cloud?';
   
   // Onboarding
-  final welcomeTitle = 'Selamat Datang di ServisLog+';
+  final welcomeTitle = 'Selamat Datang di Servisio';
   final welcomeSubtitle = 'Satu platform untuk semua kebutuhan manajemen bengkel Anda.';
   final ownerTitle = 'Saya Pemilik Bengkel';
   final ownerSubtitle = 'Kelola tim, pantau pendapatan, dan kembangkan bisnis Anda.';
@@ -496,6 +496,7 @@ class CatalogStrings {
   final labelInitialStock = 'Stok Awal';
   final labelMinStock = 'Min. Stok';
   final labelStockCurrent = 'STOK SAAT INI';
+  final skuPrefix = 'SKU-';
   final labelPurchasePrice = 'Harga Modal (Beli)';
   final labelSellingPrice = 'Harga Jual';
   final labelJasaName = 'Nama Jasa';
@@ -541,6 +542,9 @@ class CatalogStrings {
   final stockValue = 'Nilai Stok';
   final addInventory = 'Tambah Barang';
   final salesLabel = 'Penjualan Barang';
+  final overscrollNavHint = 'Geser pinggir layar atau tap tab untuk navigasi cepat antar menu.';
+  final sectionItems = 'DAFTAR BARANG';
+  final sectionCustomer = 'PELANGGAN (OPSIONAL)';
 }
 
 class SettingStrings {

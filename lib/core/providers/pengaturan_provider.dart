@@ -37,6 +37,8 @@ class SettingsState {
   final bool hasSeenOnboarding;
   final bool hasCheckedBackupDiscovery;
   final String? lastSyncAt;
+  final bool hasSeenSwipeHint;
+  final bool hasSeenOverscrollHint;
 
   SettingsState({
     required this.workshopName,
@@ -66,6 +68,8 @@ class SettingsState {
     this.hasSeenOnboarding = false,
     this.hasCheckedBackupDiscovery = false,
     this.lastSyncAt,
+    this.hasSeenSwipeHint = false,
+    this.hasSeenOverscrollHint = false,
   });
 
   SettingsState copyWith({
@@ -96,6 +100,8 @@ class SettingsState {
     bool? hasSeenOnboarding,
     bool? hasCheckedBackupDiscovery,
     String? lastSyncAt,
+    bool? hasSeenSwipeHint,
+    bool? hasSeenOverscrollHint,
   }) {
     return SettingsState(
       workshopName: workshopName ?? this.workshopName,
@@ -125,6 +131,8 @@ class SettingsState {
       hasSeenOnboarding: hasSeenOnboarding ?? this.hasSeenOnboarding,
       hasCheckedBackupDiscovery: hasCheckedBackupDiscovery ?? this.hasCheckedBackupDiscovery,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      hasSeenSwipeHint: hasSeenSwipeHint ?? this.hasSeenSwipeHint,
+      hasSeenOverscrollHint: hasSeenOverscrollHint ?? this.hasSeenOverscrollHint,
     );
   }
 }
@@ -167,6 +175,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       hasSeenOnboarding: prefs.getBool(AppSettings.hasSeenOnboarding) ?? false,
       hasCheckedBackupDiscovery: prefs.getBool(AppSettings.hasCheckedBackupDiscovery) ?? false,
       lastSyncAt: prefs.getString(AppSettings.lastSyncAt),
+      hasSeenSwipeHint: prefs.getBool(AppSettings.hasSeenSwipeHint) ?? false,
+      hasSeenOverscrollHint: prefs.getBool(AppSettings.hasSeenOverscrollHint) ?? false,
     );
   }
 
@@ -305,6 +315,16 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setHasCheckedBackupDiscovery(bool value) async {
     await _prefs.setBool(AppSettings.hasCheckedBackupDiscovery, value);
     state = state.copyWith(hasCheckedBackupDiscovery: value);
+  }
+
+  Future<void> setHasSeenSwipeHint(bool value) async {
+    await _prefs.setBool(AppSettings.hasSeenSwipeHint, value);
+    state = state.copyWith(hasSeenSwipeHint: value);
+  }
+
+  Future<void> setHasSeenOverscrollHint(bool value) async {
+    await _prefs.setBool(AppSettings.hasSeenOverscrollHint, value);
+    state = state.copyWith(hasSeenOverscrollHint: value);
   }
 }
 

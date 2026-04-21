@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../constants/app_colors.dart';
 
 class StandardDialog extends StatelessWidget {
   final Widget? icon;
@@ -39,12 +38,12 @@ class StandardDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.1)
-                : AppColors.amethyst.withValues(alpha: 0.1),
+                : theme.colorScheme.primary.withValues(alpha: 0.1),
             width: 1,
           ),
           boxShadow: [
@@ -68,7 +67,7 @@ class StandardDialog extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : Colors.black87,
+                color: theme.colorScheme.onSurface,
                 letterSpacing: -0.5,
               ),
             ),
@@ -78,7 +77,7 @@ class StandardDialog extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 height: 1.5,
               ),
             ),
@@ -118,7 +117,7 @@ class StandardDialog extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: onPrimaryAction,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryActionColor ?? AppColors.amethyst,
+                          backgroundColor: primaryActionColor ?? theme.colorScheme.primary,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 16),

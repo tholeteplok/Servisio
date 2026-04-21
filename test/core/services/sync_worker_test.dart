@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:servislog_core/core/services/session_manager.dart';
-import 'package:servislog_core/core/services/sync_worker.dart';
-import 'package:servislog_core/domain/entities/sync_queue_item.dart';
-import 'package:servislog_core/domain/entities/transaction.dart';
-import 'package:servislog_core/core/sync/sync_telemetry.dart';
+import 'package:servisio_core/core/services/session_manager.dart';
+import 'package:servisio_core/core/services/sync_worker.dart';
+import 'package:servisio_core/domain/entities/sync_queue_item.dart';
+import 'package:servisio_core/domain/entities/transaction.dart';
+import 'package:servisio_core/core/sync/sync_telemetry.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

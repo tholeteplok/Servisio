@@ -1,4 +1,4 @@
-import 'package:servislog_core/domain/entities/pelanggan.dart';
+import 'package:servisio_core/domain/entities/pelanggan.dart';
 
 class FakeData {
   static const String bengkelId = 'test-bengkel-123';

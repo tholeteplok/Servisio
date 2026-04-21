@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tholeteplok.servislog_plus"
+    namespace = "com.tholeteplok.servisio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tholeteplok.servislog_plus"
+        applicationId = "com.tholeteplok.servisio"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

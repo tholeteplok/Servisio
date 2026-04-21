@@ -1,4 +1,4 @@
-package com.tholeteplok.servislog_plus
+package com.tholeteplok.servisio
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../constants/app_colors.dart';
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
@@ -35,6 +34,7 @@ class StepIndicator extends StatelessWidget {
                   isActive,
                   isCompleted,
                   isDark,
+                  theme,
                 );
               } else {
                 final stepNum = index ~/ 2;
@@ -45,7 +45,7 @@ class StepIndicator extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
                       color: isCompleted
-                          ? AppColors.amethyst
+                          ? theme.colorScheme.primary
                           : (isDark ? Colors.white10 : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(2),
                     ),
@@ -67,7 +67,7 @@ class StepIndicator extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
                     color: isActive
-                        ? AppColors.amethyst
+                        ? theme.colorScheme.primary
                         : (isDark ? Colors.white30 : Colors.grey.shade400),
                     letterSpacing: 0.5,
                   ),
@@ -85,6 +85,7 @@ class StepIndicator extends StatelessWidget {
     bool isActive,
     bool isCompleted,
     bool isDark,
+    ThemeData theme,
   ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -92,14 +93,14 @@ class StepIndicator extends StatelessWidget {
       height: 28,
       decoration: BoxDecoration(
         color: isCompleted
-            ? AppColors.amethyst
+            ? theme.colorScheme.primary
             : (isActive
-                ? AppColors.amethyst.withValues(alpha: 0.1)
+                ? theme.colorScheme.primary.withValues(alpha: 0.1)
                 : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100)),
         shape: BoxShape.circle,
         border: Border.all(
           color: isActive || isCompleted
-              ? AppColors.amethyst
+              ? theme.colorScheme.primary
               : (isDark ? Colors.white10 : Colors.grey.shade300),
           width: 2,
         ),
@@ -113,7 +114,7 @@ class StepIndicator extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: isActive
-                      ? AppColors.amethyst
+                      ? theme.colorScheme.primary
                       : (isDark ? Colors.white30 : Colors.grey.shade400),
                 ),
               ),

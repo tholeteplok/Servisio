@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/core/services/encryption_service.dart';
+import 'package:servisio_core/core/services/encryption_service.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

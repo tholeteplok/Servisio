@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/core/services/migration_service.dart';
+import 'package:servisio_core/core/services/migration_service.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import '../../mocks/manual_mocks.dart';
 

@@ -57,7 +57,7 @@ class AtelierHeader extends StatelessWidget {
          borderRadius: borderRadius,
          boxShadow: [
            BoxShadow(
-             color: AppColors.precisionViolet.withValues(alpha: 0.08),
+             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
              blurRadius: 32,
              offset: const Offset(0, 12),
            ),
@@ -188,7 +188,7 @@ class AtelierHeaderSub extends StatelessWidget {
          borderRadius: borderRadius,
          boxShadow: [
            BoxShadow(
-             color: AppColors.precisionViolet.withValues(alpha: 0.08),
+             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
              blurRadius: 32,
              offset: const Offset(0, 12),
            ),

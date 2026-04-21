@@ -284,8 +284,8 @@ class SessionManager {
       final user = _auth.currentUser;
       if (user == null) return false;
 
-      // Force refresh token dari server (Source of Truth)
-      final tokenResult = await user.getIdTokenResult(true);
+      // Use cached token by default to avoid redundant network calls
+      final tokenResult = await user.getIdTokenResult(false);
       final expirationTime = tokenResult.expirationTime;
 
       if (expirationTime == null) return false;
@@ -656,8 +656,8 @@ class SessionManager {
     }
   }
   
-  Future<bool> canPerformAction(CriticalActionType action) async {
-    final level = await getAccessLevel();
+  Future<bool> canPerformAction(CriticalActionType action, [AccessLevel? currentLevel]) async {
+    final level = currentLevel ?? await getAccessLevel();
     if (level == AccessLevel.blocked) return false;
     if (level == AccessLevel.readOnly) return false;
     

@@ -168,7 +168,7 @@ class _MainAppState extends ConsumerState<MainApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ServisLog+',
+      title: 'Servisio',
       theme: AppTheme.modernSiang,
       darkTheme: AppTheme.modernMalam,
       themeMode: mode,

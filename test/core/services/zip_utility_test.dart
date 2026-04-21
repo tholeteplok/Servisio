@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:servislog_core/core/services/zip_utility.dart';
+import 'package:servisio_core/core/services/zip_utility.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

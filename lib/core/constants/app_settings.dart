@@ -76,5 +76,11 @@ class AppSettings {
 
   /// Timestamp of the last successful cloud sync (ISO8601 String).
   static const String lastSyncAt = 'last_sync_at';
+
+  /// Flag indicating if the user has seen the swipe-to-update/delete hint.
+  static const String hasSeenSwipeHint = 'has_seen_swipe_hint';
+
+  /// Flag indicating if the user has seen the overscroll navigation hint.
+  static const String hasSeenOverscrollHint = 'has_seen_overscroll_hint';
 }
 

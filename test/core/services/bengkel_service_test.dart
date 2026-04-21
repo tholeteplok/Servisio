@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:servislog_core/core/services/bengkel_service.dart';
-import 'package:servislog_core/core/sync/sync_telemetry.dart';
+import 'package:servisio_core/core/services/bengkel_service.dart';
+import 'package:servisio_core/core/sync/sync_telemetry.dart';
 import '../../mocks/manual_mocks.dart';
 
 class NullTelemetrySink implements TelemetrySink {

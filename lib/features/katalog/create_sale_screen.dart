@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../domain/entities/sale.dart';
 import '../../core/providers/stok_provider.dart';
@@ -14,6 +13,7 @@ import '../../core/widgets/barcode_scanner_dialog.dart';
 import '../../core/widgets/the_ceremony_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/constants/app_strings.dart';
 
 class CreateSaleScreen extends ConsumerStatefulWidget {
   const CreateSaleScreen({super.key});
@@ -219,7 +219,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 12),
-                    _buildSectionHeader('DAFTAR BARANG'),
+                    _buildSectionHeader(AppStrings.catalog.sectionItems, theme),
                     const SizedBox(height: 8),
                     _buildQuickSearch(stokList),
                     const SizedBox(height: 12),
@@ -234,7 +234,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                       _buildAddItemButton(context, stokList),
                     ],
                     const SizedBox(height: 24),
-                    _buildSectionHeader('PELANGGAN (OPSIONAL)'),
+                    _buildSectionHeader(AppStrings.catalog.sectionCustomer, theme),
                     const SizedBox(height: 8),
                     _buildPelangganSearch(pelangganList),
                     const SizedBox(height: 40),
@@ -244,16 +244,24 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                           : _submit,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 64),
-                        backgroundColor: AppColors.amethyst,
+                        backgroundColor: theme.colorScheme.primary,
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                strokeWidth: 2,
+                              ),
+                            )
                           : Text(
                               'PROSES JUAL (${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(_totalAmount)})',
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 14,
                                 letterSpacing: 1,
+                                color: theme.colorScheme.onPrimary,
                               ),
                             ),
                     ),
@@ -268,7 +276,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
@@ -276,7 +284,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w900,
-          color: Colors.grey,
+          color: theme.colorScheme.onSurfaceVariant,
           letterSpacing: 1,
         ),
       ),
@@ -303,6 +311,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           _quickSearchController.clear();
         },
         fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          final theme = Theme.of(context);
           return TextFormField(
             controller: controller,
             focusNode: focusNode,
@@ -311,7 +320,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
               hintText: 'Cari & tambah barang cepat...',
               prefixIcon: const Icon(SolarIconsOutline.magnifier, size: 20),
               filled: true,
-              fillColor: AppColors.amethyst.withValues(alpha: 0.05),
+              fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
@@ -321,6 +330,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           );
         },
         optionsViewBuilder: (context, onSelected, options) {
+          final theme = Theme.of(context);
           return Align(
             alignment: Alignment.topLeft,
             child: Material(
@@ -332,7 +342,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppColors.amethyst.withValues(alpha: 0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   ),
                 ),
                 child: ListView.separated(
@@ -384,6 +394,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           });
         },
         fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          final theme = Theme.of(context);
           if (_selectedPelanggan != null && controller.text.isEmpty) {
             controller.text = _selectedPelanggan!.nama;
           }
@@ -420,7 +431,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                       onPressed: () => _showPelangganPicker(context, list),
                     ),
               filled: true,
-              fillColor: AppColors.amethyst.withValues(alpha: 0.05),
+              fillColor: theme.colorScheme.primary.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
@@ -430,6 +441,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           );
         },
         optionsViewBuilder: (context, onSelected, options) {
+          final theme = Theme.of(context);
           return Align(
             alignment: Alignment.topLeft,
             child: Material(
@@ -441,7 +453,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppColors.amethyst.withValues(alpha: 0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   ),
                 ),
                 child: ListView.separated(
@@ -476,12 +488,13 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
   }
 
   Widget _buildFormCard({required List<Widget> children}) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
       ),
       child: Column(children: children),
     );
@@ -521,6 +534,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
     List<Stok> list,
     bool barcodeEnabled,
   ) {
+    final theme = Theme.of(context);
     return _buildFormCard(
       children: [
         ListTile(
@@ -528,10 +542,10 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.amethyst.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(SolarIconsBold.box, color: AppColors.amethyst),
+            child: Icon(SolarIconsBold.box, color: theme.colorScheme.primary),
           ),
           title: Text(
             'Pilih Barang dari Stok',
@@ -543,9 +557,9 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
           ),
           trailing: barcodeEnabled
               ? IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     SolarIconsOutline.scanner,
-                    color: AppColors.amethyst,
+                    color: theme.colorScheme.primary,
                   ),
                   onPressed: _isLoading ? null : _openScanner,
                 )
@@ -557,6 +571,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
   }
 
   Widget _buildItemTile(_SelectedSaleItem item, int index) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: _buildFormCard(
@@ -576,13 +591,13 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      'Harga: Rp ${item.stok.hargaJual}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: Colors.grey,
+                      Text(
+                        'Harga: Rp ${item.stok.hargaJual}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -618,13 +633,13 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
             children: [
               Text(
                 'Subtotal',
-                style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
               ),
               Text(
                 'Rp ${item.total}',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w900,
-                  color: AppColors.amethyst,
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ],
@@ -635,6 +650,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
   }
 
   Widget _buildAddItemButton(BuildContext context, List<Stok> list) {
+    final theme = Theme.of(context);
     return InkWell(
       onTap: () => _showStokPicker(context, list),
       borderRadius: BorderRadius.circular(16),
@@ -642,7 +658,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border.all(
-            color: AppColors.amethyst.withValues(alpha: 0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -650,9 +666,9 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               SolarIconsOutline.addCircle,
-              color: AppColors.amethyst,
+              color: theme.colorScheme.primary,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -660,7 +676,7 @@ class _CreateSaleScreenState extends ConsumerState<CreateSaleScreen> {
               'TAMBAH BARANG',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
-                color: AppColors.amethyst,
+                color: theme.colorScheme.primary,
               ),
             ),
           ],
@@ -709,6 +725,7 @@ class _PickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
@@ -722,7 +739,7 @@ class _PickerSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -770,10 +787,10 @@ class _QtyButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppColors.amethyst.withValues(alpha: 0.1),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: AppColors.amethyst, size: 20),
+        child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
       ),
     );
   }

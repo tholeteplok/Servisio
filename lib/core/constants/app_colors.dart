@@ -45,10 +45,21 @@ class AppColors {
   static const Color mintMajesty = Color(0xFF78D6B9); // Mint Majesty
   static const Color ninjinOrange = Color(0xFFE5A273); // Ninjin Orange
   static const Color strawberryFields = Color(0xFFF98A8B); // Strawberry Fields
-  static const Color indigoPurple = Color(0xFF6700A3); // Indigo Purple
+  static const Color kiwiGreen = Color(0xFF89E900); // Kiwi Green
 
   // ── Gradients ──
-  static LinearGradient primaryGradient() {
+  static LinearGradient primaryGradient(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          kiwiGreen,
+          kiwiGreen.withValues(alpha: 0.5),
+        ],
+      );
+    }
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -66,7 +77,7 @@ class AppColors {
         center: const Alignment(-1.1, -1.1),
         radius: 1.5,
         colors: [
-          precisionViolet,
+          kiwiGreen,
           obsidianBase.withValues(alpha: 0.5),
         ],
       );

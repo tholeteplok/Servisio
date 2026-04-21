@@ -110,7 +110,7 @@ class AccessRevokedScreen extends ConsumerWidget {
                             Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.amethyst,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 16),

@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/core/providers/stok_provider.dart';
-import 'package:servislog_core/core/providers/objectbox_provider.dart';
-import 'package:servislog_core/core/providers/sync_provider.dart';
-import 'package:servislog_core/domain/entities/stok.dart';
-import 'package:servislog_core/domain/entities/stok_history.dart';
-import 'package:servislog_core/data/repositories/stok_repository.dart';
-import 'package:servislog_core/data/repositories/stok_history_repository.dart';
+import 'package:servisio_core/core/providers/stok_provider.dart';
+import 'package:servisio_core/core/providers/objectbox_provider.dart';
+import 'package:servisio_core/core/providers/sync_provider.dart';
+import 'package:servisio_core/domain/entities/stok.dart';
+import 'package:servisio_core/domain/entities/stok_history.dart';
+import 'package:servisio_core/data/repositories/stok_repository.dart';
+import 'package:servisio_core/data/repositories/stok_history_repository.dart';
 import '../../mocks/manual_mocks.dart';
 
 class FakeStokRepository extends Fake implements StokRepository {

@@ -119,6 +119,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
   }
 
   Widget _buildSectionHeader(String label) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
@@ -127,7 +128,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.2,
-          color: AppColors.amethyst.withValues(alpha: 0.6),
+          color: theme.colorScheme.primary.withValues(alpha: 0.6),
         ),
       ),
     );
@@ -255,7 +256,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
 
     return Row(
       children: [
-        const Icon(SolarIconsOutline.key, size: 18, color: AppColors.amethyst),
+        Icon(SolarIconsOutline.key, size: 18, color: theme.colorScheme.primary),
         const SizedBox(width: 12),
         Text('Bengkel ID',
             style: GoogleFonts.inter(
@@ -303,7 +304,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
       ThemeData theme, IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.amethyst),
+        Icon(icon, size: 18, color: theme.colorScheme.primary),
         const SizedBox(width: 12),
         Text(label,
             style: GoogleFonts.inter(
@@ -385,15 +386,15 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.amethyst.withValues(alpha: 0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             SolarIconsOutline.shieldCheck,
-            color: AppColors.amethyst,
+            color: theme.colorScheme.primary,
             size: 20,
           ),
           const SizedBox(width: 12),

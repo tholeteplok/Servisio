@@ -51,21 +51,22 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
       return false;
     }
 
-    // 1. VALIDATE SESSION (WITH TIMEOUT)
-    // Ensure we don't hang forever on network handshake.
-    AccessLevel accessLevel;
-    try {
-      accessLevel = await sessionManager.getAccessLevel().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('⚠️ CriticalActionGuard: Session validation timeout');
-          // If timeout, fallback to current cached state
-          return ref.read(currentAccessLevelProvider);
-        },
-      );
-    } catch (e) {
-      debugPrint('❌ CriticalActionGuard: Session validation error: $e');
-      accessLevel = ref.read(currentAccessLevelProvider);
+    // 1. OPTIMISTIC VALIDATION
+    // Trust the cached state for immediate UI response.
+    // full validation will be handled by the background worker.
+    AccessLevel accessLevel = currentAccess;
+
+    // Only perform "hard" validation if the cached state is NOT full.
+    if (accessLevel != AccessLevel.full) {
+      try {
+        accessLevel = await sessionManager.getAccessLevel().timeout(
+          const Duration(seconds: 5), // Reduced timeout for better responsiveness
+          onTimeout: () => currentAccess,
+        );
+      } catch (e) {
+        debugPrint('⚠️ CriticalActionGuard: Fallback to cache due to error: $e');
+        accessLevel = currentAccess;
+      }
     }
 
     if (accessLevel == AccessLevel.blocked) {
@@ -74,7 +75,7 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
     }
 
     // 2. Check if action is allowed (Zone check)
-    final canPerform = await sessionManager.canPerformAction(actionType);
+    final canPerform = await sessionManager.canPerformAction(actionType, accessLevel);
     if (!canPerform) {
       if (context.mounted) showRestrictedDialog(context);
       return false;

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
+
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/stok_provider.dart';
 import '../../domain/entities/stok.dart';
@@ -55,15 +55,16 @@ class StokHistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildItemHeader(BuildContext context, Stok item) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: theme.dividerColor.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -72,7 +73,7 @@ class StokHistoryScreen extends ConsumerWidget {
           Text(
             item.nama,
             style: GoogleFonts.plusJakartaSans(
-              color: Theme.of(context).colorScheme.onSurface,
+              color: theme.colorScheme.onSurface,
               fontSize: 24,
               fontWeight: FontWeight.w900,
             ),
@@ -81,7 +82,7 @@ class StokHistoryScreen extends ConsumerWidget {
             Text(
               '${AppStrings.catalog.labelSkuShort}: ${item.sku}',
               style: GoogleFonts.plusJakartaSans(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -130,7 +131,7 @@ class StokHistoryScreen extends ConsumerWidget {
     StokHistory log,
   ) {
     final bool isAddition = log.quantityChange > 0;
-    final color = isAddition ? AppColors.success : AppColors.error;
+    final color = isAddition ? theme.colorScheme.primary : theme.colorScheme.error;
     final icon = isAddition
         ? SolarIconsOutline.addSquare
         : SolarIconsOutline.minusSquare;
@@ -156,7 +157,7 @@ class StokHistoryScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),

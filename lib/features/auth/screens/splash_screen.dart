@@ -147,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Column(
                             children: [
                               Text(
-                                'ServisLog+',
+                                'Servisio',
                                 style: GoogleFonts.manrope(
                                   fontSize: 44,
                                   fontWeight: FontWeight.w800,

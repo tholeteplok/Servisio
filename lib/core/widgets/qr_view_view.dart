@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:share_plus/share_plus.dart';
-import '../constants/app_colors.dart';
 import 'glass_card.dart';
 
 class QRViewView extends StatefulWidget {
@@ -73,6 +72,7 @@ class _QRViewViewState extends State<QRViewView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -182,7 +182,7 @@ class _QRViewViewState extends State<QRViewView> {
                             icon: const Icon(SolarIconsOutline.closeCircle),
                             label: const Text('TUTUP'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.amethyst,
+                              backgroundColor: theme.colorScheme.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(

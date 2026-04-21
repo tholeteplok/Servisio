@@ -88,7 +88,7 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
           color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(32),
           border: Border.all(
-            color: (isDark ? Colors.white : AppColors.amethyst)
+            color: (isDark ? Colors.white : theme.colorScheme.primary)
                 .withValues(alpha: 0.1),
             width: 1,
           ),
@@ -135,9 +135,9 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
         ),
         const SizedBox(height: 24),
         if (_isFinalizing)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: CircularProgressIndicator(color: AppColors.amethyst),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: CircularProgressIndicator(color: theme.colorScheme.primary),
           )
         else ...[
           _PaymentOptionTile(
@@ -282,7 +282,7 @@ class _TheCeremonyDialogState extends ConsumerState<TheCeremonyDialog> {
           onPressed: () => Navigator.pop(context, true),
           style: ElevatedButton.styleFrom(
             minimumSize: const Size(double.infinity, 56),
-            backgroundColor: AppColors.amethyst,
+            backgroundColor: theme.colorScheme.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

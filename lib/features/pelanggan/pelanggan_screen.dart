@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
+
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/pelanggan_provider.dart';
 import '../../core/widgets/atelier_list_card.dart';
@@ -44,7 +44,6 @@ class _PelangganScreenState extends ConsumerState<PelangganScreen> {
 
     final theme = Theme.of(context);
     final pelangganList = ref.watch(pelangganListProvider);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -61,14 +60,12 @@ class _PelangganScreenState extends ConsumerState<PelangganScreen> {
             actions: [
               IconButton(
                 onPressed: () => ref.invalidate(pelangganListProvider),
-                icon: const Icon(SolarIconsOutline.refresh,
-                    color: Colors.white, size: 20),
+                icon: Icon(SolarIconsOutline.refresh,
+                    color: theme.colorScheme.onSurface, size: 20),
                 tooltip: AppStrings.common.refresh,
                 style: IconButton.styleFrom(
                   minimumSize: const Size(48, 48),
-                  backgroundColor: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.05),
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 ),
               ),
               const SizedBox(width: 8),
@@ -122,6 +119,7 @@ class _PelangganCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return AtelierListGroup(
       children: [
         AtelierListTile(
@@ -129,7 +127,7 @@ class _PelangganCard extends ConsumerWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.precisionViolet.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
               image: pelanggan.photoLocalPath != null
                   ? DecorationImage(
@@ -148,7 +146,7 @@ class _PelangganCard extends ConsumerWidget {
                         ? pelanggan.nama.characters.first.toUpperCase()
                         : '?',
                     style: GoogleFonts.plusJakartaSans(
-                      color: AppColors.precisionViolet,
+                      color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w900,
                       fontSize: 20,
                     ),
@@ -180,26 +178,27 @@ class _PelangganCard extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: theme.shadowColor.withValues(alpha: 0.3),
       builder: (context) => StandardDialog(
         icon: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.1),
+            color: theme.colorScheme.error.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             SolarIconsOutline.trashBinTrash,
-            color: Colors.red,
+            color: theme.colorScheme.error,
             size: 36,
           ),
         ),
         title: AppStrings.customer.confirmDeleteTitle,
         message: AppStrings.customer.deleteConfirmation(pelanggan.nama),
         primaryActionLabel: AppStrings.common.delete,
-        primaryActionColor: Colors.red,
+        primaryActionColor: theme.colorScheme.error,
         onPrimaryAction: () {
           ref.read(pelangganListProvider.notifier).remove(pelanggan.id);
           Navigator.pop(context);

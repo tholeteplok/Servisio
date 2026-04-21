@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_icons.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/widgets/standard_dialog.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/pengaturan_provider.dart';
 import '../../core/widgets/critical_action_guard.dart';
@@ -131,7 +130,7 @@ class TransactionDetailScreen extends ConsumerWidget {
                       label: AppStrings.transaction.totalCost,
                       value:
                           'Rp ${NumberFormat('#,###', 'id_ID').format(transaction.totalAmount)}',
-                      valueColor: AppColors.amethyst,
+                      valueColor: theme.colorScheme.primary,
                       isBold: true,
                     ),
                     _DetailRow(
@@ -187,14 +186,14 @@ class TransactionDetailScreen extends ConsumerWidget {
                           icon: SolarIconsOutline.calendar,
                           label: AppStrings.transaction.byTime,
                           value: AppStrings.transaction.returnMonthsValue(transaction.recommendationTimeMonth!),
-                          valueColor: AppColors.amethyst,
+                          valueColor: theme.colorScheme.primary,
                         ),
                       if (transaction.recommendationKm != null)
                         _DetailRow(
                           icon: SolarIconsOutline.map,
                           label: AppStrings.transaction.byDistance,
                           value: AppStrings.transaction.returnDistanceValue(NumberFormat('#,###', 'id_ID').format(transaction.recommendationKm)),
-                          valueColor: AppColors.amethyst,
+                          valueColor: theme.colorScheme.primary,
                         ),
                     ],
                   ),
@@ -255,7 +254,7 @@ class TransactionDetailScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(32),
                           border: Border.all(
-                            color: AppColors.amethyst.withValues(alpha: 0.1),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                           ),
                         ),
                         child: ClipRRect(
@@ -343,6 +342,7 @@ class TransactionDetailScreen extends ConsumerWidget {
     required String title,
     required List<Widget> children,
   }) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -364,7 +364,7 @@ class TransactionDetailScreen extends ConsumerWidget {
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: AppColors.amethyst.withValues(alpha: 0.05),
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
             ),
           ),
           child: Column(children: children),
@@ -432,10 +432,10 @@ class _DetailRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.amethyst.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.amethyst, size: 16),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 16),
           ),
           const SizedBox(width: 16),
           Expanded(

@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';
+import '../../core/providers/system_providers.dart';
 
 // Tabs
 import 'tabs/pendapatan_tab.dart';
@@ -32,33 +33,43 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     
-    // 🛡️ SECURITY CHECK: Jalankan setelah frame pertama dirender
-    // agar context valid dan UI sudah siap.
+    // ⚡ OPTIMISTIC CHECK: Jika akses sudah penuh (diverifikasi sebelumnya), skip skeleton.
+    final currentAccess = ref.read(currentAccessLevelProvider);
+    if (currentAccess == AccessLevel.full) {
+      _isLoading = false;
+    } else {
+      _isLoading = true;
+    }
+
+    // 🛡️ SECURITY CHECK: Jalankan verifikasi di latar belakang.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkSecurity();
+      if (mounted) _checkSecurity();
     });
   }
 
   Future<void> _checkSecurity() async {
     if (!mounted) return;
+    
     setState(() => _isVerifying = true);
 
     try {
+      // 🔐 Verifikasi identitas (Biometrik/PIN). 
+      // Jika sudah diverifikasi sebelumnya dalam sesi ini, ini akan langsung return true.
       final verified = await CriticalActionGuard.check(
         ref,
         context,
         CriticalActionType.viewFinancials,
-      ).timeout(
-        const Duration(seconds: 20),
-        onTimeout: () {
-          debugPrint('⚠️ StatistikScreen: Security check global timeout');
-          return false;
-        },
       );
       
       if (verified) {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isVerifying = false;
+          });
+        }
       } else {
+        // Jika batal/gagal, kembali ke layar sebelumnya.
         if (mounted) Navigator.pop(context);
       }
     } catch (e) {
@@ -79,81 +90,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: theme.colorScheme.surface,
-        body: Column(
-          children: [
-            _buildHeader(theme),
-            _buildTabBar(theme),
-            Expanded(
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: AtelierSkeleton.statCard()),
-                            const SizedBox(width: 12),
-                            Expanded(child: AtelierSkeleton.statCard()),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        AtelierSkeleton.custom(
-                          child: Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        AtelierSkeleton.listOf(3, () => AtelierSkeleton.listItem()),
-                      ],
-                    ),
-                  ),
-                  if (_isVerifying)
-                    Container(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(
-                              color: AppColors.precisionViolet,
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Menyiapkan Kunci Keamanan...',
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Pastikan koneksi internet stabil',
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+    // UI Statistik sekarang tersentralisasi dalam satu Scaffold agar transisi mulus.
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
@@ -161,17 +98,91 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
           _buildHeader(theme),
           _buildTabBar(theme),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
+            child: Stack(
               children: [
-                PendapatanTab(isPrivate: _isPrivate),
-                const LayananTab(),
-                const ProdukTab(),
-                TeknisiTab(isPrivate: _isPrivate),
+                // Layer Utama: Data atau Skeleton
+                if (_isLoading)
+                  _buildSkeletonView(theme)
+                else
+                  TabBarView(
+                    controller: _tabController,
+                    children: [
+                      PendapatanTab(isPrivate: _isPrivate),
+                      const LayananTab(),
+                      const ProdukTab(),
+                      TeknisiTab(isPrivate: _isPrivate),
+                    ],
+                  ),
+                
+                // Layer Keamanan: Hanya muncul jika proses verifikasi memakan waktu (misal: jaringan lambat)
+                if (_isVerifying)
+                  _buildSecurityOverlay(theme),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonView(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: AtelierSkeleton.statCard()),
+              const SizedBox(width: 12),
+              Expanded(child: AtelierSkeleton.statCard()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AtelierSkeleton.custom(
+            child: Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          AtelierSkeleton.listOf(3, () => AtelierSkeleton.listItem()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityOverlay(ThemeData theme) {
+    return Container(
+      color: theme.colorScheme.surface.withValues(alpha: 0.8), // Sedikit lebih opaque agar tidak distraktif
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              color: theme.colorScheme.primary, 
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Menyiapkan Kunci Keamanan...',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pastikan koneksi internet stabil',
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -196,14 +207,14 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(
+                icon: Icon(
                   LucideIcons.chevronLeft,
-                  color: Colors.white,
+                  color: theme.colorScheme.onPrimary,
                 ),
                 tooltip: 'Kembali',
                 style: IconButton.styleFrom(
                   minimumSize: const Size(48, 48),
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                 ),
               ),
               Row(
@@ -212,12 +223,12 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
                     onPressed: () => setState(() => _isPrivate = !_isPrivate),
                     icon: Icon(
                       _isPrivate ? LucideIcons.eyeOff : LucideIcons.eye,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                     ),
                     tooltip: 'Visibilitas',
                     style: IconButton.styleFrom(
                       minimumSize: const Size(48, 48),
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -225,14 +236,14 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
                     onPressed: () {
                         // Refresh logic here if needed, or just visual
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       LucideIcons.refreshCw,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                     ),
                     tooltip: 'Segarkan',
                     style: IconButton.styleFrom(
                       minimumSize: const Size(48, 48),
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                     ),
                   ),
                 ],
@@ -245,7 +256,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             style: GoogleFonts.manrope(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: theme.colorScheme.onPrimary,
               letterSpacing: -1.0,
             ),
           ),
@@ -253,7 +264,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             'Laporan performa bengkel secara real-time',
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -262,12 +273,11 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   }
 
   Widget _buildTabBar(ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
       ),
       child: TabBar(
@@ -277,13 +287,11 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          color: AppColors.precisionViolet,
+          color: theme.colorScheme.primary,
           borderRadius: BorderRadius.circular(20),
         ),
-        labelColor: isDark ? AppColors.obsidianBase : Colors.white,
-        unselectedLabelColor: isDark
-            ? Colors.white.withValues(alpha: 0.4)
-            : Colors.black38,
+        labelColor: theme.colorScheme.onPrimary,
+        unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
         labelStyle: GoogleFonts.inter(
           fontSize: 12,
           fontWeight: FontWeight.w800,

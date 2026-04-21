@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/widgets/barcode_scanner_dialog.dart';
 import '../../core/providers/katalog_provider.dart';
@@ -20,6 +19,7 @@ import '../../core/utils/app_haptic.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';
+import '../../core/providers/pengaturan_provider.dart';
 
 class KatalogScreen extends ConsumerStatefulWidget {
   final PageController? mainPageController;
@@ -87,10 +87,27 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
     });
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final stokList = ref.watch(stokListProvider);
     final serviceListAsync = ref.watch(serviceMasterListProvider);
     final serviceList = serviceListAsync.valueOrNull ?? [];
+    final settings = ref.watch(settingsProvider);
+
+    // Show onboarding hint for overscroll navigation
+    if (!settings.hasSeenOverscrollHint) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppStrings.catalog.overscrollNavHint),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          );
+          ref.read(settingsProvider.notifier).setHasSeenOverscrollHint(true);
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -113,28 +130,24 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
               if (_tabController.index == 0) ...[
                 IconButton(
                   onPressed: _openScanner,
-                  icon: const Icon(SolarIconsOutline.scanner,
-                      color: Colors.white, size: 20),
+                  icon: Icon(SolarIconsOutline.scanner,
+                      color: theme.colorScheme.onPrimary, size: 20),
                   tooltip: AppStrings.catalog.tooltipScanner,
                   style: IconButton.styleFrom(
                     minimumSize: const Size(48, 48),
-                    backgroundColor: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.05),
+                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
               IconButton(
                 onPressed: () => ref.invalidate(serviceMasterListProvider),
-                icon: const Icon(SolarIconsOutline.refresh,
-                    color: Colors.white, size: 20),
+                icon: Icon(SolarIconsOutline.refresh,
+                    color: theme.colorScheme.onPrimary, size: 20),
                 tooltip: AppStrings.common.refresh,
                 style: IconButton.styleFrom(
                   minimumSize: const Size(48, 48),
-                  backgroundColor: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.05),
+                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                 ),
               ),
               const SizedBox(width: 8),
@@ -282,14 +295,16 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Row(
             children: [
-              _buildSortChip(AppStrings.catalog.sortAll, StokSort.none, currentSort),
-              _buildSortChip(AppStrings.catalog.sortLow, StokSort.lowToHigh, currentSort),
-              _buildSortChip(AppStrings.catalog.sortHigh, StokSort.highToLow, currentSort),
+              _buildSortChip(AppStrings.catalog.sortAll, StokSort.none, currentSort, theme),
+              _buildSortChip(AppStrings.catalog.sortLow, StokSort.lowToHigh, currentSort, theme),
+              _buildSortChip(AppStrings.catalog.sortHigh, StokSort.highToLow, currentSort, theme),
             ],
           ),
         ),
         Expanded(
           child: ListView.builder(
+            key: const ValueKey('stok_list_view'),
+            itemExtent: 122,
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
             itemCount: sortedStok.length,
             itemBuilder: (context, index) {
@@ -305,7 +320,7 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
     );
   }
 
-  Widget _buildSortChip(String label, StokSort sort, StokSort currentSort) {
+  Widget _buildSortChip(String label, StokSort sort, StokSort currentSort, ThemeData theme) {
     final isSelected = sort == currentSort;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -318,17 +333,17 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
             ref.read(stokSortNotifierProvider.notifier).setSort(sort);
           }
         },
-        selectedColor: AppColors.amethyst.withValues(alpha: 0.1),
+        selectedColor: theme.colorScheme.primary.withValues(alpha: 0.1),
         labelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-          color: isSelected ? AppColors.amethyst : Colors.grey,
+          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide(
           color: isSelected
-              ? AppColors.amethyst.withValues(alpha: 0.2)
-              : Colors.grey.withValues(alpha: 0.2),
+              ? theme.colorScheme.primary.withValues(alpha: 0.2)
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
         ),
         showCheckmark: false,
       ),
@@ -358,6 +373,8 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
       );
     }
     return ListView.builder(
+      key: const ValueKey('jasa_list_view'),
+      itemExtent: 122,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
       itemCount: serviceList.length,
       itemBuilder: (context, index) {
@@ -385,8 +402,8 @@ class _StokCard extends StatelessWidget {
     final isLow = item.isLowStock && item.jumlah > 0;
     final isEmpty = item.jumlah == 0;
     final Color badgeColor = isEmpty
-        ? AppColors.error
-        : (isLow ? Colors.amber : AppColors.success);
+        ? theme.colorScheme.error
+        : (isLow ? Colors.amber : theme.colorScheme.tertiary);
     final IconData statusIcon = isEmpty
         ? SolarIconsBold.boxMinimalistic
         : (isLow ? SolarIconsBold.bell : SolarIconsBold.checkCircle);
@@ -399,7 +416,7 @@ class _StokCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -408,7 +425,8 @@ class _StokCard extends StatelessWidget {
           ),
         ],
       ),
-      child: IntrinsicHeight(
+      child: SizedBox(
+        height: 110,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -429,10 +447,10 @@ class _StokCard extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) =>
                         const Icon(SolarIconsOutline.gallery, size: 24),
                   )
-                : const Icon(
+                : Icon(
                     SolarIconsOutline.box,
                     size: 24,
-                    color: Colors.grey,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
           ),
           const SizedBox(width: 16),
@@ -454,15 +472,15 @@ class _StokCard extends StatelessWidget {
                   item.kategori,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: Colors.grey,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (item.sku != null)
                   Text(
-                    'SKU-${item.sku!}',
+                    '${AppStrings.catalog.skuPrefix}${item.sku!}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
-                      color: Colors.grey,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -471,7 +489,7 @@ class _StokCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.amethyst,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
@@ -496,7 +514,7 @@ class _StokCard extends StatelessWidget {
                   children: [
                     Icon(
                       statusIcon,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       size: 12,
                       semanticLabel: statusLabel,
                     ),
@@ -504,7 +522,7 @@ class _StokCard extends StatelessWidget {
                     Text(
                       '${item.jumlah} ${AppStrings.catalog.unitPcs}',
                       style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                         fontWeight: FontWeight.w900,
                         fontSize: 11,
                       ),
@@ -513,7 +531,7 @@ class _StokCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _buildPopupMenu(context),
+              _buildPopupMenu(context, theme),
             ],
           ),
         ],
@@ -522,7 +540,7 @@ class _StokCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPopupMenu(BuildContext context) {
+  Widget _buildPopupMenu(BuildContext context, ThemeData theme) {
     return Consumer(
       builder: (context, ref, child) {
         return PopupMenuButton<String>(
@@ -554,8 +572,8 @@ class _StokCard extends StatelessWidget {
                   }
                 });
                 break;
-              case 'tambah':
-                _showRestockDialog(context, ref);
+              case 'restock':
+                _showRestockDialog(context, ref, theme);
                 break;
               case 'history':
                 Navigator.push(
@@ -572,29 +590,35 @@ class _StokCard extends StatelessWidget {
                   CriticalActionType.manageInventory,
                 ).then((verified) {
                   if (verified && context.mounted) {
-                    _confirmDelete(context, ref);
+                    _confirmDelete(context, ref, theme);
                   }
                 });
                 break;
             }
           },
           itemBuilder: (context) => [
-            _buildMenuItem('edit', SolarIconsOutline.penNewSquare, AppStrings.catalog.actionEdit),
+            _buildMenuItem(context, 'edit', SolarIconsOutline.penNewSquare, AppStrings.catalog.actionEdit, theme),
             _buildMenuItem(
-              'tambah',
+              context,
+              'restock',
               SolarIconsOutline.addSquare,
               AppStrings.catalog.actionAddStock,
+              theme,
             ),
             _buildMenuItem(
+              context,
               'history',
               SolarIconsOutline.history,
               AppStrings.catalog.actionStockHistory,
+              theme,
             ),
             const PopupMenuDivider(),
             _buildMenuItem(
+              context,
               'hapus',
               SolarIconsOutline.trashBinTrash,
               AppStrings.common.delete,
+              theme,
               isDestructive: true,
             ),
           ],
@@ -604,9 +628,11 @@ class _StokCard extends StatelessWidget {
   }
 
   PopupMenuItem<String> _buildMenuItem(
+    BuildContext context,
     String value,
     IconData icon,
-    String label, {
+    String label,
+    ThemeData theme, {
     bool isDestructive = false,
   }) {
     return PopupMenuItem(
@@ -616,13 +642,13 @@ class _StokCard extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDestructive ? Colors.red : AppColors.amethyst,
+            color: isDestructive ? theme.colorScheme.error : theme.colorScheme.primary,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              color: isDestructive ? Colors.red : null,
+              color: isDestructive ? theme.colorScheme.error : null,
             ),
           ),
         ],
@@ -630,7 +656,7 @@ class _StokCard extends StatelessWidget {
     );
   }
 
-  void _showRestockDialog(BuildContext context, WidgetRef ref) {
+  void _showRestockDialog(BuildContext context, WidgetRef ref, ThemeData theme) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -665,27 +691,37 @@ class _StokCard extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: Text(
               AppStrings.common.cancel.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+              style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
             onPressed: () {
               final amount = int.tryParse(controller.text);
               if (amount != null && amount > 0) {
-                ref
-                    .read(stokListProvider.notifier)
-                    .restock(item.uuid, amount, 'Restock cepat dari menu');
-                Navigator.pop(context);
+                try {
+                  ref
+                      .read(stokListProvider.notifier)
+                      .restock(item.uuid, amount, 'Restock cepat dari menu');
+                  Navigator.pop(context);
+                } catch (e) {
+                  // Jika gagal (misal: validasi repo), jangan tutup dialog dulu, beri feedback
+                  debugPrint('❌ Restock error: $e');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal tambah stok: $e')),
+                    );
+                  }
+                }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.amethyst,
+              backgroundColor: theme.colorScheme.primary,
             ),
             child: Text(
               AppStrings.common.save.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
           ),
@@ -694,7 +730,7 @@ class _StokCard extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
+  void _confirmDelete(BuildContext context, WidgetRef ref, ThemeData theme) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -712,7 +748,7 @@ class _StokCard extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: Text(
               AppStrings.common.cancel.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+              style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           TextButton(
@@ -723,7 +759,7 @@ class _StokCard extends StatelessWidget {
             child: Text(
               AppStrings.common.delete.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.red,
+                color: theme.colorScheme.error,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -749,7 +785,7 @@ class _ServiceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -758,7 +794,8 @@ class _ServiceCard extends StatelessWidget {
           ),
         ],
       ),
-      child: IntrinsicHeight(
+      child: SizedBox(
+        height: 110,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -769,10 +806,10 @@ class _ServiceCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 color: theme.colorScheme.surfaceContainerHighest,
               ),
-              child: const Icon(
+              child: Icon(
                 SolarIconsOutline.penNewSquare,
                 size: 32,
-                color: AppColors.amethyst,
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(width: 16),
@@ -804,7 +841,7 @@ class _ServiceCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.amethyst,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ],
@@ -815,7 +852,7 @@ class _ServiceCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Spacer(),
-                _buildPopupMenu(context),
+                _buildPopupMenu(context, theme),
               ],
             ),
           ],
@@ -824,7 +861,7 @@ class _ServiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPopupMenu(BuildContext context) {
+  Widget _buildPopupMenu(BuildContext context, ThemeData theme) {
     return Consumer(
       builder: (context, ref, child) {
         return PopupMenuButton<String>(
@@ -849,17 +886,19 @@ class _ServiceCard extends StatelessWidget {
                 );
                 break;
               case 'hapus':
-                _confirmDelete(context, ref);
+                _confirmDelete(context, ref, theme);
                 break;
             }
           },
           itemBuilder: (context) => [
-            _buildMenuItem('edit', SolarIconsOutline.penNewSquare, AppStrings.catalog.actionEdit),
+            _buildMenuItem(context, 'edit', SolarIconsOutline.penNewSquare, AppStrings.catalog.actionEdit, theme),
             const PopupMenuDivider(),
             _buildMenuItem(
+              context,
               'hapus',
               SolarIconsOutline.trashBinTrash,
               AppStrings.common.delete,
+              theme,
               isDestructive: true,
             ),
           ],
@@ -869,9 +908,11 @@ class _ServiceCard extends StatelessWidget {
   }
 
   PopupMenuItem<String> _buildMenuItem(
+    BuildContext context,
     String value,
     IconData icon,
-    String label, {
+    String label,
+    ThemeData theme, {
     bool isDestructive = false,
   }) {
     return PopupMenuItem(
@@ -881,13 +922,13 @@ class _ServiceCard extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDestructive ? Colors.red : AppColors.amethyst,
+            color: isDestructive ? theme.colorScheme.error : theme.colorScheme.primary,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              color: isDestructive ? Colors.red : null,
+              color: isDestructive ? theme.colorScheme.error : null,
             ),
           ),
         ],
@@ -895,7 +936,7 @@ class _ServiceCard extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
+  void _confirmDelete(BuildContext context, WidgetRef ref, ThemeData theme) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -913,7 +954,7 @@ class _ServiceCard extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: Text(
               AppStrings.common.cancel.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+              style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           TextButton(
@@ -924,7 +965,7 @@ class _ServiceCard extends StatelessWidget {
             child: Text(
               AppStrings.common.delete.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.red,
+                color: theme.colorScheme.error,
                 fontWeight: FontWeight.bold,
               ),
             ),

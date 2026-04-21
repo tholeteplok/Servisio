@@ -7,6 +7,43 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:791196654233:android:5075e2f3ce36635f9a3608",
+        "android_client_info": {
+          "package_name": "com.tholeteplok.servisio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "791196654233-cgqtv4hegk9f8a9tgibacajedn7v47m7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tholeteplok.servisio",
+            "certificate_hash": "d8eb27073f0abc954ffd61ba4d5322fae2badcb3"
+          }
+        },
+        {
+          "client_id": "791196654233-5okqrgofucg31k1hk226ns7hn3qgl5pg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8rcYPIA69Dg6Evs62ebMjdcZRprLiTWk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "791196654233-5okqrgofucg31k1hk226ns7hn3qgl5pg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:791196654233:android:0298dc44424b346c9a3608",
         "android_client_info": {
           "package_name": "com.tholeteplok.servislog_plus"

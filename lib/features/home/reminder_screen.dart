@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/app_haptic.dart';
 import '../../core/widgets/atelier_header.dart';
@@ -155,7 +154,7 @@ class _ReminderCardState extends ConsumerState<_ReminderCard> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.amethyst.withValues(
+                                color: theme.colorScheme.primary.withValues(
                                   alpha: 0.1,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
@@ -165,7 +164,7 @@ class _ReminderCardState extends ConsumerState<_ReminderCard> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.amethyst,
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                             ),

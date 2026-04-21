@@ -240,7 +240,7 @@ class DetailPaneHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final effectiveAccent = accent ?? AppColors.amethyst;
+    final effectiveAccent = accent ?? Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),

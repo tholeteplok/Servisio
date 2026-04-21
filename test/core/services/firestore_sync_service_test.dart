@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:servislog_core/core/services/firestore_sync_service.dart';
-import 'package:servislog_core/domain/entities/transaction.dart' as entity;
-import 'package:servislog_core/domain/entities/pelanggan.dart';
+import 'package:servisio_core/core/services/firestore_sync_service.dart';
+import 'package:servisio_core/domain/entities/transaction.dart' as entity;
+import 'package:servisio_core/domain/entities/pelanggan.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

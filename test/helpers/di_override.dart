@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/core/providers/system_providers.dart';
-import 'package:servislog_core/core/services/encryption_service.dart';
-import 'package:servislog_core/core/services/device_session_service.dart';
+import 'package:servisio_core/core/providers/system_providers.dart';
+import 'package:servisio_core/core/services/encryption_service.dart';
+import 'package:servisio_core/core/services/device_session_service.dart';
 import '../mocks/manual_mocks.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';

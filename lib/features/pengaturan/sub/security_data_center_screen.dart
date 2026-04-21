@@ -10,6 +10,7 @@ import '../../../core/providers/system_providers.dart';
 import '../../../core/services/device_session_service.dart';
 import '../../../core/widgets/standard_dialog.dart';
 import '../../../core/providers/sync_provider.dart';
+import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/services/sync_worker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/widgets/atelier_header.dart';
@@ -82,8 +83,7 @@ class ShieldSection extends ConsumerWidget {
                 : Colors.white,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: (isDark ? Colors.white : AppColors.amethyst)
-                  .withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               width: 1,
             ),
             boxShadow: [
@@ -164,10 +164,7 @@ class SyncSection extends ConsumerWidget {
                 : Colors.white,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : AppColors.amethyst)
-                  .withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               width: 1,
             ),
             boxShadow: [
@@ -271,10 +268,7 @@ class AccountInfoSection extends ConsumerWidget {
                 : Colors.white,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : AppColors.amethyst)
-                  .withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               width: 1,
             ),
             boxShadow: [
@@ -451,7 +445,7 @@ class SettingToggle extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: AppColors.amethyst,
+          activeTrackColor: theme.colorScheme.primary,
         ),
       ],
     );
@@ -492,7 +486,7 @@ class ActiveDeviceTile extends ConsumerWidget {
                     ? LucideIcons.smartphone 
                     : LucideIcons.smartphone,
                 size: 24,
-                color: AppColors.amethyst,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -504,7 +498,7 @@ class ActiveDeviceTile extends ConsumerWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.amethyst,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     Text(
@@ -551,7 +545,15 @@ class ActiveDeviceTile extends ConsumerWidget {
         onPrimaryAction: () async {
           Navigator.pop(ctx);
           final service = ref.read(deviceSessionServiceProvider);
-          await service.executeNuclearSequence(ref);
+          await service.executeNuclearSequence(
+            onWipeStarted: () => ref.read(isWipingProvider.notifier).state = true,
+            onCloseDatabase: () async => ref.read(dbProvider).store.close(),
+            onComplete: () async {
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            },
+          );
           if (context.mounted) {
             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           }
@@ -702,10 +704,7 @@ class HealthDashboard extends ConsumerWidget {
             : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: (theme.brightness == Brightness.dark
-                  ? theme.colorScheme.onSurface
-                  : AppColors.amethyst)
-              .withValues(alpha: 0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
@@ -773,10 +772,11 @@ class _SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        backgroundColor: AppColors.amethyst.withValues(alpha: 0.1),
+        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -785,7 +785,7 @@ class _SecondaryButton extends StatelessWidget {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: AppColors.amethyst,
+          color: theme.colorScheme.primary,
         ),
       ),
     );

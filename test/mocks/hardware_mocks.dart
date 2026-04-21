@@ -1,5 +1,5 @@
 import 'package:mockito/mockito.dart';
-import 'package:servislog_core/core/services/biometric_service.dart';
+import 'package:servisio_core/core/services/biometric_service.dart';
 
 // Note: In a real project, we would mock the actual dependencies of these services.
 // Since these are "Dry Run" mocks, we simulate the hardware behavior.

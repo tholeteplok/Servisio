@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/providers/history_provider.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/constants/app_strings.dart';
@@ -55,7 +54,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final historyState = ref.watch(historyListProvider);
     final searchQuery = ref.watch(historySearchQueryProvider).toLowerCase();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    // final isDark = theme.brightness == Brightness.dark;
 
     // Dynamic Filter based on search query
     final filteredItems = searchQuery.isEmpty
@@ -71,7 +70,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       backgroundColor: theme.colorScheme.surface,
       body: RefreshIndicator(
         onRefresh: () => ref.read(historyListProvider.notifier).loadInitial(),
-        color: AppColors.precisionViolet,
+        color: theme.colorScheme.primary,
         displacement: 100,
         child: CustomScrollView(
           controller: _scrollController,
@@ -100,9 +99,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   tooltip: AppStrings.common.filter,
                   style: IconButton.styleFrom(
                     minimumSize: const Size(48, 48),
-                    backgroundColor: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.05),
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -112,7 +109,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               child: SizedBox(height: 12),
             ),
             SliverToBoxAdapter(
-              child: _buildActiveFilterChips(ref),
+              child: _buildActiveFilterChips(ref, context),
             ),
             const SliverToBoxAdapter(
               child: SizedBox(height: 12),
@@ -152,6 +149,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                 sliver: SliverList(
+                  key: const ValueKey('history_list'),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final item = filteredItems[index];
                     return _HistoryCard(item: item);
@@ -160,11 +158,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
 
             if (historyState.isLoading)
-              const SliverToBoxAdapter(
+               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.precisionViolet),
+                    child: CircularProgressIndicator(color: theme.colorScheme.primary),
                   ),
                 ),
               ),
@@ -176,8 +174,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildActiveFilterChips(WidgetRef ref) {
+  Widget _buildActiveFilterChips(WidgetRef ref, BuildContext context) {
     final filter = ref.watch(historyFilterNotifierProvider);
+    final theme = Theme.of(context);
     if (filter.dateRange == null &&
         filter.type == 'ALL' &&
         filter.paymentMethod == 'ALL') {
@@ -196,6 +195,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 () => ref
                     .read(historyFilterNotifierProvider.notifier)
                     .update((s) => s.copyWith(clearDateRange: true)),
+                theme,
               ),
             if (filter.type != 'ALL')
               _buildChip(
@@ -203,6 +203,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 () => ref
                     .read(historyFilterNotifierProvider.notifier)
                     .update((s) => s.copyWith(type: 'ALL')),
+                theme,
               ),
             if (filter.paymentMethod != 'ALL')
               _buildChip(
@@ -210,6 +211,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 () => ref
                     .read(historyFilterNotifierProvider.notifier)
                     .update((s) => s.copyWith(paymentMethod: 'ALL')),
+                theme,
               ),
           ],
         ),
@@ -217,12 +219,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildChip(String label, VoidCallback onDeleted) {
+  Widget _buildChip(String label, VoidCallback onDeleted, ThemeData theme) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -230,8 +232,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: theme.colorScheme.onPrimaryContainer,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
@@ -239,7 +241,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onDeleted,
-            child: const Icon(Icons.close, color: Colors.white, size: 14),
+            child: Icon(Icons.close, color: theme.colorScheme.onPrimaryContainer, size: 14),
           ),
         ],
       ),
@@ -293,7 +295,7 @@ class _FilterBottomSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _buildFilterLabel(AppStrings.history.selectDate),
+          _buildFilterLabel(AppStrings.history.selectDate, theme),
           const SizedBox(height: 8),
           InkWell(
             onTap: () async {
@@ -312,7 +314,7 @@ class _FilterBottomSheet extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -325,7 +327,7 @@ class _FilterBottomSheet extends ConsumerWidget {
                          : '${DateFormat('dd/MM/yyyy').format(filter.dateRange!.start)} - ${DateFormat('dd/MM/yyyy').format(filter.dateRange!.end)}',
                      style: TextStyle(
                        color: filter.dateRange == null
-                           ? Colors.grey
+                           ? theme.colorScheme.onSurfaceVariant
                            : theme.colorScheme.onSurface,
                      ),
                    ),
@@ -334,7 +336,7 @@ class _FilterBottomSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _buildFilterLabel(AppStrings.history.transactionType),
+          _buildFilterLabel(AppStrings.history.transactionType, theme),
           const SizedBox(height: 8),
           _buildChoiceRow(
             ref,
@@ -343,9 +345,10 @@ class _FilterBottomSheet extends ConsumerWidget {
             (val) => ref
                 .read(historyFilterNotifierProvider.notifier)
                 .update((s) => s.copyWith(type: val)),
+            theme,
           ),
           const SizedBox(height: 24),
-          _buildFilterLabel(AppStrings.history.paymentMethod),
+          _buildFilterLabel(AppStrings.history.paymentMethod, theme),
           const SizedBox(height: 8),
           _buildChoiceRow(
             ref,
@@ -354,6 +357,7 @@ class _FilterBottomSheet extends ConsumerWidget {
             (val) => ref
                 .read(historyFilterNotifierProvider.notifier)
                 .update((s) => s.copyWith(paymentMethod: val)),
+            theme,
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -362,15 +366,16 @@ class _FilterBottomSheet extends ConsumerWidget {
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.precisionViolet,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: 0,
               ),
               child: Text(
                 AppStrings.history.applyFilter,
                 style: const TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -381,13 +386,13 @@ class _FilterBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterLabel(String label) {
+  Widget _buildFilterLabel(String label, ThemeData theme) {
     return Text(
       label,
       style: GoogleFonts.plusJakartaSans(
         fontSize: 10,
         fontWeight: FontWeight.w900,
-        color: Colors.grey,
+        color: theme.colorScheme.onSurfaceVariant,
         letterSpacing: 1.2,
       ),
     );
@@ -398,6 +403,7 @@ class _FilterBottomSheet extends ConsumerWidget {
     List<String> options,
     String selected,
     Function(String) onSelected,
+    ThemeData theme,
   ) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -414,9 +420,9 @@ class _FilterBottomSheet extends ConsumerWidget {
                       : (opt == 'PRODUK' ? AppStrings.history.typeProduct : opt))),
               selected: isSelected,
               onSelected: (val) => val ? onSelected(opt) : null,
-              selectedColor: AppColors.precisionViolet.withValues(alpha: 0.1),
+              selectedColor: theme.colorScheme.primary.withValues(alpha: 0.1),
               labelStyle: TextStyle(
-                color: isSelected ? AppColors.precisionViolet : Colors.grey,
+                color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               showCheckmark: false,
@@ -447,7 +453,6 @@ class _HistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isService = item.type == 'SERVICE';
 
     return Padding(
@@ -456,7 +461,7 @@ class _HistoryCard extends ConsumerWidget {
         children: [
           AtelierListTile(
             icon: item.icon,
-            iconColor: isService ? AppColors.precisionViolet : Colors.blue,
+            iconColor: isService ? theme.colorScheme.primary : theme.colorScheme.secondary,
             customTitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -469,7 +474,7 @@ class _HistoryCard extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: (isService ? AppColors.precisionViolet : Colors.blue)
+                        color: (isService ? theme.colorScheme.primary : theme.colorScheme.secondary)
                             .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -480,7 +485,7 @@ class _HistoryCard extends ConsumerWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: isService ? AppColors.precisionViolet : Colors.blue,
+                          color: isService ? theme.colorScheme.primary : theme.colorScheme.secondary,
                         ),
                       ),
                     ),
@@ -513,9 +518,7 @@ class _HistoryCard extends ConsumerWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: isDark
-                        ? AppColors.precisionViolet
-                        : AppColors.precisionViolet.withValues(alpha: 0.8),
+                    color: theme.colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 4),

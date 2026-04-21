@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/biometric_service.dart';
-import '../constants/app_colors.dart';
 import '../utils/app_logger.dart';
 
 class SecurityDialogs {
@@ -177,17 +176,17 @@ class _PINInputSheetState extends State<_PINInputSheet> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: active
-                      ? AppColors.amethyst
+                      ? theme.colorScheme.primary
                       : theme.colorScheme.onSurface.withValues(alpha: 0.1),
                   border: Border.all(
                     color: active
-                        ? AppColors.amethyst
+                        ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   ),
                   boxShadow: active
                       ? [
                           BoxShadow(
-                            color: AppColors.amethyst.withValues(alpha: 0.4),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.4),
                             blurRadius: 8,
                             spreadRadius: 2,
                           ),
@@ -330,10 +329,10 @@ class _PINVerifySheetState extends State<_PINVerifySheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.lock_person_outlined,
             size: 64,
-            color: AppColors.amethyst,
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(height: 16),
           Text(
@@ -376,11 +375,11 @@ class _PINVerifySheetState extends State<_PINVerifySheet>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: active
-                        ? AppColors.amethyst
+                        ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface.withValues(alpha: 0.1),
                     border: Border.all(
                       color: active
-                          ? AppColors.amethyst
+                          ? theme.colorScheme.primary
                           : theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     ),
                   ),

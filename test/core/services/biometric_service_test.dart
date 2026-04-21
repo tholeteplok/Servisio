@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:servislog_core/core/services/biometric_service.dart';
+import 'package:servisio_core/core/services/biometric_service.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

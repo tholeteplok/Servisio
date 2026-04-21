@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/core/services/transaction_number_service.dart';
-import 'package:servislog_core/domain/entities/trx_counter.dart';
+import 'package:servisio_core/core/services/transaction_number_service.dart';
+import 'package:servisio_core/domain/entities/trx_counter.dart';
 import 'package:intl/intl.dart';
 import '../../mocks/manual_mocks.dart';
 

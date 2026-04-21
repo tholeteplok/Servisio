@@ -43,6 +43,7 @@ class StaffPerformance {
 
 class TransactionStats {
   final int todayPendapatan;
+  final int yesterdayPendapatan;
   final int weeklyPendapatan;
   final int monthlyPendapatan;
   final int todayProfit;
@@ -67,6 +68,7 @@ class TransactionStats {
 
   TransactionStats({
     this.todayPendapatan = 0,
+    this.yesterdayPendapatan = 0,
     this.weeklyPendapatan = 0,
     this.monthlyPendapatan = 0,
     this.todayProfit = 0,
@@ -102,10 +104,11 @@ TransactionStats calculateStats(
 ) {
   DateTime now = DateTime.now();
   DateTime todayStart = DateTime(now.year, now.month, now.day);
+  DateTime yesterdayStart = todayStart.subtract(const Duration(days: 1));
   DateTime weekStart = now.subtract(const Duration(days: 7));
   DateTime monthStart = DateTime(now.year, now.month, 1);
 
-  int daily = 0, weekly = 0, monthly = 0;
+  int daily = 0, yesterday = 0, weekly = 0, monthly = 0;
   int todayProfitVal = 0, weeklyProfitVal = 0, monthlyProfitVal = 0;
   int todayVisitors = 0, todayWaiting = 0, todayProcessing = 0;
 
@@ -137,6 +140,8 @@ TransactionStats calculateStats(
         todayProfitVal += t.totalProfit;
         todayVisitors++;
         updatePaymentStats(payToday, t.paymentMethod, t.totalAmount);
+      } else if (t.createdAt.isAfter(yesterdayStart)) {
+        yesterday += t.totalAmount;
       }
       if (t.createdAt.isAfter(weekStart)) {
         weekly += t.totalAmount;
@@ -194,6 +199,8 @@ TransactionStats calculateStats(
       todayProfitVal += s.totalProfit;
       todayVisitors++;
       updatePaymentStats(payToday, s.paymentMethod, s.totalPrice);
+    } else if (s.createdAt.isAfter(yesterdayStart)) {
+      yesterday += s.totalPrice;
     }
     if (s.createdAt.isAfter(weekStart)) {
       weekly += s.totalPrice;
@@ -263,6 +270,7 @@ TransactionStats calculateStats(
 
   return TransactionStats(
     todayPendapatan: daily,
+    yesterdayPendapatan: yesterday,
     weeklyPendapatan: weekly,
     monthlyPendapatan: monthly,
     todayProfit: todayProfitVal,

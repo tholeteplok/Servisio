@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:servislog_core/core/providers/pengaturan_provider.dart';
-import 'package:servislog_core/core/providers/system_providers.dart';
-import 'package:servislog_core/core/constants/app_settings.dart';
+import 'package:servisio_core/core/providers/pengaturan_provider.dart';
+import 'package:servisio_core/core/providers/system_providers.dart';
+import 'package:servisio_core/core/constants/app_settings.dart';
 import '../../helpers/test_utils.dart';
 
 void main() {

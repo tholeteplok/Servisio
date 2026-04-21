@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/pelanggan_provider.dart';
 import '../../core/utils/phone_formatter.dart';
@@ -134,15 +133,17 @@ class _CreatePelangganScreenState extends ConsumerState<CreatePelangganScreen> {
                       ],
                     ),
                     const SizedBox(height: 40),
-                    ElevatedButton(
-                      onPressed: _submit,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 64),
-                        backgroundColor: AppColors.amethyst,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                      ElevatedButton(
+                        onPressed: _submit,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 64),
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          elevation: 0,
                         ),
-                      ),
                       child: Text(
                         isEdit ? AppStrings.common.saveChanges.toUpperCase() : AppStrings.customer.saveCustomer.toUpperCase(),
                         style: GoogleFonts.plusJakartaSans(
@@ -168,12 +169,14 @@ class _CreatePelangganScreenState extends ConsumerState<CreatePelangganScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: theme.shadowColor.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

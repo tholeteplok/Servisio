@@ -21,14 +21,13 @@ import '../../core/providers/home_provider.dart';
 import '../../domain/entities/transaction.dart';
 import '../statistik/statistik_screen.dart';
 import 'transaction_detail_screen.dart';
-import 'package:servislog_core/core/providers/stats_provider.dart';
+import 'package:servisio_core/core/providers/stats_provider.dart';
 import '../pengaturan/pengaturan_screen.dart';
 import '../pengaturan/sub/fitur_screen.dart';
 import '../../core/providers/pengaturan_provider.dart';
 import '../../core/providers/pelanggan_provider.dart';
 import '../../core/providers/stok_provider.dart';
 import '../../core/providers/navigation_provider.dart';
-import '../../core/providers/katalog_provider.dart';
 import '../../domain/entities/pelanggan.dart';
 import '../../domain/entities/stok.dart';
 import '../../domain/entities/vehicle.dart';
@@ -40,7 +39,6 @@ import '../../core/services/session_manager.dart';
 import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../main/responsive_layout_builder.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/providers/system_providers.dart';
 
 
@@ -51,29 +49,17 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
   
-  // Hint Animation & State
-  late AnimationController _hintController;
-  bool _shouldShowSwipeHint = false;
-  bool _shouldShowChevron = false;
-  static const int _chevronThreshold = 5; // Menghilang setelah 5x interaksi (swipe)
+  // No longer needed: _onboardingController, _isAnimatingPeek
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    
-    // Initialize Hint Controller
-    _hintController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    
-    _checkDailyHint();
   }
 
   void _onScroll() {
@@ -88,61 +74,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     _searchController.dispose();
     _scrollController.dispose();
     _debounce?.cancel();
-    _hintController.dispose();
     super.dispose();
   }
 
-  Future<void> _checkDailyHint() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastHintDate = prefs.getString('swipe_hint_last_date');
-    final today = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD
-    
-    // Check Interaction Count
-    final interactionCount = prefs.getInt('daily_swipe_count_$today') ?? 0;
-
-    if (lastHintDate != today && mounted) {
-      setState(() => _shouldShowSwipeHint = true);
-      
-      // Reset interaction count for new day
-      await prefs.setInt('daily_swipe_count_$today', 0);
-      setState(() => _shouldShowChevron = true);
-
-      // Jalankan animasi geser (delay sedikit agar layar stabil)
-      await Future.delayed(const Duration(milliseconds: 1000));
-      if (!mounted) return;
-      
-      await _hintController.forward();
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      await _hintController.reverse();
-      
-      // Tandai sudah ditampilkan hari ini
-      await prefs.setString('swipe_hint_last_date', today);
-      
-      if (mounted) {
-        setState(() => _shouldShowSwipeHint = false);
-      }
-    } else {
-      // Jika sudah hari yang sama, cek apakah chevron masih harus muncul
-      if (interactionCount < _chevronThreshold && mounted) {
-        setState(() => _shouldShowChevron = true);
-      }
-    }
-  }
-
-  Future<void> _onSwipeInteracted() async {
-    if (!_shouldShowChevron) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    final currentCount = (prefs.getInt('daily_swipe_count_$today') ?? 0) + 1;
-    
-    await prefs.setInt('daily_swipe_count_$today', currentCount);
-    
-    if (currentCount >= _chevronThreshold && mounted) {
-      setState(() => _shouldShowChevron = false);
-    }
-  }
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
@@ -186,6 +120,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final paginatedState = ref.watch(paginatedTransactionListProvider);
     final transactions = paginatedState.items;
     final stats = ref.watch(statsProvider);
+    
+    // Trend Calculation
+    String? trendStr;
+    Color? trendColor;
+    if (stats.yesterdayPendapatan > 0) {
+      final diff = stats.todayPendapatan - stats.yesterdayPendapatan;
+      final percent = (stats.yesterdayPendapatan > 0) 
+        ? (diff / stats.yesterdayPendapatan * 100).abs().toStringAsFixed(0)
+        : '100';
+      
+      if (diff > 0) {
+        trendStr = '↑ $percent%';
+        trendColor = Colors.green;
+      } else if (diff < 0) {
+        trendStr = '↓ $percent%';
+        trendColor = Colors.red;
+      }
+    } else if (stats.todayPendapatan > 0) {
+      trendStr = '↑ 100%';
+      trendColor = Colors.green;
+    }
     final settings = ref.watch(settingsProvider);
     final searchQueryText = ref.watch(homeSearchQueryProvider);
     final searchQuery = searchQueryText.toLowerCase();
@@ -265,6 +220,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           t.vehiclePlate.toLowerCase().contains(searchQuery) ||
           t.customerName.toLowerCase().contains(searchQuery);
     }).toList();
+
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -371,111 +327,129 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   crossAxisSpacing: 12,
                   children: [
                     // --- 1. STOK (HIGHEST PRIORITY) ---
+                    // --- 1. INVENTORY ---
                     StaggeredGridTile.count(
-                      crossAxisCellCount: (stats.lowStockCount + stats.emptyStockCount > 2) ? 2 : 1,
-                      mainAxisCellCount: 1,
-                      child: GestureDetector(
-                        onTap: () {
-                          ref.read(stokSortNotifierProvider.notifier).setSort(StokSort.lowToHigh);
-                          ref.read(katalogActiveTabProvider.notifier).set(0);
-                          ref.read(navigationProvider.notifier).setIndex(1);
-                        },
-                        child: _BentoCard(
-                          title: AppStrings.home.inventory,
-                          icon: (stats.lowStockCount + stats.emptyStockCount > 0)
-                              ? SolarIconsBold.box
-                              : SolarIconsBold.checkCircle,
-                          color: (stats.lowStockCount + stats.emptyStockCount > 0)
-                              ? Colors.orange
-                              : Colors.green,
-                          valueWidget: (stats.lowStockCount + stats.emptyStockCount > 0)
-                              ? Row(
-                                  children: [
-                                    if (stats.lowStockCount > 0) ...[
-                                      Text(
-                                        stats.lowStockCount.toString(),
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.orange.shade700,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    if (stats.emptyStockCount > 0) ...[
-                                      Text(
-                                        stats.emptyStockCount.toString(),
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.red.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                )
-                              : Row(
-                                  children: [
-                                    const Icon(SolarIconsBold.checkCircle, color: Colors.green, size: 20),
-                                    const SizedBox(width: 4),
+                      crossAxisCellCount: 1,
+                      mainAxisCellCount: 0.7,
+                      child: _BentoCard(
+                        onTap: () => ref.read(navigationProvider.notifier).setIndex(1),
+                        showAccentBar: true,
+                        title: AppStrings.home.inventory,
+                        icon: (stats.lowStockCount + stats.emptyStockCount > 0)
+                            ? SolarIconsBold.box
+                            : SolarIconsBold.checkCircle,
+                        color: (stats.lowStockCount + stats.emptyStockCount > 0)
+                            ? Colors.red
+                            : Colors.green,
+                        valueWidget: (stats.lowStockCount + stats.emptyStockCount > 0)
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  if (stats.lowStockCount > 0)
                                     Text(
-                                      AppStrings.home.inventorySafe,
+                                      stats.lowStockCount.toString(),
                                       style: GoogleFonts.manrope(
-                                        fontSize: 18,
+                                        fontSize: 22,
                                         fontWeight: FontWeight.w800,
-                                        color: Colors.green,
+                                        color: Colors.orange.shade700,
                                       ),
                                     ),
-                                  ],
-                                ),
-                          subValue: AppStrings.home.inventoryStatus,
-                        ),
+                                  if (stats.lowStockCount > 0 && stats.emptyStockCount > 0)
+                                    Text(
+                                      ' / ',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 16,
+                                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                  if (stats.emptyStockCount > 0)
+                                    Text(
+                                      stats.emptyStockCount.toString(),
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  const Icon(SolarIconsBold.checkCircle, color: Colors.green, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    AppStrings.home.inventorySafe,
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        subValue: AppStrings.home.inventoryStatus,
+                        chips: [
+                          if (stats.emptyStockCount > 0)
+                            const _BentoChip(
+                              label: 'Perlu Belanja',
+                              color: Colors.red,
+                              icon: SolarIconsBold.cart,
+                            ),
+                          if (stats.lowStockCount > 0 && stats.emptyStockCount == 0)
+                            const _BentoChip(
+                              label: 'Stok Menipis',
+                              color: Colors.orange,
+                            ),
+                        ],
                       ),
                     ),
 
-                    // --- 2. REMINDER ---
-                    StaggeredGridTile.count(
-                      crossAxisCellCount: 1,
-                      mainAxisCellCount: 1,
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReminderScreen()),
-                        ),
-                        child: _BentoCard(
-                          title: AppStrings.home.reminder,
-                          value: ref.watch(reminderCountProvider).toString(),
-                          subValue: AppStrings.home.upcoming,
-                          icon: SolarIconsBold.bell,
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ),
 
                     // --- 3. PENDAPATAN ---
                     StaggeredGridTile.count(
                       crossAxisCellCount: (stats.todayPendapatan > 1000000) ? 2 : 1,
-                      mainAxisCellCount: 1,
-                      child: GestureDetector(
+                      mainAxisCellCount: 0.7,
+                      child: _BentoCard(
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const StatistikScreen()),
                         ),
-                        child: _BentoCard(
-                          title: AppStrings.home.todayRevenue,
-                          value: _formatCurrencyShort(stats.todayPendapatan.toDouble()),
-                          subValue: AppStrings.home.totalRevenueLabel,
-                          icon: SolarIconsBold.wadOfMoney,
-                          color: theme.colorScheme.primary,
-                        ),
+                        showAccentBar: true,
+                        title: AppStrings.home.todayRevenue,
+                        value: _formatCurrencyShort(stats.todayPendapatan.toDouble()),
+                        subValue: AppStrings.home.totalRevenueLabel,
+                        icon: SolarIconsBold.wadOfMoney,
+                        color: theme.colorScheme.primary,
+                        trend: trendStr,
+                        trendColor: trendColor,
                       ),
                     ),
 
-                    // --- 4. PENGUNJUNG ---
+                    // --- 4. REMINDER ---
                     StaggeredGridTile.count(
                       crossAxisCellCount: 1,
-                      mainAxisCellCount: 1,
+                      mainAxisCellCount: 0.7,
                       child: _BentoCard(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ReminderScreen()),
+                        ),
+                        showAccentBar: true,
+                        title: AppStrings.home.reminder,
+                        value: ref.watch(reminderCountProvider).toString(),
+                        subValue: AppStrings.home.upcoming,
+                        icon: SolarIconsBold.bell,
+                        color: Colors.orange,
+                      ),
+                    ),
+
+                    // --- 5. PENGUNJUNG ---
+                    StaggeredGridTile.count(
+                      crossAxisCellCount: 1,
+                      mainAxisCellCount: 0.7,
+                      child: _BentoCard(
+                        showAccentBar: true,
                         title: AppStrings.home.visitors,
                         value: stats.todayVisitorCount.toString(),
                         subValue: '${stats.todayActiveCount} ${AppStrings.home.processed}',
@@ -636,27 +610,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                         final activityCard = _ActivityCard(
                           trx: todayTrx[index],
                           onDelete: () => _handleDelete(context, todayTrx[index]),
-                          showChevronHint: _shouldShowChevron,
-                          onSwiped: _onSwipeInteracted,
                         );
-
-                        if (index == 0 && _shouldShowSwipeHint) {
-                          return AnimatedBuilder(
-                            animation: _hintController,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(
-                                  _hintController.value *
-                                      MediaQuery.of(context).size.width *
-                                      0.25,
-                                  0,
-                                ),
-                                child: child,
-                              );
-                            },
-                            child: activityCard,
-                          );
-                        }
 
                         return activityCard;
                       },
@@ -675,7 +629,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   decoration: BoxDecoration(
                     color: isDark
                         ? AppColors.darkSurfaceLighter
-                        : AppColors.amethyst.withValues(alpha: 0.9),
+                        : theme.colorScheme.primary.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
                     image: const DecorationImage(
                       image: AssetImage(
@@ -839,11 +793,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   Widget _buildVehicleResult(BuildContext context, Vehicle v) {
+    final theme = Theme.of(context);
     return _ResultCard(
       title: v.plate,
       subtitle: v.model,
       icon: AppIcons.motorcycle,
-      color: AppColors.amethyst,
+      color: theme.colorScheme.primary,
       badge: AppStrings.home.badgeVehicle, // UX-05
       onTap: () {
         final owner = v.owner.target;
@@ -1015,7 +970,11 @@ class _BentoCard extends StatelessWidget {
   final String subValue;
   final IconData icon;
   final Color color;
-  final BoxBorder? border;
+  final String? trend;
+  final Color? trendColor;
+  final List<Widget>? chips;
+  final bool showAccentBar;
+  final VoidCallback? onTap;
 
   const _BentoCard({
     required this.title,
@@ -1024,7 +983,11 @@ class _BentoCard extends StatelessWidget {
     required this.subValue,
     required this.icon,
     required this.color,
-    this.border,
+    this.trend,
+    this.trendColor,
+    this.chips,
+    this.showAccentBar = false,
+    this.onTap,
   });
 
   @override
@@ -1033,14 +996,12 @@ class _BentoCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
      return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
             : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: border ?? Border.all(
+        border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.08)
               : theme.colorScheme.outline.withValues(alpha: 0.12),
@@ -1062,72 +1023,170 @@ class _BentoCard extends StatelessWidget {
                   offset: const Offset(0, 8),
                   spreadRadius: -2,
                 ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
               ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            // Watermark Icon
-            Positioned(
-              bottom: -20,
-              right: -20,
-              child: Opacity(
-                opacity: 0.05,
-                child: Icon(
-                  icon,
-                  size: 100,
-                  color: isDark ? Colors.white : color,
-                ),
-              ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title.toUpperCase(),
-                    style: GoogleFonts.manrope(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: color.withValues(alpha: 0.8),
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (valueWidget != null)
-                    valueWidget!
-                  else
-                    Text(
-                      value ?? '',
-                      style: GoogleFonts.manrope(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: isDark
-                            ? Colors.white
-                            : theme.colorScheme.onSurface,
-                        letterSpacing: -0.5,
+        child: InkWell(
+          onTap: onTap,
+          child: Stack(
+            children: [
+              // Accent Bar
+              if (showAccentBar)
+                Positioned(
+                  left: 0,
+                  top: 12,
+                  bottom: 12,
+                  child: Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(4),
                       ),
                     ),
-                  Text(
-                    subValue,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: theme.colorScheme.outline,
-                    ),
                   ),
-                ],
+                ),
+              
+              // Watermark Icon
+              Positioned(
+                bottom: -15,
+                right: -15,
+                child: Opacity(
+                  opacity: 0.05,
+                  child: Icon(
+                    icon,
+                    size: 60,
+                    color: isDark ? Colors.white : color,
+                  ),
+                ),
               ),
-            ),
-          ],
+              
+              // Content
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title.toUpperCase(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: color.withValues(alpha: 0.8),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                        if (trend != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (trendColor ?? color).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              trend!,
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: trendColor ?? color,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        if (valueWidget != null)
+                          valueWidget!
+                        else
+                          Text(
+                            value ?? '',
+                            style: GoogleFonts.manrope(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : theme.colorScheme.onSurface,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subValue,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: theme.colorScheme.outline,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (chips != null && chips!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: chips!,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _BentoChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData? icon;
+
+  const _BentoChip({
+    required this.label,
+    required this.color,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 8, color: color),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1137,14 +1196,9 @@ class _ActivityCard extends ConsumerStatefulWidget {
   final Transaction trx;
   final VoidCallback? onDelete;
 
-  final bool showChevronHint;
-  final VoidCallback? onSwiped;
-
   const _ActivityCard({
     required this.trx,
     this.onDelete,
-    this.showChevronHint = false,
-    this.onSwiped,
   });
 
   @override
@@ -1212,7 +1266,7 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
         nextStatus = ServiceStatus.dikerjakan;
         break;
       case ServiceStatus.dikerjakan:
-        statusColor = AppColors.amethyst;
+        statusColor = theme.colorScheme.primary;
         statusLabel = AppStrings.transaction.statusServisCaps;
         statusIcon = SolarIconsOutline.settings;
         nextStatus = ServiceStatus.selesai;
@@ -1234,7 +1288,7 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
     final Color nextStatusColor = nextStatus == ServiceStatus.dikerjakan 
         ? Colors.blue 
         : nextStatus == ServiceStatus.selesai 
-            ? AppColors.amethyst 
+            ? theme.colorScheme.primary 
             : Colors.green;
 
     final String nextStatusLabel = nextStatus == ServiceStatus.dikerjakan 
@@ -1299,8 +1353,6 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
             return false; // Never dismiss via progression
           } else {
             // DELETE (Swipe Left)
-            // Interaction Trigger for Hint
-            widget.onSwiped?.call();
             if (trx.serviceStatus == ServiceStatus.antri) {
               if (_swipeDeleteCount == 0) {
                 HapticFeedback.lightImpact();
@@ -1469,11 +1521,6 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.showChevronHint && trx.serviceStatus == ServiceStatus.antri)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: _PulseChevron(),
-                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -1502,7 +1549,6 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
                 ],
               ),
               onTap: () {
-                widget.onSwiped?.call();
                 if (trx.serviceStatus == ServiceStatus.antri ||
                     trx.serviceStatus == ServiceStatus.dikerjakan) {
                   Navigator.push(
@@ -1675,7 +1721,7 @@ class _ActivityCardState extends ConsumerState<_ActivityCard> {
                       },
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 60),
-                  backgroundColor: AppColors.amethyst,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -1850,59 +1896,3 @@ class _InlineZoneBadge extends ConsumerWidget {
   }
 }
 
-class _PulseChevron extends StatefulWidget {
-  const _PulseChevron();
-
-  @override
-  State<_PulseChevron> createState() => _PulseChevronState();
-}
-
-class _PulseChevronState extends State<_PulseChevron>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _opacityAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Icon(
-              SolarIconsOutline.doubleAltArrowRight,
-              size: 20,
-              color: Colors.blue.withValues(alpha: 0.7),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}

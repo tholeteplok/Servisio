@@ -141,8 +141,8 @@ class _SessionDisplacedScreenState
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: _isLoading
-                    ? const CircularProgressIndicator(
-                        color: AppColors.amethyst,
+                    ? CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
                       )
                     : _wipeComplete
                         ? _buildWipeCompleteState()
@@ -241,9 +241,9 @@ class _SessionDisplacedScreenState
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       SolarIconsOutline.smartphone,
-                      color: AppColors.amethyst,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -291,7 +291,7 @@ class _SessionDisplacedScreenState
                 child: ElevatedButton(
                   onPressed: _forceLogout,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.amethyst,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -432,7 +432,7 @@ class ActiveSessionConflictDialog extends ConsumerWidget {
               color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: (isDark ? Colors.white : AppColors.amethyst)
+                color: (isDark ? Colors.white : Theme.of(context).colorScheme.primary)
                     .withValues(alpha: 0.1),
                 width: 1,
               ),
@@ -503,9 +503,9 @@ class ActiveSessionConflictDialog extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           SolarIconsOutline.smartphone,
-                          color: AppColors.amethyst,
+                          color: Theme.of(context).colorScheme.primary,
                           size: 18,
                         ),
                         const SizedBox(width: 10),
@@ -545,7 +545,7 @@ class ActiveSessionConflictDialog extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: onContinue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.amethyst,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),

@@ -6,7 +6,7 @@
 // Jalankan dengan: flutter test test/widget_test.dart
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/core/providers/pengaturan_provider.dart';
+import 'package:servisio_core/core/providers/pengaturan_provider.dart';
 
 void main() {
   group('SettingsState Tests', () {

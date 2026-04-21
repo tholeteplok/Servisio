@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../domain/entities/stok.dart';
@@ -149,6 +148,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
 
   void _proceedSave({Stok? existingToRestock, int? restockAmount}) async {
     if (existingToRestock != null && restockAmount != null) {
+      final theme = Theme.of(context);
       ref
           .read(stokListProvider.notifier)
           .restock(
@@ -162,7 +162,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
             '${existingToRestock.nama} ${AppStrings.catalog.snackbarStockAdded}',
           ),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.amethyst,
+          backgroundColor: theme.colorScheme.primary,
         ),
       );
       if (mounted) Navigator.pop(context);
@@ -197,13 +197,14 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   }
 
   void _showDuplicateNameError() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: Row(
           children: [
-            const Icon(SolarIconsBold.danger, color: Colors.red),
+            Icon(SolarIconsBold.danger, color: theme.colorScheme.error),
             const SizedBox(width: 12),
             Text(
               AppStrings.catalog.dialogDuplicateNameTitle,
@@ -222,7 +223,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
               AppStrings.common.understand.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
-                color: AppColors.amethyst,
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
@@ -232,6 +233,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   }
 
   void _showDuplicateSkuDialog(Stok existing) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -249,7 +251,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               AppStrings.common.cancel.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+              style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           TextButton(
@@ -262,7 +264,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
               AppStrings.catalog.actionAddStock.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
@@ -280,7 +282,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
               AppStrings.catalog.actionEdit.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
-                color: AppColors.amethyst,
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
@@ -310,13 +312,13 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     AppStrings.catalog.labelEditMode,
                     style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -345,7 +347,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                 color: theme.cardColor,
                                 borderRadius: BorderRadius.circular(40),
                                 border: Border.all(
-                                  color: AppColors.amethyst.withValues(
+                                  color: theme.colorScheme.primary.withValues(
                                     alpha: 0.1,
                                   ),
                                   width: 2,
@@ -362,10 +364,10 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           SolarIconsOutline.camera,
                                           size: 40,
-                                          color: Colors.grey,
+                                          color: theme.colorScheme.onSurfaceVariant,
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
@@ -373,7 +375,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.grey,
+                                            color: theme.colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
@@ -388,13 +390,13 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                               onTap: () => _showImageSourceActionSheet(context),
                               child: Container(
                                 padding: const EdgeInsets.all(10),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.amethyst,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   SolarIconsBold.penNewSquare,
-                                  color: Colors.white,
+                                  color: theme.colorScheme.onPrimary,
                                   size: 20,
                                 ),
                               ),
@@ -426,7 +428,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
-                            color: Colors.grey,
+                            color: theme.colorScheme.onSurfaceVariant,
                             letterSpacing: 1,
                           ),
                         ),
@@ -451,12 +453,12 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? AppColors.amethyst
+                                        ? theme.colorScheme.primary
                                         : theme.cardColor,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: isSelected
-                                          ? AppColors.amethyst
+                                          ? theme.colorScheme.primary
                                           : theme.dividerColor,
                                     ),
                                   ),
@@ -467,7 +469,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                           ? FontWeight.bold
                                           : FontWeight.normal,
                                       color: isSelected
-                                          ? Colors.white
+                                          ? theme.colorScheme.onPrimary
                                           : theme.textTheme.bodyMedium?.color,
                                     ),
                                   ),
@@ -500,9 +502,9 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     SolarIconsOutline.magicStick,
-                                    color: AppColors.amethyst,
+                                    color: theme.colorScheme.primary,
                                   ),
                                   onPressed: _autoGenerateSku,
                                   tooltip: AppStrings.catalog.tooltipAutoGenerate,
@@ -512,9 +514,9 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                 ),
                                 if (barcodeEnabled)
                                   IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       SolarIconsOutline.scanner,
-                                      color: AppColors.amethyst,
+                                      color: theme.colorScheme.primary,
                                     ),
                                     onPressed: _openScanner,
                                     tooltip: AppStrings.catalog.tooltipScanBarcode,
@@ -599,7 +601,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                           controller: _hargaJualController,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.amethyst,
+                            color: theme.colorScheme.primary,
                           ),
                           decoration: InputDecoration(
                             labelText: AppStrings.catalog.labelSellingPrice,
@@ -627,19 +629,19 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                       onPressed: _isSaving ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 68),
-                        backgroundColor: AppColors.amethyst,
+                        backgroundColor: theme.colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                         elevation: 8,
-                        shadowColor: AppColors.amethyst.withValues(alpha: 0.4),
+                        shadowColor: theme.colorScheme.primary.withValues(alpha: 0.4),
                       ),
                       child: _isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 24,
                               width: 24,
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
                                 strokeWidth: 2,
                               ),
                             )
@@ -650,7 +652,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 18,
-                                  color: Colors.white,
+                                  color: theme.colorScheme.onPrimary,
                                 ),
                               ),
                     ),
@@ -666,6 +668,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   }
 
   void _showImageSourceActionSheet(BuildContext context) {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -682,7 +685,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -728,21 +731,22 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 24),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardTheme.color,
+            color: theme.cardTheme.color,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppColors.amethyst.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.amethyst, size: 32),
+              Icon(icon, color: theme.colorScheme.primary, size: 32),
               const SizedBox(height: 8),
               Text(
                 label,
@@ -756,12 +760,13 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   }
 
   Widget _buildFormCard({required List<Widget> children}) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

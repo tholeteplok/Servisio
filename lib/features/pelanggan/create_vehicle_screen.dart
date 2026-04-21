@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_icons.dart';
 import '../../core/services/vehicle_data_service.dart';
@@ -243,10 +242,12 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
                       onPressed: _submit,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 64),
-                        backgroundColor: AppColors.amethyst,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
+                        elevation: 0,
                       ),
                       child: Text(
                         widget.initialVehicle != null
@@ -271,12 +272,13 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
   }
 
   Widget _buildTypeSelector() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.amethyst.withValues(alpha: 0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.1)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -288,6 +290,7 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
   }
 
   Widget _buildTypeItem(VehicleCategory category, IconData icon, String label) {
+    final theme = Theme.of(context);
     final isSelected = _selectedCategory == category;
     return Expanded(
       child: GestureDetector(
@@ -296,12 +299,12 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.amethyst : Colors.transparent,
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.amethyst.withValues(alpha: 0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -312,7 +315,7 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.grey,
+                color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 size: 24,
               ),
               const SizedBox(height: 4),
@@ -321,7 +324,7 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                  color: isSelected ? Colors.white : Colors.grey,
+                  color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -336,12 +339,14 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: theme.shadowColor.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -358,14 +363,13 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
     required BoxConstraints constraints,
   }) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Align(
       alignment: Alignment.topLeft,
       child: Material(
         elevation: 12,
         borderRadius: BorderRadius.circular(20),
-        color: isDark ? const Color(0xFF1E1E26) : Colors.white,
+        color: theme.colorScheme.surfaceContainerHighest,
         child: Container(
           width: constraints.maxWidth,
           constraints: const BoxConstraints(maxHeight: 300),
@@ -373,11 +377,11 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppColors.amethyst.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: theme.shadowColor.withValues(alpha: 0.2),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -389,7 +393,7 @@ class _CreateVehicleScreenState extends ConsumerState<CreateVehicleScreen> {
             itemCount: options.length,
             separatorBuilder: (context, index) => Divider(
               height: 1,
-              color: AppColors.amethyst.withValues(alpha: 0.05),
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
             ),
             itemBuilder: (BuildContext context, int index) {
               final String option = options.elementAt(index);

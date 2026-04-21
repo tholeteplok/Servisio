@@ -220,18 +220,18 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       color: isDark ? AppColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AppColors.amethyst.withValues(alpha: 0.1),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: AppColors.amethyst.withValues(
+                          backgroundColor: theme.colorScheme.primary.withValues(
                             alpha: 0.1,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             SolarIconsOutline.user,
-                            color: AppColors.amethyst,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -274,10 +274,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.amethyst.withValues(alpha: 0.05),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppColors.amethyst.withValues(alpha: 0.1),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Column(
@@ -290,7 +290,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.amethyst,
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                               Text(
@@ -298,7 +298,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.amethyst,
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -308,9 +308,9 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
                               value: backupState.progress,
-                              backgroundColor: AppColors.amethyst.withValues(alpha: 0.1),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.amethyst,
+                              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                theme.colorScheme.primary,
                               ),
                               minHeight: 8,
                             ),
@@ -472,6 +472,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   }
 
   Widget _buildFrequencySelector(SettingsState settings) {
+    final theme = Theme.of(context);
     final frequencies = [
       {'val': 'off', 'label': 'Mati'},
       {'val': 'daily', 'label': 'Harian'},
@@ -490,10 +491,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.amethyst : Colors.transparent,
+                color: isSelected ? theme.colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.amethyst.withValues(
+                  color: theme.colorScheme.primary.withValues(
                     alpha: isSelected ? 1 : 0.2,
                   ),
                 ),
@@ -522,7 +523,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     required bool isLoading,
     required VoidCallback onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return InkWell(
       onTap: isLoading ? null : onTap,
       borderRadius: BorderRadius.circular(20),
@@ -531,14 +533,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.05)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.amethyst.withValues(alpha: 0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: isLoading
@@ -547,7 +549,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       height: 24,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Icon(icon, color: AppColors.amethyst),
+                  : Icon(icon, color: theme.colorScheme.primary),
             ),
             const SizedBox(width: 16),
             Expanded(

@@ -6,7 +6,7 @@ import 'package:solar_icons/solar_icons.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/constants/app_colors.dart';
+
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_icons.dart';
 import '../../core/providers/transaction_providers.dart';
@@ -24,6 +24,7 @@ import 'create_pelanggan_screen.dart';
 import 'create_vehicle_screen.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';
+import '../../core/widgets/standard_dialog.dart';
 
 class PelangganDetailScreen extends ConsumerWidget {
   final Pelanggan pelanggan;
@@ -60,12 +61,14 @@ class PelangganDetailScreen extends ConsumerWidget {
                   icon: SolarIconsOutline.camera,
                   label: AppStrings.common.camera,
                   onTap: () => Navigator.pop(context, ImageSource.camera),
+                  theme: Theme.of(context),
                 ),
                 _buildPickerOption(
                   context,
                   icon: SolarIconsOutline.gallery,
                   label: AppStrings.common.gallery,
                   onTap: () => Navigator.pop(context, ImageSource.gallery),
+                  theme: Theme.of(context),
                 ),
               ],
             ),
@@ -92,6 +95,7 @@ class PelangganDetailScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required ThemeData theme,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -101,15 +105,18 @@ class PelangganDetailScreen extends ConsumerWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.amethyst.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: Icon(icon, color: AppColors.amethyst, size: 32),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 32),
           ),
           const SizedBox(height: 12),
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ],
       ),
@@ -119,8 +126,6 @@ class PelangganDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
-    // Watch for updates to this specific pelanggan
     final p = ref
         .watch(pelangganListProvider)
         .firstWhere((e) => e.id == pelanggan.id, orElse: () => pelanggan);
@@ -149,6 +154,7 @@ class PelangganDetailScreen extends ConsumerWidget {
         slivers: [
           _buildHeader(context, ref, theme, p),
           _buildStatsRow(
+            context,
             theme,
             vehicles.length,
             transactions.length,
@@ -177,7 +183,15 @@ class PelangganDetailScreen extends ConsumerWidget {
       child: Container(
         padding: EdgeInsets.fromLTRB(20, statusBarHeight + 12, 20, 24),
         decoration: BoxDecoration(
-          gradient: AppColors.headerGradient(context),
+          gradient: RadialGradient(
+            center: const Alignment(-1.1, -1.1),
+            radius: 1.5,
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.5),
+            ],
+            stops: const [0.6, 1.0],
+          ),
           borderRadius: const BorderRadius.vertical(
             bottom: Radius.circular(24),
           ),
@@ -189,14 +203,14 @@ class PelangganDetailScreen extends ConsumerWidget {
               children: [
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(
+                  icon: Icon(
                     LucideIcons.chevronLeft,
-                    color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                   ),
                   tooltip: AppStrings.common.back,
                   style: IconButton.styleFrom(
                     minimumSize: const Size(48, 48),
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     padding: const EdgeInsets.all(12),
                     shape: RoundedRectangleBorder(
@@ -207,15 +221,15 @@ class PelangganDetailScreen extends ConsumerWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         AppIcons.edit,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                         size: 20,
                       ),
                       tooltip: AppStrings.common.edit,
                       style: IconButton.styleFrom(
                         minimumSize: const Size(48, 48),
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         padding: const EdgeInsets.all(12),
                         shape: RoundedRectangleBorder(
@@ -232,16 +246,16 @@ class PelangganDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         AppIcons.delete,
-                        color: Colors.redAccent,
+                        color: isDark ? theme.colorScheme.error : Colors.white,
                         size: 20,
                       ),
                       tooltip: AppStrings.common.delete,
                       style: IconButton.styleFrom(
                         minimumSize: const Size(48, 48),
-                        backgroundColor: Colors.redAccent.withValues(
-                          alpha: 0.2,
+                        backgroundColor: theme.colorScheme.error.withValues(
+                          alpha: isDark ? 0.2 : 0.8,
                         ),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         padding: const EdgeInsets.all(12),
@@ -275,7 +289,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.amethyst.withValues(alpha: 0.25),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.25),
                             blurRadius: 32,
                             spreadRadius: 8,
                             offset: const Offset(0, 4),
@@ -287,13 +301,16 @@ class PelangganDetailScreen extends ConsumerWidget {
                   InkWell(
                     onTap: () => _pickImage(context, ref),
                     borderRadius: BorderRadius.circular(64),
-                    splashColor: AppColors.amethyst.withValues(alpha: 0.15),
+                    splashColor: theme.colorScheme.primary.withValues(alpha: 0.15),
                     highlightColor: Colors.transparent,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2.5),
+                        border: Border.all(
+                          color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+                          width: 2.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.15),
@@ -319,7 +336,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 48,
                                     fontWeight: FontWeight.w900,
-                                    color: AppColors.amethyst,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 )
                               : null,
@@ -334,13 +351,13 @@ class PelangganDetailScreen extends ConsumerWidget {
                       onTap: () => _pickImage(context, ref),
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: AppColors.amethyst,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           SolarIconsOutline.camera,
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                           size: 20,
                         ),
                       ),
@@ -355,7 +372,7 @@ class PelangganDetailScreen extends ConsumerWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : Colors.black87,
+                color: theme.colorScheme.onSurface,
                 letterSpacing: -1,
               ),
             ),
@@ -363,9 +380,7 @@ class PelangganDetailScreen extends ConsumerWidget {
               p.telepon,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.6)
-                    : Colors.black54,
+                color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -376,6 +391,7 @@ class PelangganDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildStatsRow(
+    BuildContext context,
     ThemeData theme,
     int vehicleCount,
     int visitCount,
@@ -394,11 +410,12 @@ class PelangganDetailScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            _buildStatItem(AppStrings.customer.vehicles, vehicleCount.toString()),
+            _buildStatItem(context, AppStrings.customer.vehicles, vehicleCount.toString()),
             _buildStatDivider(theme),
-            _buildStatItem(AppStrings.customer.visits, visitCount.toString()),
+            _buildStatItem(context, AppStrings.customer.visits, visitCount.toString()),
             _buildStatDivider(theme),
             _buildStatItem(
+              context,
               AppStrings.customer.totalSpending,
               NumberFormat.compactCurrency(
                 locale: 'id',
@@ -411,7 +428,8 @@ class PelangganDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Column(
         children: [
@@ -420,7 +438,7 @@ class PelangganDetailScreen extends ConsumerWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.amethyst,
+              color: theme.colorScheme.primary,
             ),
           ),
           const SizedBox(height: 2),
@@ -430,7 +448,7 @@ class PelangganDetailScreen extends ConsumerWidget {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 1,
-              color: Colors.grey,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -486,10 +504,10 @@ class PelangganDetailScreen extends ConsumerWidget {
         customLeading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.amethyst.withValues(alpha: 0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, size: 20, color: AppColors.amethyst),
+          child: Icon(icon, size: 20, color: theme.colorScheme.primary),
         ),
         customTitle: Text(
           label,
@@ -553,7 +571,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.amethyst,
+                    foregroundColor: theme.colorScheme.primary,
                   ),
                 ),
               ],
@@ -626,14 +644,14 @@ class PelangganDetailScreen extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.amethyst.withValues(alpha: 0.1),
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 v.type.toLowerCase().contains(AppStrings.customer.mobil.toLowerCase())
                                     ? LucideIcons.car
                                     : LucideIcons.bike,
-                                color: AppColors.amethyst,
+                                color: theme.colorScheme.primary,
                                 size: 20,
                               ),
                             ),
@@ -745,7 +763,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                   icon: isTransaction
                       ? LucideIcons.fileText
                       : LucideIcons.shoppingCart,
-                  iconColor: isTransaction ? AppColors.amethyst : Colors.orange,
+                   iconColor: isTransaction ? theme.colorScheme.primary : theme.colorScheme.secondary,
                   title: isTransaction
                       ? (item.vehiclePlate.isNotEmpty
                           ? item.vehiclePlate
@@ -767,7 +785,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(item.status)
+                            color: _getStatusColor(theme, item.status)
                                 .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -776,7 +794,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
-                              color: _getStatusColor(item.status),
+                              color: _getStatusColor(theme, item.status),
                             ),
                           ),
                         ),
@@ -807,21 +825,21 @@ class PelangganDetailScreen extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(ThemeData theme, String status) {
     switch (status.toLowerCase()) {
       case 'pending':
       case 'antri':
-        return Colors.blue;
+        return theme.colorScheme.secondary;
       case 'in_progress':
       case 'dikerjakan':
-        return Colors.orange;
+        return theme.colorScheme.tertiary;
       case 'completed':
       case 'selesai':
-        return Colors.green;
+        return theme.colorScheme.primary;
       case 'lunas':
-        return AppColors.amethyst;
+        return theme.colorScheme.primary;
       default:
-        return Colors.grey;
+        return theme.colorScheme.outline;
     }
   }
 
@@ -829,40 +847,30 @@ class PelangganDetailScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-          AppStrings.customer.confirmDeleteTitle,
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900),
-        ),
-        content: Text(
-          AppStrings.customer.confirmDeleteMessage,
-          style: GoogleFonts.plusJakartaSans(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              AppStrings.common.cancel,
-              style: GoogleFonts.plusJakartaSans(color: theme.hintColor),
-            ),
+      barrierColor: theme.shadowColor.withValues(alpha: 0.3),
+      builder: (context) => StandardDialog(
+        icon: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.error.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
           ),
-          TextButton(
-            onPressed: () {
-              ref.read(pelangganListProvider.notifier).remove(p.id);
-              Navigator.pop(context); // dialog
-              Navigator.pop(context); // detail screen
-            },
-            child: Text(
-              AppStrings.common.delete,
-              style: GoogleFonts.plusJakartaSans(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          child: Icon(
+            SolarIconsOutline.trashBinTrash,
+            color: theme.colorScheme.error,
+            size: 36,
           ),
-        ],
+        ),
+        title: AppStrings.customer.confirmDeleteTitle,
+        message: AppStrings.customer.deleteConfirmation(p.nama),
+        primaryActionLabel: AppStrings.common.delete,
+        primaryActionColor: theme.colorScheme.error,
+        onPrimaryAction: () {
+          ref.read(pelangganListProvider.notifier).remove(p.id);
+          Navigator.pop(context); // dialog
+          Navigator.pop(context); // detail screen
+        },
+        secondaryActionLabel: AppStrings.common.cancel,
       ),
     );
   }

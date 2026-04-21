@@ -4,14 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
-import '../providers/objectbox_provider.dart';
-import '../providers/sync_provider.dart';
 import 'encryption_service.dart';
-import '../providers/system_providers.dart';
 
 // ──────────────────────────────────────────────────────────────
 // DATA MODEL
@@ -274,13 +270,13 @@ class DeviceSessionService {
   }
 
   /// THE NUCLEAR SEQUENCE (8-Step Execution)
-  Future<void> executeNuclearSequence(WidgetRef ref) async {
+  Future<void> executeNuclearSequence({
+    required VoidCallback onWipeStarted,
+    required Future<void> Function() onCloseDatabase,
+    required Future<void> Function() onComplete,
+  }) async {
     // 1. Set global state & Stop workers
-    ref.read(isWipingProvider.notifier).state = true;
-    final syncWorkerProviderRef = ref.read(syncWorkerProvider);
-    if (syncWorkerProviderRef != null) {
-      ref.invalidate(syncWorkerProvider);
-    }
+    onWipeStarted();
     debugPrint('☢️ NUCLEAR SEQUENCE INITIATED');
 
     // 2. Buffer & Final Check (Optional logic here)
@@ -288,9 +284,7 @@ class DeviceSessionService {
 
     try {
       // 3. Close ObjectBox Store (Critical step)
-      // Kita panggil melalui dbProvider
-      final db = ref.read(dbProvider);
-      db.store.close();
+      await onCloseDatabase();
       debugPrint('☢️ Step 3: ObjectBox closed');
 
       // 4. Delete Database Directory
@@ -317,10 +311,12 @@ class DeviceSessionService {
       debugPrint('☢️ Step 8: FirebaseAuth signed out');
 
       debugPrint('☢️ NUCLEAR SEQUENCE COMPLETE');
+      await onComplete();
     } catch (e) {
       debugPrint('❌ Nuclear sequence error: $e');
       // Tetap paksa logout sekalipun wipe parsial gagal
       await _auth.signOut();
+      await onComplete();
     }
   }
 

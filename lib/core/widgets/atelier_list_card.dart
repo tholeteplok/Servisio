@@ -79,17 +79,6 @@ class AtelierListGroup extends StatelessWidget {
 }
 
 class AtelierListTile extends StatelessWidget {
-  final IconData? icon;
-  final Color? iconColor;
-  final Widget? customLeading;
-  final String title;
-  final Widget? customTitle;
-  final String? subtitle;
-  final Widget? customSubtitle;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final Widget? trailing;
-  final EdgeInsetsGeometry? padding;
 
   const AtelierListTile({
     super.key,
@@ -104,7 +93,21 @@ class AtelierListTile extends StatelessWidget {
     this.onLongPress,
     this.trailing,
     this.padding,
+    this.semanticLabel,
   });
+
+  final IconData? icon;
+  final Color? iconColor;
+  final Widget? customLeading;
+  final String title;
+  final Widget? customTitle;
+  final String? subtitle;
+  final Widget? customSubtitle;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final Widget? trailing;
+  final EdgeInsetsGeometry? padding;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -127,65 +130,77 @@ class AtelierListTile extends StatelessWidget {
 
     final leading = buildLeading();
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () {
-        AppHaptic.light();
-        onTap();
-      },
-      onLongPress: onLongPress != null
-          ? () {
-              AppHaptic.medium();
-              onLongPress!();
-            }
-          : null,
-      highlightColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-      splashColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (leading is! SizedBox) ...[
-              leading,
-              const SizedBox(width: 16),
-            ],
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      label: semanticLabel ?? title,
+      button: true,
+      enabled: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            AppHaptic.light();
+            onTap();
+          },
+          onLongPress: onLongPress != null
+              ? () {
+                  AppHaptic.medium();
+                  onLongPress!();
+                }
+              : null,
+          highlightColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+          splashColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56), // Ensure 48dp+ hit target
+            child: Padding(
+              padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  customTitle ??
-                      Text(
-                        title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                  if (customSubtitle != null || subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    customSubtitle ??
-                        Text(
-                          subtitle!,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                        ),
+                  if (leading is! SizedBox) ...[
+                    leading,
+                    const SizedBox(width: 16),
                   ],
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        customTitle ??
+                            Text(
+                              title,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                        if (customSubtitle != null || subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          customSubtitle ??
+                              Text(
+                                subtitle!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                              ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  trailing ??
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                      ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            trailing ??
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-                ),
-          ],
+          ),
         ),
       ),
     );

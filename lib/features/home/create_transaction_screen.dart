@@ -5,7 +5,6 @@ import 'package:solar_icons/solar_icons.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_icons.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/master_providers.dart';
@@ -305,8 +304,8 @@ class _CreateTransactionScreenState
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(SolarIconsOutline.altArrowLeft),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.amethyst.withValues(alpha: 0.08),
-                  foregroundColor: AppColors.amethyst,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
@@ -328,7 +327,7 @@ class _CreateTransactionScreenState
                     _stepLabels[_currentStep],
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: AppColors.amethyst,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -368,7 +367,7 @@ class _CreateTransactionScreenState
         ],
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.amethyst.withValues(alpha: 0.1),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -382,7 +381,7 @@ class _CreateTransactionScreenState
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 60),
                   side: BorderSide(
-                    color: isDark ? Colors.white12 : AppColors.amethyst.withValues(alpha: 0.2),
+                    color: isDark ? Colors.white12 : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -401,7 +400,7 @@ class _CreateTransactionScreenState
                   : _nextStep,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 60),
-                backgroundColor: AppColors.amethyst,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -726,14 +725,14 @@ class _CreateTransactionScreenState
           _buildFieldCard(
             child: Row(
               children: [
-                const Icon(SolarIconsOutline.camera, color: AppColors.amethyst),
+                Icon(SolarIconsOutline.camera, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Text(
                   AppStrings.transaction.addPhoto,
                   style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                const Icon(SolarIconsOutline.addCircle, color: AppColors.amethyst),
+                Icon(SolarIconsOutline.addCircle, color: Theme.of(context).colorScheme.primary),
               ],
             ),
           ),
@@ -746,6 +745,7 @@ class _CreateTransactionScreenState
           SizedBox(
             height: 100,
             child: ListView(
+              key: const ValueKey('step2_categories_list'),
               scrollDirection: Axis.horizontal,
               children: [
                 _buildCategoryItem('Aki', SolarIconsOutline.batteryCharge),
@@ -771,7 +771,7 @@ class _CreateTransactionScreenState
                     avatar: _selectedMechanic == null
                         ? null
                         : CircleAvatar(
-                            backgroundColor: AppColors.amethyst,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             child: Text(
                               _selectedMechanic!.name[0],
                               style: const TextStyle(color: Colors.white, fontSize: 10),
@@ -779,7 +779,7 @@ class _CreateTransactionScreenState
                           ),
                     label: Text(_selectedMechanic?.name ?? 'Pilih Teknisi'),
                     onPressed: () => _showStaffPicker(context, staffAsync.value ?? []),
-                    backgroundColor: AppColors.amethyst.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -789,8 +789,8 @@ class _CreateTransactionScreenState
                   onPressed: () => _showQuickAddStaff(context),
                   icon: const Icon(LucideIcons.plus, size: 20),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.amethyst.withValues(alpha: 0.05),
-                    foregroundColor: AppColors.amethyst,
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -871,7 +871,7 @@ class _CreateTransactionScreenState
                     Navigator.pop(context);
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.amethyst,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text('TAMBAHKAN', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -900,7 +900,7 @@ class _CreateTransactionScreenState
             onPressed: () => _showCatalogPicker(),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.all(20),
-              side: BorderSide(color: AppColors.amethyst.withValues(alpha: 0.3)),
+              side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             child: Row(
@@ -970,8 +970,8 @@ class _CreateTransactionScreenState
                         _selectedMonthIncrement = v ? m : null;
                         _selectedRecommendationTime = _selectedMonthIncrement;
                       }),
-                      selectedColor: AppColors.amethyst.withValues(alpha: 0.2),
-                      checkmarkColor: AppColors.amethyst,
+                      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      checkmarkColor: Theme.of(context).colorScheme.primary,
                     ),
                   );
                 }).toList(),
@@ -995,8 +995,8 @@ class _CreateTransactionScreenState
                         _selectedKmIncrement = v ? k : null;
                         _recalculateRecommendation();
                       }),
-                      selectedColor: AppColors.amethyst.withValues(alpha: 0.2),
-                      checkmarkColor: AppColors.amethyst,
+                      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      checkmarkColor: Theme.of(context).colorScheme.primary,
                     ),
                   );
                 }).toList(),
@@ -1034,7 +1034,7 @@ class _CreateTransactionScreenState
                     const Divider(height: 32),
                     Row(
                       children: [
-                        const Icon(SolarIconsOutline.calendarMinimalistic, color: AppColors.amethyst),
+                        Icon(SolarIconsOutline.calendarMinimalistic, color: Theme.of(context).colorScheme.primary),
                         const SizedBox(width: 12),
                         Text(
                           AppStrings.transaction.month,
@@ -1075,10 +1075,10 @@ class _CreateTransactionScreenState
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.amethyst.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(SolarIconsOutline.walletMoney, color: AppColors.amethyst),
+                      child: Icon(SolarIconsOutline.walletMoney, color: Theme.of(context).colorScheme.primary),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -1098,7 +1098,7 @@ class _CreateTransactionScreenState
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.amethyst,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ],
@@ -1123,23 +1123,23 @@ class _CreateTransactionScreenState
         width: 80,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.amethyst.withValues(alpha: 0.08) : AppColors.amethyst.withValues(alpha: 0.04),
+          color: isDark ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.amethyst.withValues(alpha: 0.1),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.amethyst, size: 22),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
             const SizedBox(height: 8),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: AppColors.amethyst,
+                color: Theme.of(context).colorScheme.primary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -1178,9 +1178,9 @@ class _CreateTransactionScreenState
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: AppColors.amethyst.withValues(alpha: 0.05),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.amethyst.withValues(alpha: 0.1)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -1200,7 +1200,7 @@ class _CreateTransactionScreenState
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.amethyst : Colors.transparent,
+            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -1379,7 +1379,7 @@ class _CreateTransactionScreenState
                               hintText: 'Cari jasa atau barang...',
                               prefixIcon: const Icon(SolarIconsOutline.magnifier),
                               filled: true,
-                              fillColor: AppColors.amethyst.withValues(alpha: 0.05),
+                              fillColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -1391,6 +1391,7 @@ class _CreateTransactionScreenState
                     ),
                     Expanded(
                       child: ListView(
+                        key: const ValueKey('step3_catalog_picker_list'),
                         controller: scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         children: [
@@ -1410,7 +1411,7 @@ class _CreateTransactionScreenState
                                   subtitle: Text(j.category ?? 'Umum', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
                                   trailing: Text(
                                     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(j.basePrice),
-                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: AppColors.amethyst),
+                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
                                   ),
                                   onTap: () {
                                     _addItemFromMaster(j);
@@ -1435,7 +1436,7 @@ class _CreateTransactionScreenState
                                   subtitle: Text('${s.kategori} • Stok: ${s.jumlah}', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
                                   trailing: Text(
                                     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(s.hargaJual),
-                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: AppColors.amethyst),
+                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
                                   ),
                                   onTap: () {
                                     _addItemFromStok(s);
@@ -1515,7 +1516,7 @@ class _CreateTransactionScreenState
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.amethyst.withValues(alpha: 0.1),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
@@ -1530,13 +1531,13 @@ class _CreateTransactionScreenState
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.amethyst.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   item.isService ? AppIcons.service : SolarIconsOutline.box,
                   size: 18,
-                  color: AppColors.amethyst,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -1586,7 +1587,7 @@ class _CreateTransactionScreenState
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.amethyst.withValues(alpha: 0.05),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1602,7 +1603,7 @@ class _CreateTransactionScreenState
                           });
                         }
                       },
-                      color: AppColors.amethyst,
+                      color: Theme.of(context).colorScheme.primary,
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(8),
                     ),
@@ -1610,7 +1611,7 @@ class _CreateTransactionScreenState
                       '${item.quantity}',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
-                        color: AppColors.amethyst,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     IconButton(
@@ -1632,7 +1633,7 @@ class _CreateTransactionScreenState
                           item.recalculateSubtotal();
                         });
                       },
-                      color: AppColors.amethyst,
+                      color: Theme.of(context).colorScheme.primary,
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(8),
                     ),
@@ -1689,7 +1690,7 @@ class _CreateTransactionScreenState
               });
               Navigator.pop(context);
             },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.amethyst),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
             child: Text(AppStrings.common.save),
           ),
         ],
@@ -1871,6 +1872,7 @@ class _CreateTransactionScreenState
                     ),
                     Expanded(
                       child: ListView.builder(
+                        key: const ValueKey('pelanggan_picker_list'),
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                         itemCount: filtered.length,
@@ -1885,11 +1887,11 @@ class _CreateTransactionScreenState
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: AppColors.amethyst.withValues(alpha: 0.1),
-                                child: Text(p.nama[0].toUpperCase(), style: const TextStyle(color: AppColors.amethyst, fontWeight: FontWeight.bold)),
+                                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                child: Text(p.nama[0].toUpperCase(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                               ),
                               title: Text(p.nama, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(plateStr, style: const TextStyle(color: AppColors.amethyst, fontWeight: FontWeight.w600, fontSize: 12)),
+                              subtitle: Text(plateStr, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600, fontSize: 12)),
                               trailing: Text(p.telepon, style: const TextStyle(fontSize: 12)),
                               onTap: () {
                                 setState(() {
@@ -2022,7 +2024,7 @@ class _CreateTransactionScreenState
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.amethyst.withValues(alpha: 0.15),
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               width: 1.5,
             ),
             boxShadow: [
@@ -2036,12 +2038,13 @@ class _CreateTransactionScreenState
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: ListView.separated(
+              key: const ValueKey('autocomplete_options_list'),
               padding: EdgeInsets.zero,
               shrinkWrap: true,
               itemCount: options.length,
               separatorBuilder: (context, index) => Divider(
                 height: 1, 
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.amethyst.withValues(alpha: 0.05)
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05)
               ),
               itemBuilder: (ctx, idx) {
                 final T option = options.elementAt(idx);
@@ -2094,7 +2097,7 @@ class _CreateTransactionScreenState
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.amethyst.withValues(alpha: 0.1),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         ),
       ),
       child: child,
@@ -2119,7 +2122,7 @@ class _CreateTransactionScreenState
       selected: isSelected,
       onSelected: onSelected,
       backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
-      selectedColor: AppColors.amethyst,
+      selectedColor: Theme.of(context).colorScheme.primary,
       checkmarkColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       side: BorderSide.none,
@@ -2130,7 +2133,7 @@ class _CreateTransactionScreenState
   Widget _buildCounter({required int value, required Function(int) onChanged}) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.amethyst.withValues(alpha: 0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -2139,7 +2142,7 @@ class _CreateTransactionScreenState
           IconButton(
             icon: const Icon(LucideIcons.minus, size: 14),
             onPressed: () => onChanged(value > 1 ? value - 1 : value),
-            color: AppColors.amethyst,
+            color: Theme.of(context).colorScheme.primary,
             constraints: const BoxConstraints(),
             padding: const EdgeInsets.all(8),
           ),
@@ -2147,13 +2150,13 @@ class _CreateTransactionScreenState
             '$value',
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w800,
-              color: AppColors.amethyst,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           IconButton(
             icon: const Icon(LucideIcons.plus, size: 14),
             onPressed: () => onChanged(value + 1),
-            color: AppColors.amethyst,
+            color: Theme.of(context).colorScheme.primary,
             constraints: const BoxConstraints(),
             padding: const EdgeInsets.all(8),
           ),
@@ -2197,6 +2200,7 @@ class _BasePickerModal extends StatelessWidget {
           else
             Flexible(
               child: ListView.builder(
+                key: const ValueKey('base_picker_list'),
                 shrinkWrap: true,
                 itemCount: items.length,
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
@@ -2327,7 +2331,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                style: TextButton.styleFrom(foregroundColor: AppColors.amethyst),
+                style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.primary),
               ),
             ),
             TextField(
@@ -2336,7 +2340,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                 hintText: _isService ? AppStrings.transaction.searchServiceHint : AppStrings.transaction.searchPartHint,
                 prefixIcon: const Icon(SolarIconsOutline.magnifier),
                 filled: true,
-                fillColor: AppColors.amethyst.withValues(alpha: 0.05),
+                fillColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -2374,7 +2378,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.amethyst,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -2382,7 +2386,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.amethyst.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -2395,7 +2399,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                           }
                         },
                         icon: const Icon(LucideIcons.minusCircle),
-                        color: AppColors.amethyst,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2404,7 +2408,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.amethyst,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),
@@ -2414,7 +2418,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                           setState(() {});
                         },
                         icon: const Icon(LucideIcons.plusCircle),
-                        color: AppColors.amethyst,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ],
                   ),
@@ -2425,7 +2429,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.amethyst.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -2450,7 +2454,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.amethyst,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -2469,7 +2473,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.amethyst,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 16),
@@ -2502,6 +2506,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
       if (filtered.isEmpty) return _buildEmptyState();
 
       return ListView.builder(
+        key: const ValueKey('service_filtered_list'),
         shrinkWrap: true,
         itemCount: filtered.length,
         itemBuilder: (context, index) {
@@ -2530,6 +2535,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
       if (filtered.isEmpty) return _buildEmptyState();
 
       return ListView.builder(
+        key: const ValueKey('stok_filtered_list'),
         shrinkWrap: true,
         itemCount: filtered.length,
         itemBuilder: (context, index) {
@@ -2583,10 +2589,10 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.amethyst.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.amethyst : Colors.grey.withValues(alpha: 0.1),
+            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.withValues(alpha: 0.1),
           ),
         ),
         child: Row(
@@ -2608,7 +2614,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.amethyst.withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -2616,7 +2622,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.amethyst,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),
@@ -2641,7 +2647,7 @@ class _AddItemModalState extends ConsumerState<_AddItemModal> {
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w800,
                 fontSize: 14,
-                color: AppColors.amethyst,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ],

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/data/repositories/master_repositories.dart';
-import 'package:servislog_core/domain/entities/staff.dart';
+import 'package:servisio_core/data/repositories/master_repositories.dart';
+import 'package:servisio_core/domain/entities/staff.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

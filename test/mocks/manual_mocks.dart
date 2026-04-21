@@ -9,13 +9,13 @@ import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 // Note: ObjectBox exports Transaction, but it can be hidden if needed. 
 // If analyze says it doesn't export it, we remove the 'hide'.
-import 'package:servislog_core/core/providers/objectbox_provider.dart';
-import 'package:servislog_core/core/services/document_service.dart';
-import 'package:servislog_core/core/services/device_session_service.dart';
-import 'package:servislog_core/core/services/encryption_service.dart';
-import 'package:servislog_core/core/services/sync_worker.dart';
-import 'package:servislog_core/core/services/session_manager.dart';
-import 'package:servislog_core/core/sync/sync_lock_manager.dart';
+import 'package:servisio_core/core/providers/objectbox_provider.dart';
+import 'package:servisio_core/core/services/document_service.dart';
+import 'package:servisio_core/core/services/device_session_service.dart';
+import 'package:servisio_core/core/services/encryption_service.dart';
+import 'package:servisio_core/core/services/sync_worker.dart';
+import 'package:servisio_core/core/services/session_manager.dart';
+import 'package:servisio_core/core/sync/sync_lock_manager.dart';
 
 import 'package:pdf/pdf.dart';
 // ignore: depend_on_referenced_packages
@@ -23,17 +23,17 @@ import 'package:cross_file/cross_file.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:typed_data';
-import 'package:servislog_core/domain/entities/transaction.dart';
-import 'package:servislog_core/domain/entities/pelanggan.dart';
-import 'package:servislog_core/domain/entities/stok.dart';
-import 'package:servislog_core/domain/entities/staff.dart';
-import 'package:servislog_core/domain/entities/vehicle.dart';
-import 'package:servislog_core/domain/entities/stok_history.dart';
-import 'package:servislog_core/domain/entities/service_master.dart';
-import 'package:servislog_core/domain/entities/sync_queue_item.dart';
-import 'package:servislog_core/domain/entities/sale.dart';
-import 'package:servislog_core/core/services/firestore_sync_service.dart';
-import 'package:servislog_core/objectbox.g.dart';
+import 'package:servisio_core/domain/entities/transaction.dart';
+import 'package:servisio_core/domain/entities/pelanggan.dart';
+import 'package:servisio_core/domain/entities/stok.dart';
+import 'package:servisio_core/domain/entities/staff.dart';
+import 'package:servisio_core/domain/entities/vehicle.dart';
+import 'package:servisio_core/domain/entities/stok_history.dart';
+import 'package:servisio_core/domain/entities/service_master.dart';
+import 'package:servisio_core/domain/entities/sync_queue_item.dart';
+import 'package:servisio_core/domain/entities/sale.dart';
+import 'package:servisio_core/core/services/firestore_sync_service.dart';
+import 'package:servisio_core/objectbox.g.dart';
 
 // ── Device Info Mocks ────────────────────────────────────────
 

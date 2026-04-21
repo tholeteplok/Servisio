@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/core/providers/master_providers.dart';
-import 'package:servislog_core/core/providers/objectbox_provider.dart';
-import 'package:servislog_core/core/providers/sync_provider.dart';
-import 'package:servislog_core/domain/entities/staff.dart';
+import 'package:servisio_core/core/providers/master_providers.dart';
+import 'package:servisio_core/core/providers/objectbox_provider.dart';
+import 'package:servisio_core/core/providers/sync_provider.dart';
+import 'package:servisio_core/domain/entities/staff.dart';
 import '../../mocks/manual_mocks.dart';
 import '../../helpers/test_utils.dart';
 
@@ -15,7 +15,7 @@ void main() {
   setUp(() {
     fakeDb = FakeObjectBoxProvider();
     final box = fakeDb.staffBox as FakeBox<Staff>;
-    box.queryPredicate = (item, cond) => !(item as Staff).isDeleted;
+    box.queryPredicate = (item, cond) => !item.isDeleted;
 
     fakeSyncWorker = FakeSyncWorker();
 

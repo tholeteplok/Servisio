@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/core/providers/sale_providers.dart';
-import 'package:servislog_core/core/providers/objectbox_provider.dart';
-import 'package:servislog_core/core/providers/sync_provider.dart';
-import 'package:servislog_core/domain/entities/sale.dart';
-import 'package:servislog_core/domain/entities/stok.dart';
+import 'package:servisio_core/core/providers/sale_providers.dart';
+import 'package:servisio_core/core/providers/objectbox_provider.dart';
+import 'package:servisio_core/core/providers/sync_provider.dart';
+import 'package:servisio_core/domain/entities/sale.dart';
+import 'package:servisio_core/domain/entities/stok.dart';
 import '../../mocks/manual_mocks.dart';
 import '../../helpers/test_utils.dart';
 

@@ -33,17 +33,17 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildRangeSelector(isDark),
+          _buildRangeSelector(isDark, theme),
           const SizedBox(height: 20),
-          _buildGoalProgress(settings, stats, isDark),
+          _buildGoalProgress(settings, stats, isDark, theme),
           const SizedBox(height: 20),
-          _buildSummaryCards(stats, isDark),
+          _buildSummaryCards(stats, isDark, theme),
           const SizedBox(height: 20),
-          _buildPaymentBreakdown(stats, isDark),
+          _buildPaymentBreakdown(stats, isDark, theme),
           const SizedBox(height: 20),
-          _buildChartCard(stats, isDark),
+          _buildChartCard(stats, isDark, theme),
           const SizedBox(height: 16),
-          _buildTrendInfo(stats, isDark),
+          _buildTrendInfo(stats, isDark, theme),
           const SizedBox(height: 48),
         ],
       ),
@@ -54,6 +54,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     SettingsState settings,
     TransactionStats stats,
     bool isDark,
+    ThemeData theme,
   ) {
     final target = settings.monthlyTarget;
     final current = stats.monthlyPendapatan;
@@ -63,7 +64,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -80,7 +81,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white54 : Colors.black54,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -95,17 +96,17 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                       style: GoogleFonts.manrope(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.precisionViolet,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  onPressed: () => _showTargetDialog(context, ref, target),
+                  onPressed: () => _showTargetDialog(context, ref, target, theme),
                   icon: const Icon(LucideIcons.pencil, size: 14),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.precisionViolet.withValues(alpha: 0.1),
-                    foregroundColor: AppColors.precisionViolet,
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    foregroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.all(8),
                   ),
                 ),
@@ -113,7 +114,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.precisionViolet,
+                    color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -121,7 +122,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.obsidianBase : Colors.white,
+                      color: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ),
@@ -134,8 +135,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 height: 12,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color:
-                      isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
@@ -145,8 +145,11 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 height: 12,
                 width: MediaQuery.of(context).size.width * progress,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.precisionViolet, Color(0xFF8A79FF)],
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.7),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -161,7 +164,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white38 : Colors.black45,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -169,41 +172,42 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     );
   }
 
-  Widget _buildRangeSelector(bool isDark) {
+  Widget _buildRangeSelector(bool isDark, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.05),
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          _RangeChip(
+          _RangeItem(
             label: 'Hari Ini',
             isSelected: _selectedRange == StatRange.today,
             onTap: () => setState(() => _selectedRange = StatRange.today),
             isDark: isDark,
+            theme: theme,
           ),
-          _RangeChip(
+          _RangeItem(
             label: '7 Hari',
             isSelected: _selectedRange == StatRange.week,
             onTap: () => setState(() => _selectedRange = StatRange.week),
             isDark: isDark,
+            theme: theme,
           ),
-          _RangeChip(
-            label: '30 Hari',
+          _RangeItem(
+            label: 'Bulan Ini',
             isSelected: _selectedRange == StatRange.month,
             onTap: () => setState(() => _selectedRange = StatRange.month),
             isDark: isDark,
+            theme: theme,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentBreakdown(TransactionStats stats, bool isDark) {
+  Widget _buildPaymentBreakdown(TransactionStats stats, bool isDark, ThemeData theme) {
     final paymentData = _selectedRange == StatRange.today
         ? stats.paymentStatsToday
         : _selectedRange == StatRange.week
@@ -223,7 +227,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
@@ -236,7 +240,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: theme.colorScheme.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -270,7 +274,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white54 : Colors.black45,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
@@ -280,8 +284,8 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 e.key.toLowerCase().contains('qris') ||
                 e.key.toLowerCase().contains('transfer');
             final color = isCash
-                ? AppColors.neonGreen
-                : (isDigital ? AppColors.info : AppColors.precisionViolet);
+                ? theme.colorScheme.secondary
+                : (isDigital ? AppColors.info : theme.colorScheme.primary);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -361,7 +365,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     );
   }
 
-  Widget _buildSummaryCards(TransactionStats stats, bool isDark) {
+  Widget _buildSummaryCards(TransactionStats stats, bool isDark, ThemeData theme) {
     int revenue = _selectedRange == StatRange.today
         ? stats.todayPendapatan
         : _selectedRange == StatRange.week
@@ -382,8 +386,9 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             value: revenue,
             isPrivate: widget.isPrivate,
             icon: LucideIcons.trendingUp,
-            color: AppColors.precisionViolet,
+            color: theme.colorScheme.primary,
             isDark: isDark,
+            theme: theme,
           ),
         ),
         const SizedBox(width: 16),
@@ -393,15 +398,16 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             value: profit,
             isPrivate: widget.isPrivate,
             icon: LucideIcons.coins,
-            color: AppColors.neonGreen,
+            color: theme.colorScheme.secondary,
             isDark: isDark,
+            theme: theme,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildChartCard(TransactionStats stats, bool isDark) {
+  Widget _buildChartCard(TransactionStats stats, bool isDark, ThemeData theme) {
     final trendData = _selectedRange == StatRange.today
         ? stats.hourlyTrend
         : (_selectedRange == StatRange.week
@@ -417,7 +423,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -434,7 +440,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: theme.colorScheme.onSurface,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -454,15 +460,15 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.precisionViolet.withValues(alpha: 0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       LucideIcons.barChart3,
                       size: 10,
-                      color: AppColors.precisionViolet,
+                      color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -470,7 +476,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.precisionViolet,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                   ],
@@ -487,7 +493,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 maxY: _calculateMaxY(trendData),
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => AppColors.precisionViolet,
+                    getTooltipColor: (_) => theme.colorScheme.primary,
                     tooltipRoundedRadius: 10,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       final data = trendData[groupIndex];
@@ -557,10 +563,13 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                     barRods: [
                       BarChartRodData(
                         toY: e.value.revenue.toDouble(),
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
-                          colors: [AppColors.precisionViolet, Color(0xFF8A79FF)],
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.primary.withValues(alpha: 0.7),
+                          ],
                         ),
                         width: _selectedRange == StatRange.week
                             ? 20 // Lebar lebih besar untuk 7 hari
@@ -569,7 +578,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                         backDrawRodData: BackgroundBarChartRodData(
                           show: true,
                           toY: _calculateMaxY(trendData),
-                          color: AppColors.precisionViolet.withValues(alpha: 0.05),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.05),
                         ),
                       ),
                     ],
@@ -583,11 +592,11 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     );
   }
 
-  Widget _buildTrendInfo(TransactionStats stats, bool isDark) {
+  Widget _buildTrendInfo(TransactionStats stats, bool isDark, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.precisionViolet.withValues(alpha: 0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -595,12 +604,12 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.precisionViolet.withValues(alpha: 0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               LucideIcons.info,
-              color: AppColors.precisionViolet,
+              color: theme.colorScheme.primary,
               size: 14,
             ),
           ),
@@ -611,7 +620,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white60 : Colors.black54,
+                color: theme.colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -630,14 +639,14 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
     return max == 0 ? 100 : max * 1.25;
   }
 
-  void _showTargetDialog(BuildContext context, WidgetRef ref, int currentTarget) {
+  void _showTargetDialog(BuildContext context, WidgetRef ref, int currentTarget, ThemeData theme) {
     final controller = TextEditingController(text: currentTarget.toString());
     showDialog(
       context: context,
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.surfaceLow : Colors.white,
+          backgroundColor: theme.colorScheme.surfaceContainerLow,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'Atur Target Bulanan',
@@ -697,8 +706,8 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.precisionViolet,
-                foregroundColor: isDark ? AppColors.obsidianBase : Colors.white,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -716,17 +725,19 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
   }
 }
 
-class _RangeChip extends StatelessWidget {
+class _RangeItem extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDark;
+  final ThemeData theme;
 
-  const _RangeChip({
+  const _RangeItem({
     required this.label,
     required this.isSelected,
     required this.onTap,
     required this.isDark,
+    required this.theme,
   });
 
   @override
@@ -738,7 +749,7 @@ class _RangeChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.precisionViolet : Colors.transparent,
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -765,6 +776,7 @@ class _SummaryCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isDark;
+  final ThemeData theme;
 
   const _SummaryCard({
     required this.title,
@@ -773,6 +785,7 @@ class _SummaryCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.isDark,
+    required this.theme,
   });
 
   @override
@@ -780,7 +793,7 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLow : AppColors.lightSurfaceLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
@@ -800,7 +813,7 @@ class _SummaryCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white54 : Colors.black45,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 6),
@@ -817,7 +830,7 @@ class _SummaryCard extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : Colors.black87,
+                color: theme.colorScheme.onSurface,
                 letterSpacing: -0.5,
               ),
             ),

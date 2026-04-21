@@ -20,6 +20,7 @@ import 'package:solar_icons/solar_icons.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/sync_provider.dart';
+import '../../core/providers/objectbox_provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_icons.dart';
@@ -173,7 +174,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               (route) => false,
             );
             await Future.delayed(const Duration(milliseconds: 500));
-            await service.executeNuclearSequence(ref);
+            await service.executeNuclearSequence(
+              onWipeStarted: () => ref.read(isWipingProvider.notifier).state = true,
+              onCloseDatabase: () async => ref.read(dbProvider).store.close(),
+              onComplete: () async {
+                // Any additional cleanup if needed
+              },
+            );
           }
           return;
         }
@@ -335,10 +342,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.amethyst.withValues(alpha: 0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.amethyst, size: 32),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 32),
             ),
             const SizedBox(height: 20),
             Text(
@@ -393,7 +400,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     _navigateTo(1);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.amethyst,
+                    backgroundColor: theme.colorScheme.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -594,7 +601,7 @@ class _CompactLayoutState extends State<_CompactLayout> {
               break;
           }
         },
-        backgroundColor: _isMenuExpanded ? Colors.grey : AppColors.amethyst,
+        backgroundColor: _isMenuExpanded ? Colors.grey : Theme.of(context).colorScheme.primary,
         elevation: 6,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
@@ -826,7 +833,7 @@ class _NavigationRail extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient(),
+                          gradient: AppColors.primaryGradient(context),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -855,7 +862,7 @@ class _NavigationRail extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient(),
+                      gradient: AppColors.primaryGradient(context),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -997,7 +1004,7 @@ class _ActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: gradient ? AppColors.primaryGradient() : null,
+            gradient: gradient ? AppColors.primaryGradient(context) : null,
             color: gradient
                 ? null
                 : (isDark
@@ -1063,7 +1070,7 @@ class _RailIconAction extends StatelessWidget {
           width: 48,
           height: 42,
           decoration: BoxDecoration(
-            gradient: accent ? AppColors.primaryGradient() : null,
+            gradient: accent ? AppColors.primaryGradient(context) : null,
             color: accent
                 ? null
                 : (isDark
@@ -1103,8 +1110,9 @@ class _RailNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppColors.amethyst : Colors.grey;
-    final selectedBg = AppColors.amethyst.withValues(alpha: isDark ? 0.15 : 0.10);
+    final theme = Theme.of(context);
+    final color = isSelected ? theme.colorScheme.primary : Colors.grey;
+    final selectedBg = theme.colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.10);
 
     if (extended) {
       return Padding(
@@ -1143,8 +1151,8 @@ class _RailNavItem extends StatelessWidget {
                     Container(
                       width: 4,
                       height: 4,
-                      decoration: const BoxDecoration(
-                        color: AppColors.amethyst,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -1304,13 +1312,13 @@ class _DetailPanePlaceholder extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.amethyst.withValues(alpha: 0.10),
+                color: theme.colorScheme.primary.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 SolarIconsOutline.letter,
                 size: 32,
-                color: AppColors.amethyst.withValues(alpha: 0.5),
+                color: theme.colorScheme.primary.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 16),
@@ -1370,14 +1378,14 @@ class _BottomBar extends StatelessWidget {
 
   Widget _buildItem(BuildContext context, int index, IconData icon, String label) {
     final isSelected = currentIndex == index;
-    final color = isSelected ? AppColors.amethyst : Colors.grey;
+    final color = isSelected ? Theme.of(context).colorScheme.primary : Colors.grey;
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
         onNavigate(index);
       },
       borderRadius: BorderRadius.circular(16),
-      splashColor: AppColors.precisionViolet.withValues(alpha: 0.15),
+      splashColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
       highlightColor: Colors.transparent,
       child: SizedBox(
         width: 72,
@@ -1529,8 +1537,8 @@ class _MenuOption extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.amethyst,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: Colors.white),

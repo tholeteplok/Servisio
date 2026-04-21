@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
-import 'package:servislog_core/core/services/auth_service.dart';
+import 'package:servisio_core/core/services/auth_service.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

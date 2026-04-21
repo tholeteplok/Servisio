@@ -22,7 +22,7 @@ class EncryptionService {
   /// mencegah PIN bypass saat restart app (Session-only).
   String? _masterKeyBase64;
 
-  final String _keyAlias = 'servislog_master_key';
+  final String _keyAlias = 'servisio_master_key';
   static const String encryptionPrefix = 'enc:v1:';
   static const int pbkdf2Iterations = 100000;
 

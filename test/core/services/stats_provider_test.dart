@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:servislog_core/core/providers/stats_provider.dart';
-import 'package:servislog_core/core/providers/objectbox_provider.dart';
-import 'package:servislog_core/core/providers/system_providers.dart';
-import 'package:servislog_core/core/providers/transaction_providers.dart';
-import 'package:servislog_core/core/providers/sale_providers.dart';
-import 'package:servislog_core/domain/entities/transaction.dart';
-import 'package:servislog_core/domain/entities/transaction_item.dart';
-import 'package:servislog_core/domain/entities/sale.dart';
-import 'package:servislog_core/domain/entities/stok.dart';
+import 'package:servisio_core/core/providers/stats_provider.dart';
+import 'package:servisio_core/core/providers/objectbox_provider.dart';
+import 'package:servisio_core/core/providers/system_providers.dart';
+import 'package:servisio_core/core/providers/transaction_providers.dart';
+import 'package:servisio_core/core/providers/sale_providers.dart';
+import 'package:servisio_core/domain/entities/transaction.dart';
+import 'package:servisio_core/domain/entities/transaction_item.dart';
+import 'package:servisio_core/domain/entities/sale.dart';
+import 'package:servisio_core/domain/entities/stok.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../mocks/manual_mocks.dart';
 

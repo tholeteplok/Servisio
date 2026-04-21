@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:servislog_core/data/repositories/pelanggan_repository.dart';
-import 'package:servislog_core/domain/entities/pelanggan.dart';
+import 'package:servisio_core/data/repositories/pelanggan_repository.dart';
+import 'package:servisio_core/domain/entities/pelanggan.dart';
 import '../../mocks/manual_mocks.dart';
 
 void main() {

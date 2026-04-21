@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:solar_icons/solar_icons.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/services/biometric_service.dart';
@@ -124,10 +123,11 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
         await bio.clearPin();
         await notifier.setBiometricEnabled(false);
         if (mounted) {
+          final theme = Theme.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Keamanan internal dinonaktifkan'),
-              backgroundColor: AppColors.amethyst,
+            SnackBar(
+              content: const Text('Keamanan internal dinonaktifkan'),
+              backgroundColor: theme.colorScheme.primary,
             ),
           );
         }
@@ -190,7 +190,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppColors.amethyst.withValues(
+                                color: theme.colorScheme.primary.withValues(
                                   alpha: 0.3,
                                 ),
                               ),
@@ -212,7 +212,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                                   onPressed: _pickQrisImage,
                                   icon: const Icon(Icons.edit, size: 20),
                                   style: IconButton.styleFrom(
-                                    backgroundColor: AppColors.amethyst
+                                    backgroundColor: theme.colorScheme.primary
                                         .withValues(alpha: 0.8),
                                   ),
                                 ),
@@ -234,7 +234,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                     else
                       DottedBorder(
                         options: RoundedRectDottedBorderOptions(
-                          color: AppColors.amethyst.withValues(alpha: 0.5),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
                           strokeWidth: 2,
                           dashPattern: const [8, 4],
                           radius: const Radius.circular(16),
@@ -253,7 +253,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                               children: [
                                 Icon(
                                   SolarIconsOutline.upload,
-                                  color: AppColors.amethyst.withValues(
+                                  color: theme.colorScheme.primary.withValues(
                                     alpha: 0.6,
                                   ),
                                   size: 36,
@@ -262,7 +262,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                                 Text(
                                   'Unggah Gambar QRIS',
                                   style: TextStyle(
-                                    color: AppColors.amethyst.withValues(
+                                    color: theme.colorScheme.primary.withValues(
                                       alpha: 0.8,
                                     ),
                                     fontWeight: FontWeight.w600,

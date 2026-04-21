@@ -8,7 +8,7 @@ import '../utils/app_logger.dart';
 /// 🛡️ SyncLockManager — Stale lock recovery + heartbeat pattern + Instance Validation
 /// Prevents concurrent sync operations from multiple app instances or workers.
 class SyncLockManager {
-  static const _lockFileName = 'servislog_sync.lock';
+  static const _lockFileName = 'servisio_sync.lock';
   static const _heartbeatInterval = Duration(seconds: 10);
   static const _maxLockAge = Duration(minutes: 5);
   static const _validLockThreshold = Duration(seconds: 60);
