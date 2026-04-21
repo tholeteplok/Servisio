@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-# Kebijakan Privasi Servisio
-=======
 # Kebijakan Privasi ServisI/O
 
-
-**Terakhir Diperbarui: 14 April 2026**
+**Terakhir Diperbarui: 21 April 2026**
 
 Selamat datang di **ServisI/O**. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda serta data pelanggan bengkel Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda saat Anda menggunakan aplikasi Android ServisI/O.
 

@@ -1,29 +1,15 @@
-<<<<<<< HEAD
-# Syarat dan Ketentuan Penggunaan Servisio
-
-**Terakhir Diperbarui: 14 April 2026**
-
-Terima kasih telah menggunakan **Servisio**. Dengan mengunduh, mengakses, atau menggunakan aplikasi ini, Anda setuju untuk terikat oleh Syarat dan Ketentuan berikut. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda tidak diperbolehkan menggunakan aplikasi kami.
-=======
 # Syarat dan Ketentuan Penggunaan ServisI/O
 
-**Terakhir Diperbarui: 14 April 2026**
+**Terakhir Diperbarui: 21 April 2026**
 
 Terima kasih telah menggunakan **ServisI/O**. Dengan mengunduh, mengakses, atau menggunakan aplikasi ini, Anda setuju untuk terikat oleh Syarat dan Ketentuan berikut. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda tidak diperbolehkan menggunakan aplikasi kami.
-
 
 ---
 
 ## 1. Definisi
-<<<<<<< HEAD
-- **Aplikasi:** Merujuk pada aplikasi Android Servisio.
-- **Pengguna:** Pemilik bengkel atau staf yang terdaftar dan menggunakan layanan ServisLog+.
-- **Kami:** Pengembang ServisLog+ dan tim manajemen terkait.
-=======
 - **Aplikasi:** Merujuk pada aplikasi Android **ServisI/O**.
 - **Pengguna:** Pemilik bengkel atau staf yang terdaftar dan menggunakan layanan **ServisI/O**.
 - **Kami:** Pengembang **ServisI/O** dan tim manajemen terkait.
-
 
 ---
 
@@ -35,11 +21,7 @@ Kami memberikan Anda lisensi terbatas, non-eksklusif, dan tidak dapat dipindahta
 ## 3. Akun dan Keamanan (PENTING)
 
 ### A. Tanggung Jawab Kata Sandi dan Master Key
-<<<<<<< HEAD
-Servisio menggunakan arsitektur **Zero-Knowledge**. Ini berarti kunci enkripsi data Anda hanya disimpan di perangkat Anda atau dilindungi oleh Master Password Anda.
-=======
 **ServisI/O** menggunakan arsitektur **Zero-Knowledge**. Ini berarti kunci enkripsi data Anda hanya disimpan di perangkat Anda atau dilindungi oleh Master Password Anda.
-
 - **Tanggung Jawab Mandiri:** Anda bertanggung jawab penuh untuk menjaga kerahasiaan kata sandi dan Master Password Anda.
 - **Risiko Kehilangan:** Kami tidak memiliki salinan kunci enkripsi Anda. Jika Anda lupa kata sandi atau kehilangan akses ke perangkat tanpa cadangan kunci yang benar, **data Anda tidak dapat dipulihkan oleh kami.**
 
@@ -56,7 +38,7 @@ Aplikasi menyediakan fitur sinkronisasi data melalui layanan pihak ketiga (Googl
 ---
 
 ## 5. Batasan Tanggung Jawab
-- **Layanan "Sebagaimana Adanya":** Servisio disediakan "sebagaimana adanya" tanpa jaminan apa pun, baik tersurat maupun tersirat.
+- **Layanan "Sebagaimana Adanya":** ServisI/O disediakan "sebagaimana adanya" tanpa jaminan apa pun, baik tersurat maupun tersirat.
 - **Kerugian Bisnis:** Kami tidak bertanggung jawab atas segala kerugian finansial, kehilangan data, gangguan bisnis, atau konsekuensi hukum yang timbul akibat penggunaan atau ketidakmampuan menggunakan Aplikasi ini.
 - **Akurasi Data:** Anda bertanggung jawab penuh atas akurasi data transaksi, inventaris, dan pelanggan yang dimasukkan ke dalam Aplikasi.
 

@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# servisio
-=======
 # ServisI/O 🛠️
 
 
