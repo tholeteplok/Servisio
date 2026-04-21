@@ -1,4 +1,4 @@
-# Kebijakan Privasi ServisLog+
+# Kebijakan Privasi Servisio
 
 **Terakhir Diperbarui: 14 April 2026**
 
