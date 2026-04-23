@@ -622,19 +622,21 @@ class _CompactLayoutState extends State<_CompactLayout> {
         backgroundColor: (_isMenuExpanded || _isHistoryMenuExpanded)
             ? Colors.grey
             : Theme.of(context).colorScheme.primary,
-        elevation: 6,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          transitionBuilder: (child, animation) => ScaleTransition(
-            scale: animation,
-            child: RotationTransition(turns: animation, child: child),
-          ),
-          child: _FabIcon(
-            currentIndex: widget.currentIndex,
-            isMenuExpanded: _isMenuExpanded,
-            ref: widget.ref,
-          ),
-        ),
+        elevation: (widget.currentIndex == 3 && widget.ref.watch(historyActiveTabProvider) == 0) ? 0 : 6,
+        child: (widget.currentIndex == 3 && widget.ref.watch(historyActiveTabProvider) == 0)
+            ? const SizedBox.shrink()
+            : AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: RotationTransition(turns: animation, child: child),
+                ),
+                child: _FabIcon(
+                  currentIndex: widget.currentIndex,
+                  isMenuExpanded: _isMenuExpanded || _isHistoryMenuExpanded,
+                  ref: widget.ref,
+                ),
+              ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _BottomBar(

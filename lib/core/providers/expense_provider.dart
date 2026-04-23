@@ -82,21 +82,36 @@ final expenseListProvider = StateNotifierProvider.family<ExpenseListNotifier,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Providers: Filtered
+// Providers: Filtered & Reactive
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Pengeluaran berdasarkan bulan & tahun tertentu.
+/// Menjadi reaktif karena mengamati [expenseListProvider].
 final expenseByMonthProvider = Provider.family<List<Expense>,
     ({String bengkelId, int year, int month})>((ref, params) {
-  final repo = ref.watch(expenseRepositoryProvider);
-  return repo.getByMonth(params.bengkelId, params.year, params.month);
+  final allExpensesAsync = ref.watch(expenseListProvider(params.bengkelId));
+
+  return allExpensesAsync.maybeWhen(
+    data: (expenses) => expenses.where((e) {
+      return e.date.year == params.year &&
+          e.date.month == params.month &&
+          !e.isDeleted;
+    }).toList(),
+    orElse: () => [],
+  );
 });
 
 /// Total pengeluaran bulan ini (rupiah).
+/// Menjadi reaktif karena mengamati [expenseByMonthProvider].
 final totalExpenseThisMonthProvider =
     Provider.family<int, String>((ref, bengkelId) {
-  final repo = ref.watch(expenseRepositoryProvider);
-  return repo.totalThisMonth(bengkelId);
+  final now = DateTime.now();
+  final expenses = ref.watch(
+    expenseByMonthProvider(
+      (bengkelId: bengkelId, year: now.year, month: now.month),
+    ),
+  );
+  return expenses.fold(0, (sum, e) => sum + e.amount);
 });
 
 /// Total pengeluaran untuk bulan/tahun tertentu.

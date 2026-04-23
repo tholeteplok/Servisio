@@ -19,7 +19,6 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ScrollController _trxScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -37,13 +36,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
         _onTabChanged();
       }
     });
-    _trxScrollController.addListener(_onTrxScroll);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _trxScrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -56,12 +53,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     setState(() {});
   }
 
-  void _onTrxScroll() {
-    if (_trxScrollController.position.pixels >=
-        _trxScrollController.position.maxScrollExtent - 200) {
-      ref.read(historyListProvider.notifier).loadMore();
-    }
-  }
 
   bool get _isExpenseTab => _tabController.index == 1;
 
@@ -174,16 +165,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 12)),
         ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            TransactionHistoryTab(
-              scrollController: _trxScrollController,
-              searchController: _searchController,
-              onFilterTap: () => _showFilterBottomSheet(context),
-            ),
-            const ExpenseHistoryTab(),
-          ],
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollEndNotification &&
+                notification.metrics.extentAfter < 200 &&
+                _tabController.index == 0) {
+              ref.read(historyListProvider.notifier).loadMore();
+            }
+            return false;
+          },
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              TransactionHistoryTab(
+                searchController: _searchController,
+                onFilterTap: () => _showFilterBottomSheet(context),
+              ),
+              const ExpenseHistoryTab(),
+            ],
+          ),
         ),
       ),
     );

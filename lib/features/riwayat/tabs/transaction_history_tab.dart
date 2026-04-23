@@ -14,13 +14,11 @@ import '../../main/responsive_layout_builder.dart';
 /// Tab transaksi dari HistoryScreen yang dipindah ke sini
 /// agar HistoryScreen bisa menjadi shell TabBar yang bersih.
 class TransactionHistoryTab extends ConsumerStatefulWidget {
-  final ScrollController scrollController;
   final TextEditingController searchController;
   final void Function() onFilterTap;
 
   const TransactionHistoryTab({
     super.key,
-    required this.scrollController,
     required this.searchController,
     required this.onFilterTap,
   });
@@ -60,7 +58,6 @@ class _TransactionHistoryTabState
       color: theme.colorScheme.primary,
       displacement: 100,
       child: CustomScrollView(
-        controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           const SliverToBoxAdapter(child: SizedBox(height: 12)),
