@@ -298,6 +298,7 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
               _buildSortChip(AppStrings.catalog.sortAll, StokSort.none, currentSort, theme),
               _buildSortChip(AppStrings.catalog.sortLow, StokSort.lowToHigh, currentSort, theme),
               _buildSortChip(AppStrings.catalog.sortHigh, StokSort.highToLow, currentSort, theme),
+              _buildSortChip(AppStrings.catalog.sortSupplier, StokSort.supplier, currentSort, theme),
             ],
           ),
         ),
@@ -388,15 +389,19 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
   }
 }
 
-class _StokCard extends StatelessWidget {
+class _StokCard extends ConsumerWidget {
   final Stok item;
   final NumberFormat currencyFormat;
 
   const _StokCard({required this.item, required this.currencyFormat});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final bestSellingMap = ref.watch(supplierBestSellingProvider);
+    final isBestSelling = item.supplierName != null && 
+                          item.supplierName!.isNotEmpty && 
+                          bestSellingMap[item.supplierName!]?.uuid == item.uuid;
 
     // Status colors & icons (semantic labels for accessibility)
     final isLow = item.isLowStock && item.jumlah > 0;
@@ -468,12 +473,27 @@ class _StokCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  item.kategori,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      item.kategori,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (item.supplierName != null && item.supplierName!.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '• ${item.supplierName}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (item.sku != null)
                   Text(
@@ -530,8 +550,34 @@ class _StokCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (isBestSelling) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.tertiary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(SolarIconsBold.fire, color: theme.colorScheme.tertiary, size: 10),
+                      const SizedBox(width: 4),
+                      Text(
+                        AppStrings.catalog.bestSelling.toUpperCase(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: theme.colorScheme.tertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const Spacer(),
-              _buildPopupMenu(context, theme),
+              _buildPopupMenu(context, theme, ref),
             ],
           ),
         ],
@@ -540,20 +586,18 @@ class _StokCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPopupMenu(BuildContext context, ThemeData theme) {
-    return Consumer(
-      builder: (context, ref, child) {
-        return PopupMenuButton<String>(
-          icon: const Icon(SolarIconsOutline.menuDots, size: 20),
-          padding: EdgeInsets.zero,
-          style: IconButton.styleFrom(
-            minimumSize: const Size(48, 48),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ),
-          onOpened: () => AppHaptic.light(),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+  Widget _buildPopupMenu(BuildContext context, ThemeData theme, WidgetRef ref) {
+    return PopupMenuButton<String>(
+      icon: const Icon(SolarIconsOutline.menuDots, size: 20),
+      padding: EdgeInsets.zero,
+      style: IconButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        tapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      onOpened: () => AppHaptic.light(),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
           onSelected: (value) {
             switch (value) {
               case 'edit':
@@ -623,8 +667,6 @@ class _StokCard extends StatelessWidget {
             ),
           ],
         );
-      },
-    );
   }
 
   PopupMenuItem<String> _buildMenuItem(

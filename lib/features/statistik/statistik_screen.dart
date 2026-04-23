@@ -13,6 +13,7 @@ import '../../core/providers/system_providers.dart';
 import 'tabs/pendapatan_tab.dart';
 import 'tabs/layanan_tab.dart';
 import 'tabs/produk_tab.dart';
+import 'tabs/pengeluaran_tab.dart';
 import 'tabs/teknisi_tab.dart';
 
 class StatistikScreen extends ConsumerStatefulWidget {
@@ -32,7 +33,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     
     // ⚡ OPTIMISTIC CHECK: Jika akses sudah penuh (diverifikasi sebelumnya), skip skeleton.
     final currentAccess = ref.read(currentAccessLevelProvider);
@@ -111,6 +112,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
                       PendapatanTab(isPrivate: _isPrivate),
                       const LayananTab(),
                       const ProdukTab(),
+                      const PengeluaranTab(),
                       TeknisiTab(isPrivate: _isPrivate),
                     ],
                   ),
@@ -265,6 +267,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
           Tab(text: 'Ringkasan'),
           Tab(text: 'Layanan'),
           Tab(text: 'Produk'),
+          Tab(text: 'Pengeluaran'),
           Tab(text: 'Teknisi'),
         ],
       ),

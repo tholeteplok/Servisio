@@ -18,7 +18,7 @@ void main() {
       expect(service.isInitialized, isTrue);
       
       // Should NOT be in secure storage yet
-      expect(await fakeStorage.containsKey(key: 'servislog_master_key'), isFalse);
+      expect(await fakeStorage.containsKey(key: 'servisio_master_key'), isFalse);
     });
 
     test('hashPin should ensure cross-bengkel isolation (Salt validation)', () {
@@ -52,13 +52,13 @@ void main() {
 
     test('init() should migrate legacy persistent key to memory and delete it', () async {
       final legacyKeyBase64 = base64Encode(List.generate(32, (i) => i));
-      await fakeStorage.write(key: 'servislog_master_key', value: legacyKeyBase64);
+      await fakeStorage.write(key: 'servisio_master_key', value: legacyKeyBase64);
       
       await service.init();
       
       expect(service.isInitialized, isTrue);
       // Key should be deleted from storage after migration (Session-only security)
-      expect(await fakeStorage.containsKey(key: 'servislog_master_key'), isFalse);
+      expect(await fakeStorage.containsKey(key: 'servisio_master_key'), isFalse);
     });
 
     test('wrap and unwrap with WRONG PIN should fail', () async {

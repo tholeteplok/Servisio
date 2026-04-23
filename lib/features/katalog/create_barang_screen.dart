@@ -31,6 +31,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   late TextEditingController _hargaBeliController;
   late TextEditingController _hargaJualController;
   late TextEditingController _minStokController;
+  late TextEditingController _supplierController;
   bool _isSaving = false;
 
   String? _imagePath;
@@ -62,6 +63,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
     _minStokController = TextEditingController(
       text: widget.itemToEdit?.minStok.toString() ?? '5',
     );
+    _supplierController = TextEditingController(text: widget.itemToEdit?.supplierName);
     _imagePath = widget.itemToEdit?.photoLocalPath;
     _selectedKategori = widget.itemToEdit?.kategori ?? AppStrings.catalog.catSparepart;
   }
@@ -74,6 +76,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
     _hargaBeliController.dispose();
     _hargaJualController.dispose();
     _minStokController.dispose();
+    _supplierController.dispose();
     super.dispose();
   }
 
@@ -177,6 +180,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
         hargaJual: int.tryParse(_hargaJualController.text) ?? 0,
         minStok: int.tryParse(_minStokController.text) ?? 5,
         kategori: _selectedKategori,
+        supplierName: _supplierController.text.trim().isEmpty ? null : _supplierController.text.trim(),
       );
       stok.photoLocalPath = _imagePath;
 
@@ -526,6 +530,86 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                   ),
                               ],
                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    _buildFormCard(
+                      children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) => Autocomplete<String>(
+                            optionsBuilder: (TextEditingValue textEditingValue) {
+                              final suggestions = ref
+                                  .read(stokRepositoryProvider)
+                                  .getUniqueSuppliers();
+                              if (textEditingValue.text.isEmpty) {
+                                return suggestions;
+                              }
+                              return suggestions.where((String option) {
+                                return option.toLowerCase().contains(
+                                      textEditingValue.text.toLowerCase(),
+                                    );
+                              });
+                            },
+                            fieldViewBuilder:
+                                (context, controller, focusNode, onFieldSubmitted) {
+                              // Sync with our main controller
+                              if (controller.text != _supplierController.text) {
+                                controller.text = _supplierController.text;
+                              }
+                              controller.addListener(() {
+                                _supplierController.text = controller.text;
+                              });
+
+                              return TextFormField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: AppStrings.catalog.labelSupplier,
+                                  hintText: AppStrings.catalog.hintSupplier,
+                                  prefixIcon:
+                                      const Icon(SolarIconsOutline.delivery),
+                                ),
+                                onFieldSubmitted: (v) => onFieldSubmitted(),
+                              );
+                            },
+                            onSelected: (String selection) {
+                              _supplierController.text = selection;
+                            },
+                            optionsViewBuilder: (context, onSelected, options) {
+                              return Align(
+                                alignment: Alignment.topLeft,
+                                child: Material(
+                                  elevation: 4.0,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    width: constraints.maxWidth,
+                                    decoration: BoxDecoration(
+                                      color: theme.cardColor,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: ListView.builder(
+                                      padding: EdgeInsets.zero,
+                                      shrinkWrap: true,
+                                      itemCount: options.length,
+                                      itemBuilder: (BuildContext context, int index) {
+                                        final String option = options.elementAt(index);
+                                        return ListTile(
+                                          title: Text(
+                                            option,
+                                            style: GoogleFonts.plusJakartaSans(),
+                                          ),
+                                          onTap: () => onSelected(option),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],

@@ -65,6 +65,11 @@ void main() {
       v3.owner.targetId = 1;
       
       box.putMany([v1, v2, v3]);
+      
+      // Set query predicate for filtering
+      (box as FakeBox<Vehicle>).queryPredicate = (item, condition) {
+        return item.owner.targetId == 1;
+      };
 
       final list = container.read(customerVehiclesProvider(1));
       expect(list.length, 2);

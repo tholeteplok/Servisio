@@ -102,4 +102,17 @@ class StokRepository {
     searchBox.close();
     return results;
   }
+
+  /// Get all unique supplier names from non-deleted stock items
+  List<String> getUniqueSuppliers() {
+    final allStok = getAll();
+    final suppliers = allStok
+        .map((s) => s.supplierName?.trim())
+        .where((name) => name != null && name.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    suppliers.sort();
+    return suppliers;
+  }
 }

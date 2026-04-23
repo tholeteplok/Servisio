@@ -25,6 +25,7 @@ class AppStrings {
   static const ReminderStrings reminder = ReminderStrings();
   static const SyncStrings sync = SyncStrings();
   static const NavStrings nav = NavStrings();
+  static const StatsStrings stats = StatsStrings();
   static const ProfileStrings profile = ProfileStrings();
   static const SecurityStrings security = SecurityStrings();
   static const DataCenterStrings dataCenter = DataCenterStrings();
@@ -429,8 +430,8 @@ class CustomerStrings {
 
 class HistoryStrings {
   const HistoryStrings();
-  final title = 'Riwayat Transaksi';
-  final subtitle = 'Pantau riwayat transaksi workshop Anda.';
+  final title = 'Riwayat';
+  final subtitle = 'Pantau riwayat aktivitas workshop Anda.';
   final searchHint = 'Cari riwayat transaksi...';
   final filterTitle = 'Filter Riwayat';
   final selectDate = 'Pilih Tanggal';
@@ -479,8 +480,8 @@ class CatalogStrings {
   final emptyHistory = 'Belum ada riwayat stok';
   
   final sortAll = 'Semua';
-  final sortLow = 'Tersedikit';
-  final sortHigh = 'Terbanyak';
+  final sortLow = 'Stok Menipis';
+  final sortHigh = 'Stok Melimpah';
   
   final statusOutOfStock = 'Stok Habis';
   final statusLowStock = 'Stok Rendah';
@@ -511,6 +512,8 @@ class CatalogStrings {
   final currencyIdr = 'IDR';
   final labelEditMode = 'EDIT MODE';
   final labelUploadPhoto = 'Unggah Foto';
+  final labelSupplier = 'Nama Supplier / Pemasok';
+  final hintSupplier = 'Misal: PT Astra, Gudang Ban...';
   
   final actionEdit = 'Ubah Data';
   final actionAddStock = 'Tambah Stok';
@@ -524,6 +527,10 @@ class CatalogStrings {
   final historyRestock = 'Restock';
   final historySale = 'Penjualan';
   final historyAdjustment = 'Penyesuaian';
+  
+  final sortSupplier = 'Per Supplier';
+  
+  final bestSelling = 'Paling Laku';
   
   final dialogAddStockTitle = 'Tambah Stok';
   String dialogAddStockContent(String name) => 'Masukkan jumlah stok tambahan untuk $name:';
@@ -764,4 +771,43 @@ class DataCenterStrings {
   final migrationDesc = 'Tindakan ini akan mengenkripsi dan mengunggah data lama Anda ke Firestore untuk pertama kali.\nPastikan Anda memiliki koneksi internet yang stabil.';
   final migrationAction = 'Migrasi Sekarang';
   final migrationSuccess = 'Migrasi Berhasil! Data Anda kini terenkripsi di Cloud.';
+}
+
+class StatsStrings {
+  const StatsStrings();
+  final title = 'Analisis Bisnis';
+  final subtitle = 'Laporan performa bengkel secara real-time';
+  final tabSummary = 'Ringkasan';
+  final tabService = 'Layanan';
+  final tabProduct = 'Produk';
+  final tabExpense = 'Pengeluaran';
+  final tabStaff = 'Teknisi';
+  
+  final totalRevenue = 'Total Pendapatan';
+  final netProfit = 'Laba Bersih';
+  final totalExpense = 'Total Pengeluaran';
+  final dailyAvgExpense = 'Rata-rata Harian';
+  final yesterdayExpense = 'Pengeluaran Kemarin';
+  
+  final revenueTrend = 'Tren Pendapatan';
+  final expenseTrend = 'Tren Pengeluaran 7 Hari';
+  final expenseAllocation = 'Alokasi Pengeluaran';
+  final expenseDetailPerCategory = 'Detail per Kategori';
+  
+  final setMonthlyTarget = 'Atur Target Bulanan';
+  final revenueTarget = 'Target Pendapatan (Rp)';
+  final monthlyTarget = 'Target Pendapatan Bulanan';
+  final sisaTarget = 'Sisa';
+  final targetReached = 'Selamat! Target bulan ini sudah tercapai. 🎉';
+  
+  final cashFlowTracker = 'Pelacak Arus Kas';
+  final cashFlowDescToday = 'Gunakan untuk mencocokkan uang fisik di laci.';
+  final cashFlowDescAll = 'Ringkasan pemasukan berdasarkan metode bayar.';
+  
+  final trendInfo = 'Data grafik mencakup total transaksi servis dan penjualan yang telah berstatus lunas.';
+  final noExpenseData = 'Belum ada data pengeluaran';
+  
+  final today = 'Hari Ini';
+  final week = '7 Hari';
+  final month = 'Bulan Ini';
 }

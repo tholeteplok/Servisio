@@ -50,6 +50,8 @@ import '../riwayat/history_screen.dart';
 import '../auth/screens/session_displaced_screen.dart';
 import '../auth/screens/access_revoked_screen.dart';
 import '../pengaturan/sub/restore_screen.dart';
+import '../riwayat/expense/create_expense_screen.dart';
+import '../riwayat/expense/scan_expense_screen.dart';
 // ─────────────────────────────────────────────────────────────
 // BREAKPOINTS
 // ─────────────────────────────────────────────────────────────
@@ -545,6 +547,7 @@ class _CompactLayout extends StatefulWidget {
 
 class _CompactLayoutState extends State<_CompactLayout> {
   bool _isMenuExpanded = false;
+  bool _isHistoryMenuExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -558,6 +561,7 @@ class _CompactLayoutState extends State<_CompactLayout> {
             pageController: widget.pageController,
             onPageChanged: (index) {
               if (_isMenuExpanded) setState(() => _isMenuExpanded = false);
+              if (_isHistoryMenuExpanded) setState(() => _isHistoryMenuExpanded = false);
               widget.onNavigate(index);
             },
           ),
@@ -571,6 +575,22 @@ class _CompactLayoutState extends State<_CompactLayout> {
               onCreateSale: () {
                 setState(() => _isMenuExpanded = false);
                 widget.onCreateSale();
+              },
+            ),
+          if (_isHistoryMenuExpanded)
+            _FabHistoryMenu(
+              onDismiss: () => setState(() => _isHistoryMenuExpanded = false),
+              onScanExpense: () {
+                setState(() => _isHistoryMenuExpanded = false);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ScanExpenseScreen()),
+                );
+              },
+              onCreateExpense: () {
+                setState(() => _isHistoryMenuExpanded = false);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CreateExpenseScreen()),
+                );
               },
             ),
         ],
@@ -595,13 +615,13 @@ class _CompactLayoutState extends State<_CompactLayout> {
               widget.onCreatePelanggan();
               break;
             case 3:
-              final isActive = widget.ref.read(historySearchActiveProvider);
-              widget.ref.read(historySearchActiveProvider.notifier).state = !isActive;
-              if (isActive) widget.ref.read(historySearchQueryProvider.notifier).set('');
+              setState(() => _isHistoryMenuExpanded = !_isHistoryMenuExpanded);
               break;
           }
         },
-        backgroundColor: _isMenuExpanded ? Colors.grey : Theme.of(context).colorScheme.primary,
+        backgroundColor: (_isMenuExpanded || _isHistoryMenuExpanded)
+            ? Colors.grey
+            : Theme.of(context).colorScheme.primary,
         elevation: 6,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
@@ -1433,7 +1453,9 @@ class _FabIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isMenuExpanded) {
+    if (isMenuExpanded || (currentIndex == 3 && isMenuExpanded)) {
+      // Note: isMenuExpanded here refers to the FAB state, but we need to handle history too
+      // Actually, in the caller we pass _isMenuExpanded or _isHistoryMenuExpanded
       return const Icon(Icons.close, key: ValueKey('close'), color: Colors.white);
     }
     switch (currentIndex) {
@@ -1449,12 +1471,7 @@ class _FabIcon extends StatelessWidget {
       case 2:
         return const Icon(LucideIcons.userPlus, key: ValueKey('user'), color: Colors.white);
       case 3:
-        final isHistorySearch = ref.watch(historySearchActiveProvider);
-        return Icon(
-          isHistorySearch ? Icons.close : SolarIconsOutline.magnifier,
-          key: const ValueKey('history_search'),
-          color: Colors.white,
-        );
+        return const Icon(Icons.add, key: ValueKey('history_add'), color: Colors.white);
       default:
         return const Icon(Icons.add, key: ValueKey('default'), color: Colors.white);
     }
@@ -1561,6 +1578,67 @@ class _MenuOption extends StatelessWidget {
 // HELPER FUNCTION — openDetailOrPush
 // Gunakan di tap handler untuk adaptasi expanded / compact mode
 // ─────────────────────────────────────────────────────────────
+
+class _FabHistoryMenu extends StatelessWidget {
+  final VoidCallback onDismiss;
+  final VoidCallback onScanExpense;
+  final VoidCallback onCreateExpense;
+
+  const _FabHistoryMenu({
+    required this.onDismiss,
+    required this.onScanExpense,
+    required this.onCreateExpense,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double centerX = MediaQuery.of(context).size.width / 2;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, value, child) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: onDismiss,
+                child: BackdropFilter(
+                  filter: java_ui.ImageFilter.blur(sigmaX: 10 * value, sigmaY: 10 * value),
+                  child: Container(color: Colors.black.withValues(alpha: 0.4 * value)),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 120 + (30 * (1 - value)),
+              left: centerX - 120,
+              child: Opacity(
+                opacity: value,
+                child: _MenuOption(
+                  icon: SolarIconsOutline.camera,
+                  label: 'Scan Nota',
+                  onTap: onScanExpense,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 120 + (30 * (1 - value)),
+              right: centerX - 120,
+              child: Opacity(
+                opacity: value,
+                child: _MenuOption(
+                  icon: SolarIconsOutline.addCircle,
+                  label: 'Manual',
+                  onTap: onCreateExpense,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
 /// Helper function — gunakan di tap handler saat memilih item detail
 void openDetailOrPush({

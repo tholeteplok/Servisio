@@ -230,6 +230,16 @@ final historySearchQueryProvider = StateNotifierProvider<HistorySearchQueryNotif
   return HistorySearchQueryNotifier(ref);
 });
 
+/// Tracks the active tab in HistoryScreen (0: Transaksi, 1: Pengeluaran)
+class HistoryActiveTabNotifier extends StateNotifier<int> {
+  HistoryActiveTabNotifier() : super(0);
+  void set(int index) => state = index;
+}
+
+final historyActiveTabProvider = StateNotifierProvider<HistoryActiveTabNotifier, int>((ref) {
+  return HistoryActiveTabNotifier();
+});
+
 final historyListProvider = StateNotifierProvider<HistoryListNotifier, HistoryState>((ref) {
   // Reset when filters change
   ref.watch(historyFilterNotifierProvider);

@@ -5,6 +5,7 @@ import '../../data/repositories/stok_repository.dart';
 import '../../data/repositories/stok_history_repository.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
+import 'transaction_providers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stok Notifiers
@@ -127,7 +128,7 @@ class StokListNotifier extends StateNotifier<List<Stok>> {
   }
 }
 
-enum StokSort { none, lowToHigh, highToLow }
+enum StokSort { none, lowToHigh, highToLow, supplier }
 
 class StokSortNotifier extends StateNotifier<StokSort> {
   StokSortNotifier() : super(StokSort.none);
@@ -165,8 +166,16 @@ final sortedStokProvider = Provider<List<Stok>>((ref) {
   final sortedList = List<Stok>.from(list);
   if (sort == StokSort.lowToHigh) {
     sortedList.sort((a, b) => a.jumlah.compareTo(b.jumlah));
-  } else {
+  } else if (sort == StokSort.highToLow) {
     sortedList.sort((a, b) => b.jumlah.compareTo(a.jumlah));
+  } else if (sort == StokSort.supplier) {
+    sortedList.sort((a, b) {
+      final sA = a.supplierName ?? '';
+      final sB = b.supplierName ?? '';
+      if (sA.isEmpty && sB.isNotEmpty) return 1;
+      if (sA.isNotEmpty && sB.isEmpty) return -1;
+      return sA.compareTo(sB);
+    });
   }
   return sortedList;
 });
@@ -174,4 +183,54 @@ final sortedStokProvider = Provider<List<Stok>>((ref) {
 final stokHistoryProvider = Provider.family<List<StokHistory>, String>((ref, stokUuid) {
   final repository = ref.watch(stokHistoryRepositoryProvider);
   return repository.getAllForStok(stokUuid);
+});
+
+final supplierBestSellingProvider = Provider<Map<String, Stok?>>((ref) {
+  final transactionsAsync = ref.watch(transactionListProvider);
+  final transactions = transactionsAsync.valueOrNull ?? [];
+  final stokList = ref.watch(stokListProvider);
+  
+  if (transactions.isEmpty || stokList.isEmpty) return {};
+
+  final supplierSalesCount = <String, Map<String, int>>{}; // supplier -> {stokUuid -> count}
+
+  for (final tx in transactions) {
+    if (tx.isDeleted) continue;
+    for (final item in tx.items) {
+      if (item.isService) continue;
+      final stok = item.stok.target;
+      if (stok != null) {
+        final supplier = stok.supplierName ?? '';
+        if (supplier.isEmpty) continue;
+        
+        supplierSalesCount.putIfAbsent(supplier, () => {});
+        supplierSalesCount[supplier]![stok.uuid] = (supplierSalesCount[supplier]![stok.uuid] ?? 0) + item.quantity;
+      }
+    }
+  }
+
+  final result = <String, Stok?>{};
+  for (final supplier in supplierSalesCount.keys) {
+    final sales = supplierSalesCount[supplier]!;
+    if (sales.isEmpty) continue;
+    
+    String? bestStokUuid;
+    int maxQty = -1;
+    
+    sales.forEach((uuid, qty) {
+      if (qty > maxQty) {
+        maxQty = qty;
+        bestStokUuid = uuid;
+      }
+    });
+
+    if (bestStokUuid != null) {
+      try {
+        result[supplier] = stokList.firstWhere((s) => s.uuid == bestStokUuid);
+      } catch (_) {
+      }
+    }
+  }
+  
+  return result;
 });

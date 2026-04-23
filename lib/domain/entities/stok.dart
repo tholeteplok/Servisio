@@ -34,6 +34,9 @@ class Stok {
   @Index()
   String kategori; // Sparepart, Oli, Aksesoris, dll.
 
+  @Index()
+  String? supplierName; // Nama pemasok (e.g., "PT Astra", "Gudang Ban")
+
   String? photoLocalPath; // Path to local product image
 
   DateTime createdAt;
@@ -53,6 +56,7 @@ class Stok {
     this.jumlah = 0,
     this.minStok = 5,
     this.kategori = LogicConstants.catSparepart,
+    this.supplierName,
     this.photoLocalPath,
     String? uuid,
   }) : uuid = uuid ?? const Uuid().v4(),

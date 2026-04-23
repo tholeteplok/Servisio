@@ -13,6 +13,18 @@ void main() {
 
   setUp(() {
     fakeDb = FakeObjectBoxProvider();
+    
+    // Enable simple filtering for tests
+    (fakeDb.transactionBox as FakeBox<Transaction>).queryPredicate = (item, cond) {
+      if (cond == null) return true;
+      // Handle isDeleted check from repository
+      return !item.isDeleted;
+    };
+    (fakeDb.saleBox as FakeBox<Sale>).queryPredicate = (item, cond) {
+      if (cond == null) return true;
+      return !item.isDeleted;
+    };
+
     container = createContainer(
       overrides: [
         dbProvider.overrideWithValue(fakeDb),

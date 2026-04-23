@@ -65,6 +65,8 @@ class PermissionConstants {
       icon: Icons.inventory,
       order: 1,
       permissions: [
+        PermissionItem(stokRead, 'Lihat Stok',
+            'Staff dapat melihat data stok dan harga', riskLevel: RiskLevel.low),
         PermissionItem(stokCreate, 'Tambah Stok Baru',
             'Staff dapat menambahkan stok baru ke sistem', riskLevel: RiskLevel.low),
         PermissionItem(stokUpdateJumlah, 'Update Jumlah Stok',
@@ -84,6 +86,8 @@ class PermissionConstants {
       icon: Icons.people,
       order: 2,
       permissions: [
+        PermissionItem(pelangganRead, 'Lihat Data Pelanggan',
+            'Staff dapat melihat data pelanggan dan riwayat', riskLevel: RiskLevel.low),
         PermissionItem(pelangganCreate, 'Tambah Pelanggan',
             'Staff dapat mendaftarkan pelanggan baru', riskLevel: RiskLevel.low),
         PermissionItem(pelangganUpdate, 'Update Pelanggan',
@@ -97,6 +101,8 @@ class PermissionConstants {
       icon: Icons.receipt,
       order: 3,
       permissions: [
+        PermissionItem(transaksiRead, 'Lihat Transaksi',
+            'Staff dapat melihat riwayat transaksi', riskLevel: RiskLevel.low),
         PermissionItem(transaksiCreate, 'Buat Transaksi',
             'Staff dapat membuat nota/service', riskLevel: RiskLevel.low),
         PermissionItem(transaksiUpdate, 'Edit Transaksi',

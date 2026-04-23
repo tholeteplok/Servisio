@@ -87,7 +87,7 @@ class AppColors {
       radius: 2,
       colors: [
         precisionViolet, 
-        lightSurfaceLow.withValues(alpha: 0.5),
+        lightSkyBlue.withValues(alpha: 0.5),
       ],
       stops: const [0.6, 1.0],
     );

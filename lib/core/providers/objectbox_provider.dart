@@ -9,6 +9,8 @@ import '../../domain/entities/sale.dart';
 import '../../domain/entities/staff.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/sync_queue_item.dart';
+import '../../domain/entities/expense.dart';
+import '../../domain/entities/expense_category.dart';
 
 class ObjectBoxProvider {
   late final Store _store;
@@ -20,6 +22,8 @@ class ObjectBoxProvider {
   late final Box<Staff> _staffBox;
   late final Box<Vehicle> _vehicleBox;
   late final Box<SyncQueueItem> _syncQueueBox;
+  late final Box<Expense> _expenseBox;
+  late final Box<ExpenseCategory> _expenseCategoryBox;
 
   Box<Transaction> get transactionBox => _transactionBox;
   Box<Pelanggan> get pelangganBox => _pelangganBox;
@@ -29,6 +33,8 @@ class ObjectBoxProvider {
   Box<Staff> get staffBox => _staffBox;
   Box<Vehicle> get vehicleBox => _vehicleBox;
   Box<SyncQueueItem> get syncQueueBox => _syncQueueBox;
+  Box<Expense> get expenseBox => _expenseBox;
+  Box<ExpenseCategory> get expenseCategoryBox => _expenseCategoryBox;
   Store get store => _store;
 
   ObjectBoxProvider._create(this._store) {
@@ -40,6 +46,8 @@ class ObjectBoxProvider {
     _staffBox = Box<Staff>(_store);
     _vehicleBox = Box<Vehicle>(_store);
     _syncQueueBox = Box<SyncQueueItem>(_store);
+    _expenseBox = Box<Expense>(_store);
+    _expenseCategoryBox = Box<ExpenseCategory>(_store);
   }
 
   static Future<ObjectBoxProvider> create() async {

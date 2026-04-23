@@ -5,6 +5,9 @@ import '../../domain/entities/stok.dart';
 import 'transaction_providers.dart';
 import 'sale_providers.dart';
 import 'stok_provider.dart';
+import 'expense_provider.dart';
+import 'auth_provider.dart';
+import '../../domain/entities/expense.dart';
 import 'package:intl/intl.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +69,15 @@ class TransactionStats {
   final Map<String, int> paymentStats7D;
   final Map<String, int> paymentStats30D;
 
+  // Expense Fields
+  final int todayExpense;
+  final int weeklyExpense;
+  final int monthlyExpense;
+  final Map<String, int> expenseByCategoryToday;
+  final Map<String, int> expenseByCategory7D;
+  final Map<String, int> expenseByCategory30D;
+  final List<TrendData> expenseTrendWeekly;
+
   TransactionStats({
     this.todayPendapatan = 0,
     this.yesterdayPendapatan = 0,
@@ -90,6 +102,13 @@ class TransactionStats {
     this.paymentStatsToday = const {},
     this.paymentStats7D = const {},
     this.paymentStats30D = const {},
+    this.todayExpense = 0,
+    this.weeklyExpense = 0,
+    this.monthlyExpense = 0,
+    this.expenseByCategoryToday = const {},
+    this.expenseByCategory7D = const {},
+    this.expenseByCategory30D = const {},
+    this.expenseTrendWeekly = const [],
   });
 }
 
@@ -101,6 +120,7 @@ TransactionStats calculateStats(
   List<Transaction> transactions,
   List<Sale> sales,
   List<Stok> stokList,
+  List<Expense> expenses,
 ) {
   DateTime now = DateTime.now();
   DateTime todayStart = DateTime(now.year, now.month, now.day);
@@ -111,6 +131,13 @@ TransactionStats calculateStats(
   int daily = 0, yesterday = 0, weekly = 0, monthly = 0;
   int todayProfitVal = 0, weeklyProfitVal = 0, monthlyProfitVal = 0;
   int todayVisitors = 0, todayWaiting = 0, todayProcessing = 0;
+  
+  // Expense Accumulators
+  int dailyExpense = 0, weeklyExpense = 0, monthlyExpense = 0;
+  Map<String, int> expCatToday = {};
+  Map<String, int> expCat7D = {};
+  Map<String, int> expCat30D = {};
+  Map<String, int> expTrendWeeklyMap = {};
 
   Map<int, int> hourlyRevenueMap = {};
   Map<int, int> hourlyProfitMap = {};
@@ -221,6 +248,32 @@ TransactionStats calculateStats(
     topProductsRevenueMap[s.itemName] = (topProductsRevenueMap[s.itemName] ?? 0) + s.totalPrice;
   }
 
+  // Process Expenses
+  for (var e in expenses) {
+    String category = e.category;
+    
+    if (e.date.isAfter(todayStart)) {
+      dailyExpense += e.amount;
+      expCatToday[category] = (expCatToday[category] ?? 0) + e.amount;
+    }
+    if (e.date.isAfter(weekStart)) {
+      weeklyExpense += e.amount;
+      expCat7D[category] = (expCat7D[category] ?? 0) + e.amount;
+      
+      String dayKey = DateFormat('dd/MM').format(e.date);
+      expTrendWeeklyMap[dayKey] = (expTrendWeeklyMap[dayKey] ?? 0) + e.amount;
+    }
+    if (e.date.isAfter(monthStart)) {
+      monthlyExpense += e.amount;
+      expCat30D[category] = (expCat30D[category] ?? 0) + e.amount;
+    }
+  }
+
+  // Final Profit Adjustment (Net Profit)
+  todayProfitVal -= dailyExpense;
+  weeklyProfitVal -= weeklyExpense;
+  monthlyProfitVal -= monthlyExpense;
+
   List<TrendData> hourlyTrend = List.generate(24, (h) => TrendData(
     label: '$h:00',
     revenue: hourlyRevenueMap[h] ?? 0,
@@ -236,6 +289,17 @@ TransactionStats calculateStats(
       label: key,
       revenue: dailyRevenueMap[key] ?? 0,
       profit: dailyProfitMap[key] ?? 0,
+    ));
+  }
+
+  List<TrendData> expenseTrendWeekly = [];
+  for (int i = 6; i >= 0; i--) {
+    DateTime d = now.subtract(Duration(days: i));
+    String key = DateFormat('dd/MM').format(d);
+    expenseTrendWeekly.add(TrendData(
+      label: key,
+      revenue: expTrendWeeklyMap[key] ?? 0, // In expense trend, revenue field stores expense amount
+      profit: 0,
     ));
   }
 
@@ -293,6 +357,13 @@ TransactionStats calculateStats(
     paymentStatsToday: payToday,
     paymentStats7D: pay7D,
     paymentStats30D: pay30D,
+    todayExpense: dailyExpense,
+    weeklyExpense: weeklyExpense,
+    monthlyExpense: monthlyExpense,
+    expenseByCategoryToday: expCatToday,
+    expenseByCategory7D: expCat7D,
+    expenseByCategory30D: expCat30D,
+    expenseTrendWeekly: expenseTrendWeekly,
   );
 }
 
@@ -305,16 +376,24 @@ final statsProvider = Provider<TransactionStats>((ref) {
   final saleListAsync = ref.watch(saleListProvider);
   final stokList = ref.watch(stokListProvider);
   
+  // Get active bengkelId for expenses
+  final bengkelId = ref.watch(currentProfileProvider)?.bengkelId ?? '';
+  final expenseListAsync = ref.watch(expenseListProvider(bengkelId));
+  
   final defaultStats = TransactionStats(
     lowStockCount: stokList.where((s) => s.isLowStock).length,
     emptyStockCount: stokList.where((s) => s.jumlah <= 0).length,
   );
   
-  // Use .when for cleaner logic in standard Providers
   return transactionListAsync.when(
-    data: (transactions) => saleListAsync.maybeWhen(
-      data: (sales) => calculateStats(transactions, sales, stokList),
-      orElse: () => defaultStats,
+    data: (transactions) => saleListAsync.when(
+      data: (sales) => expenseListAsync.when(
+        data: (expenses) => calculateStats(transactions, sales, stokList, expenses),
+        loading: () => defaultStats,
+        error: (e, s) => defaultStats,
+      ),
+      loading: () => defaultStats,
+      error: (e, s) => defaultStats,
     ),
     loading: () => defaultStats,
     error: (e, s) => defaultStats,

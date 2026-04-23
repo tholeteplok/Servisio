@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/stats_provider.dart';
 import '../../../core/providers/pengaturan_provider.dart';
@@ -77,7 +78,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Target Pendapatan Bulanan',
+                    AppStrings.stats.monthlyTarget,
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -182,21 +183,21 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
       child: Row(
         children: [
           _RangeItem(
-            label: 'Hari Ini',
+            label: AppStrings.stats.today,
             isSelected: _selectedRange == StatRange.today,
             onTap: () => setState(() => _selectedRange = StatRange.today),
             isDark: isDark,
             theme: theme,
           ),
           _RangeItem(
-            label: '7 Hari',
+            label: AppStrings.stats.week,
             isSelected: _selectedRange == StatRange.week,
             onTap: () => setState(() => _selectedRange = StatRange.week),
             isDark: isDark,
             theme: theme,
           ),
           _RangeItem(
-            label: 'Bulan Ini',
+            label: AppStrings.stats.month,
             isSelected: _selectedRange == StatRange.month,
             onTap: () => setState(() => _selectedRange = StatRange.month),
             isDark: isDark,
@@ -236,7 +237,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
           Row(
             children: [
               Text(
-                'Pelacak Arus Kas',
+                AppStrings.stats.cashFlowTracker,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -256,7 +257,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Hari Ini',
+                    AppStrings.stats.today,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -269,8 +270,8 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
           const SizedBox(height: 4),
           Text(
             _selectedRange == StatRange.today
-                ? 'Gunakan untuk mencocokkan uang fisik di laci.'
-                : 'Ringkasan pemasukan berdasarkan metode bayar.',
+                ? AppStrings.stats.cashFlowDescToday
+                : AppStrings.stats.cashFlowDescAll,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -382,7 +383,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
       children: [
         Expanded(
           child: _SummaryCard(
-            title: 'Total Pendapatan',
+            title: AppStrings.stats.totalRevenue,
             value: revenue,
             isPrivate: widget.isPrivate,
             icon: LucideIcons.trendingUp,
@@ -394,7 +395,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
         const SizedBox(width: 16),
         Expanded(
           child: _SummaryCard(
-            title: 'Estimasi Laba',
+            title: AppStrings.stats.netProfit,
             value: profit,
             isPrivate: widget.isPrivate,
             icon: LucideIcons.coins,
@@ -436,7 +437,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tren Pendapatan',
+                    AppStrings.stats.revenueTrend,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -616,7 +617,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Data grafik mencakup total transaksi servis dan penjualan yang telah berstatus lunas.',
+              AppStrings.stats.trendInfo,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -649,7 +650,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
           backgroundColor: theme.colorScheme.surfaceContainerLow,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
-            'Atur Target Bulanan',
+            AppStrings.stats.setMonthlyTarget,
             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
           ),
           content: Column(
@@ -657,7 +658,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Target Pendapatan (Rp)',
+                AppStrings.stats.revenueTarget,
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -692,7 +693,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Batal',
+                AppStrings.common.cancel,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w700,
                   color: Colors.white38,
@@ -714,7 +715,7 @@ class _PendapatanTabState extends ConsumerState<PendapatanTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: Text(
-                'Simpan',
+                AppStrings.common.save,
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
               ),
             ),

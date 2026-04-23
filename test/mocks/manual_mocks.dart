@@ -13,6 +13,7 @@ import 'package:servisio_core/core/providers/objectbox_provider.dart';
 import 'package:servisio_core/core/services/document_service.dart';
 import 'package:servisio_core/core/services/device_session_service.dart';
 import 'package:servisio_core/core/services/encryption_service.dart';
+import 'package:servisio_core/core/services/auth_service.dart';
 import 'package:servisio_core/core/services/sync_worker.dart';
 import 'package:servisio_core/core/services/session_manager.dart';
 import 'package:servisio_core/core/sync/sync_lock_manager.dart';
@@ -195,6 +196,49 @@ class MockIdTokenResult extends Mock implements IdTokenResult {
   final Map<String, dynamic>? claims;
   
   MockIdTokenResult({this.claims});
+}
+
+class FakeUser extends Fake implements User {
+  @override
+  final String uid;
+  @override
+  final String? email;
+  @override
+  final String? displayName;
+  
+  FakeUser({required this.uid, this.email, this.displayName});
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) async => 'mock_token';
+
+  @override
+  Future<IdTokenResult> getIdTokenResult([bool forceRefresh = false]) async {
+    return MockIdTokenResult(claims: {});
+  }
+}
+
+class FakeAuthService extends Fake implements AuthService {
+  User? _currentUser;
+  Map<String, dynamic>? mockClaims;
+  bool signOutCalled = false;
+
+  FakeAuthService({User? user}) : _currentUser = user;
+
+  @override
+  User? get currentUser => _currentUser;
+  
+  set currentUser(User? user) => _currentUser = user;
+
+  @override
+  Future<IdTokenResult?> getIdTokenResult({bool forceRefresh = false}) async {
+    return MockIdTokenResult(claims: mockClaims);
+  }
+
+  @override
+  Future<void> signOut() async {
+    signOutCalled = true;
+    _currentUser = null;
+  }
 }
 
 class FakeDeviceSessionService extends Fake implements DeviceSessionService {
@@ -413,6 +457,10 @@ class FakeQueryBuilder<T> extends Fake implements QueryBuilder<T> {
 class FakeQuery<T> extends Fake implements Query<T> {
   final FakeBox<T> _box;
   final Condition<T>? _condition;
+  @override
+  int limit = 0;
+  @override
+  int offset = 0;
   List<T>? mockResults;
 
   FakeQuery(this._box, [this._condition]);
@@ -426,11 +474,20 @@ class FakeQuery<T> extends Fake implements Query<T> {
   @override
   List<T> find() {
     if (mockResults != null) return mockResults!;
-    final all = _box.getAll();
+    var results = _box.getAll();
     if (_box.queryPredicate != null) {
-      return all.where((item) => _box.queryPredicate!(item, _condition)).toList();
+      results = results.where((item) => _box.queryPredicate!(item, _condition)).toList();
     }
-    return all;
+
+    if (offset > 0) {
+      if (offset >= results.length) return [];
+      results = results.sublist(offset);
+    }
+    if (limit > 0) {
+      results = results.take(limit).toList();
+    }
+
+    return results;
   }
   
   @override
@@ -514,7 +571,7 @@ class FakeEncryptionService extends Fake implements EncryptionService {
 
   @override
   Future<String?> wrapMasterKey(String pin, String bengkelId) async {
-    return 'wrapped:$pin:$bengkelId';
+    return 'enc:wrapped:$pin:$bengkelId';
   }
 
   @override

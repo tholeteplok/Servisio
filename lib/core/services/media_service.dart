@@ -68,6 +68,19 @@ class MediaService {
     }
   }
 
+  /// Kompresi file gambar untuk keperluan OCR. Versi publik dari [_compressImage].
+  /// Digunakan oleh [ExpenseAIService] sebelum memproses gambar dengan ML Kit.
+  Future<File?> compressImageForOcr(File file) async {
+    try {
+      final xFile = XFile(file.path);
+      final compressed = await _compressImage(xFile);
+      if (compressed == null) return file;
+      return File(compressed.path);
+    } catch (e) {
+      return file;
+    }
+  }
+
   Future<String?> saveImageLocally(XFile image) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
