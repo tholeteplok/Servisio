@@ -15,6 +15,7 @@ final roleProvider = sys.roleProvider;
 final logoutProvider = sys.logoutProvider;
 final refreshAuthProvider = sys.refreshAuthProvider;
 final isWipingProvider = sys.isWipingProvider;
+final bengkelIdProvider = sys.bengkelIdProvider;
 
 // System Infrastructure Proxies
 final secureStorageProvider = sys.secureStorageProvider;

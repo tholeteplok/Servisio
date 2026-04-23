@@ -72,6 +72,40 @@ class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
     return result;
   }
 
+  /// Membayar hutang (sebagian atau lunas).
+  Future<void> payDebt({
+    required Expense debt,
+    required double amountPaid,
+    String? proofImagePath,
+  }) async {
+    // 1. Update status parent record jika lunas
+    final remaining = debt.debtBalance ?? 0;
+    if (amountPaid >= remaining) {
+      debt.debtStatus = 'LUNAS';
+    } else {
+      debt.debtStatus = 'PARTIAL';
+    }
+    _repo.save(debt);
+
+    // 2. Buat record Expense baru sebagai bukti pembayaran kas keluar
+    final paymentRecord = Expense(
+      amount: amountPaid.toInt(),
+      category: 'BELI_STOK', // Tetap kategori beli stok agar agregasi benar
+      bengkelId: bengkelId,
+      description: 'Pelunasan Hutang: ${debt.supplierName}',
+      date: DateTime.now(),
+      photoPath: proofImagePath,
+      debtStatus: 'LUNAS', // Record ini sendiri adalah pembayaran tunai (lunas)
+      relatedExpenseId: debt.id,
+      supplierId: debt.supplierId,
+      supplierName: debt.supplierName,
+      isVerified: true,
+    );
+    _repo.save(paymentRecord);
+
+    _load();
+  }
+
   void refresh() => _load();
 }
 
@@ -84,6 +118,40 @@ final expenseListProvider = StateNotifierProvider.family<ExpenseListNotifier,
 // ─────────────────────────────────────────────────────────────────────────────
 // Providers: Filtered & Reactive
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Daftar Hutang Aktif (HUTANG atau PARTIAL)
+final activeDebtsProvider = Provider.family<List<Expense>, String>((ref, bengkelId) {
+  final allAsync = ref.watch(expenseListProvider(bengkelId));
+  return allAsync.maybeWhen(
+    data: (list) => list
+        .where((e) =>
+            !e.isDeleted &&
+            (e.debtStatus == 'HUTANG' || e.debtStatus == 'PARTIAL'))
+        .toList(),
+    orElse: () => [],
+  );
+});
+
+/// Map Supplier -> Total Hutang Aktif
+final debtSummaryBySupplierProvider = Provider.family<Map<String, int>, String>((ref, bengkelId) {
+  final activeDebts = ref.watch(activeDebtsProvider(bengkelId));
+  final repo = ref.watch(expenseRepositoryProvider);
+  final summary = <String, int>{};
+
+  for (final debt in activeDebts) {
+    final name = debt.supplierName ?? 'Tanpa Nama';
+    
+    // Hitung sisa hutang: total - yang sudah dibayar
+    final payments = repo.getPaymentsForDebt(debt.id);
+    final totalPaid = payments.fold(0, (sum, e) => sum + e.amount);
+    final remaining = debt.amount - totalPaid;
+
+    if (remaining > 0) {
+      summary[name] = (summary[name] ?? 0) + remaining;
+    }
+  }
+  return summary;
+});
 
 /// Pengeluaran berdasarkan bulan & tahun tertentu.
 /// Menjadi reaktif karena mengamati [expenseListProvider].

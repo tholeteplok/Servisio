@@ -93,4 +93,30 @@ class ExpenseRepository {
     final expenses = getByMonth(bengkelId, now.year, now.month);
     return expenses.fold(0, (sum, e) => sum + e.amount);
   }
+
+  /// Ambil semua record pembayaran (cicilan) untuk sebuah hutang induk.
+  List<Expense> getPaymentsForDebt(int parentExpenseId) {
+    final query = _box
+        .query(Expense_.parentExpense
+            .equals(parentExpenseId)
+            .and(Expense_.isDeleted.equals(false)))
+        .build();
+    final results = query.find();
+    query.close();
+    return results;
+  }
+
+  /// Ambil semua hutang untuk supplier tertentu.
+  List<Expense> getDebtsBySupplier(String bengkelId, int supplierId) {
+    final query = _box
+        .query(Expense_.bengkelId
+            .equals(bengkelId)
+            .and(Expense_.supplier.equals(supplierId))
+            .and(Expense_.debtStatus.notNull())
+            .and(Expense_.isDeleted.equals(false)))
+        .build();
+    final results = query.find();
+    query.close();
+    return results;
+  }
 }

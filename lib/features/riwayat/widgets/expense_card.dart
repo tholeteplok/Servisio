@@ -143,6 +143,23 @@ class ExpenseCard extends StatelessWidget {
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
+              if (expense.debtStatus != null)
+                Container(
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (expense.debtStatus == 'LUNAS' ? Colors.green : (expense.debtStatus == 'PARTIAL' ? Colors.orange : Colors.red)).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    expense.debtStatus!,
+                    style: GoogleFonts.manrope(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: (expense.debtStatus == 'LUNAS' ? Colors.green : (expense.debtStatus == 'PARTIAL' ? Colors.orange : Colors.red)),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],

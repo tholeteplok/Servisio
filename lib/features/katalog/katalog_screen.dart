@@ -18,8 +18,11 @@ import '../../core/providers/navigation_provider.dart';
 import '../../core/utils/app_haptic.dart';
 import '../../core/widgets/atelier_header.dart';
 import '../../core/widgets/critical_action_guard.dart';
-import '../../core/services/session_manager.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/expense_provider.dart';
+import '../../domain/entities/expense.dart';
 import '../../core/providers/pengaturan_provider.dart';
+import '../../core/services/session_manager.dart';
 
 class KatalogScreen extends ConsumerStatefulWidget {
   final PageController? mainPageController;
@@ -700,74 +703,200 @@ class _StokCard extends ConsumerWidget {
 
   void _showRestockDialog(BuildContext context, WidgetRef ref, ThemeData theme) {
     final controller = TextEditingController();
+    bool isHutang = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-          AppStrings.catalog.dialogAddStockTitle,
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppStrings.catalog.dialogAddStockContent(item.nama),
-              style: GoogleFonts.plusJakartaSans(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: AppStrings.catalog.labelQuantity,
-                suffixText: AppStrings.catalog.unitPcs,
-                border: const OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: theme.colorScheme.surface,
+          title: Text(
+            AppStrings.catalog.dialogAddStockTitle,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.catalog.dialogAddStockContent(item.nama),
+                style: GoogleFonts.plusJakartaSans(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
               ),
-              keyboardType: TextInputType.number,
-              autofocus: true,
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: AppStrings.catalog.labelQuantity,
+                  suffixText: AppStrings.catalog.unitPcs,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                ),
+                keyboardType: TextInputType.number,
+                autofocus: true,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Metode Pembayaran',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildPaymentToggle(
+                      context: context,
+                      label: 'Tunai',
+                      icon: SolarIconsOutline.wallet,
+                      isSelected: !isHutang,
+                      onTap: () => setState(() => isHutang = false),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPaymentToggle(
+                      context: context,
+                      label: 'Hutang',
+                      icon: SolarIconsOutline.usersGroupTwoRounded,
+                      isSelected: isHutang,
+                      onTap: () => setState(() => isHutang = true),
+                      activeColor: Colors.redAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                AppStrings.common.cancel.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final amount = int.tryParse(controller.text);
+                if (amount != null && amount > 0) {
+                  final bengkelId = ref.read(bengkelIdProvider);
+                  if (bengkelId == null) return;
+
+                  try {
+                    // Create Expense for restock
+                    final totalBeli = amount * item.hargaBeli;
+                    if (totalBeli > 0) {
+                      final expense = Expense(
+                        amount: totalBeli,
+                        category: 'BELI_STOK',
+                        bengkelId: bengkelId,
+                        description: 'Restock ${item.nama} x$amount',
+                        date: DateTime.now(),
+                        supplierName: item.supplierName,
+                        debtStatus: isHutang ? 'HUTANG' : null,
+                        isVerified: true,
+                      );
+                      ref.read(expenseListProvider(bengkelId).notifier).addExpense(expense);
+                    }
+
+                    ref
+                        .read(stokListProvider.notifier)
+                        .restock(item.uuid, amount, 'Restock cepat dari menu');
+                    Navigator.pop(context);
+                  } catch (e) {
+                    debugPrint('❌ Restock error: $e');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Gagal tambah stok: $e')),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                elevation: 0,
+              ),
+              child: Text(
+                AppStrings.common.save.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              AppStrings.common.cancel.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+
+  Widget _buildPaymentToggle({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    Color? activeColor,
+  }) {
+    final theme = Theme.of(context);
+    final color = activeColor ?? theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : theme.colorScheme.outlineVariant,
+              width: 1.5,
             ),
+            color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
           ),
-          ElevatedButton(
-            onPressed: () {
-              final amount = int.tryParse(controller.text);
-              if (amount != null && amount > 0) {
-                try {
-                  ref
-                      .read(stokListProvider.notifier)
-                      .restock(item.uuid, amount, 'Restock cepat dari menu');
-                  Navigator.pop(context);
-                } catch (e) {
-                  // Jika gagal (misal: validasi repo), jangan tutup dialog dulu, beri feedback
-                  debugPrint('❌ Restock error: $e');
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal tambah stok: $e')),
-                    );
-                  }
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-            ),
-            child: Text(
-              AppStrings.common.save.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                size: 18,
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

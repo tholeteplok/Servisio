@@ -39,4 +39,13 @@ class LogicConstants {
   static const int syncInProgress = 1;
   static const int syncSynced = 2;
   static const int syncFailed = 3;
+
+  // Debt Statuses
+  static const String debtStatusHutang = 'HUTANG';
+  static const String debtStatusPartial = 'PARTIAL';
+  static const String debtStatusLunas = 'LUNAS';
+
+  // Specific Expense Categories
+  static const String catBeliStok = 'BELI_STOK';
+  static const String catBayarHutang = 'BAYAR_HUTANG';
 }

@@ -6,6 +6,7 @@ import '../../data/repositories/stok_history_repository.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
 import 'transaction_providers.dart';
+import 'supplier_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stok Notifiers
@@ -233,4 +234,20 @@ final supplierBestSellingProvider = Provider<Map<String, Stok?>>((ref) {
   }
   
   return result;
+});
+
+/// Provider for merged unique supplier names (from Supplier entities + Stok history)
+final uniqueSuppliersProvider = Provider<List<String>>((ref) {
+  // Source 1: Supplier entities
+  final supplierEntities = ref.watch(supplierListProvider);
+  final entityNames = supplierEntities.map((e) => e.nama.trim()).toSet();
+
+  // Source 2: Stok history
+  final stokRepository = ref.watch(stokRepositoryProvider);
+  final historicalNames = stokRepository.getUniqueSuppliers().map((e) => e.trim()).toSet();
+
+  // Merge and sort
+  final merged = entityNames.union(historicalNames).toList();
+  merged.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return merged;
 });

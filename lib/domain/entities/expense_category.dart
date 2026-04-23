@@ -105,6 +105,15 @@ class ExpenseCategory {
         createdAt: now,
       ),
       ExpenseCategory(
+        logicKey: 'BAYAR_HUTANG',
+        name: 'Bayar Hutang',
+        bengkelId: bengkelId,
+        icon: 'handshake',
+        colorHex: '#EF4444',
+        isDefault: true,
+        createdAt: now,
+      ),
+      ExpenseCategory(
         logicKey: 'LAINNYA',
         name: 'Lainnya',
         bengkelId: bengkelId,
@@ -125,5 +134,6 @@ class ExpenseCategory {
         'BELI_STOK': ['beli', 'stok', 'sparepart', 'spare part', 'oli', 'ban', 'aki', 'pembelian', 'purchase'],
         'INTERNET': ['internet', 'wifi', 'wi-fi', 'indihome', 'firstmedia', 'myrepublic', 'biznet'],
         'TRANSPORT': ['bensin', 'solar', 'bbm', 'pertamax', 'pertalite', 'grab', 'gojek', 'ojol'],
+        'BAYAR_HUTANG': ['bayar', 'hutang', 'utang', 'pelunasan', 'cicilan', 'debt'],
       };
 }

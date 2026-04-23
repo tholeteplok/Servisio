@@ -12,6 +12,9 @@ import '../../domain/entities/stok.dart';
 import '../../core/providers/stok_provider.dart';
 import '../../core/providers/media_provider.dart';
 import '../../core/providers/pengaturan_provider.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/expense_provider.dart';
+import '../../domain/entities/expense.dart';
 import '../../core/widgets/barcode_scanner_dialog.dart';
 
 class CreateBarangScreen extends ConsumerStatefulWidget {
@@ -33,6 +36,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   late TextEditingController _minStokController;
   late TextEditingController _supplierController;
   bool _isSaving = false;
+  bool _isHutang = false;
 
   String? _imagePath;
   late String _selectedKategori;
@@ -139,10 +143,12 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
 
       if (nameDuplicate != null) {
         _showDuplicateNameError();
+        setState(() => _isSaving = false);
         return;
       }
       if (skuDuplicate != null) {
         _showDuplicateSkuDialog(skuDuplicate);
+        setState(() => _isSaving = false);
         return;
       }
       _proceedSave();
@@ -150,8 +156,28 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
   }
 
   void _proceedSave({Stok? existingToRestock, int? restockAmount}) async {
+    final bengkelId = ref.read(bengkelIdProvider);
+    if (bengkelId == null) return;
+
     if (existingToRestock != null && restockAmount != null) {
       final theme = Theme.of(context);
+      
+      // Create Expense for restock
+      final totalBeli = restockAmount * existingToRestock.hargaBeli;
+      if (totalBeli > 0) {
+        final expense = Expense(
+          amount: totalBeli,
+          category: 'BELI_STOK',
+          bengkelId: bengkelId,
+          description: 'Restock ${existingToRestock.nama} x$restockAmount',
+          date: DateTime.now(),
+          supplierName: existingToRestock.supplierName,
+          debtStatus: _isHutang ? 'HUTANG' : null,
+          isVerified: true,
+        );
+        ref.read(expenseListProvider(bengkelId).notifier).addExpense(expense);
+      }
+
       ref
           .read(stokListProvider.notifier)
           .restock(
@@ -170,17 +196,23 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
       );
       if (mounted) Navigator.pop(context);
     } else {
+      final jumlah = int.tryParse(_jumlahController.text) ?? 0;
+      final hargaBeli = int.tryParse(_hargaBeliController.text) ?? 0;
+      final supplierName = _supplierController.text.trim().isEmpty 
+          ? null 
+          : _supplierController.text.trim();
+
       final stok = Stok(
         nama: _namaController.text.trim(),
         sku: _skuController.text.trim().isEmpty
             ? null
             : _skuController.text.trim(),
-        jumlah: int.tryParse(_jumlahController.text) ?? 0,
-        hargaBeli: int.tryParse(_hargaBeliController.text) ?? 0,
+        jumlah: jumlah,
+        hargaBeli: hargaBeli,
         hargaJual: int.tryParse(_hargaJualController.text) ?? 0,
         minStok: int.tryParse(_minStokController.text) ?? 5,
         kategori: _selectedKategori,
-        supplierName: _supplierController.text.trim().isEmpty ? null : _supplierController.text.trim(),
+        supplierName: supplierName,
       );
       stok.photoLocalPath = _imagePath;
 
@@ -190,6 +222,22 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
         ref.read(stokListProvider.notifier).updateItem(stok);
       } else {
         ref.read(stokListProvider.notifier).addItem(stok);
+        
+        // Create Expense for initial stock
+        final totalBeli = jumlah * hargaBeli;
+        if (totalBeli > 0) {
+          final expense = Expense(
+            amount: totalBeli,
+            category: 'BELI_STOK',
+            bengkelId: bengkelId,
+            description: 'Beli Stok Awal: ${stok.nama} x$jumlah',
+            date: DateTime.now(),
+            supplierName: supplierName,
+            debtStatus: _isHutang ? 'HUTANG' : null,
+            isVerified: true,
+          );
+          ref.read(expenseListProvider(bengkelId).notifier).addExpense(expense);
+        }
       }
       
       await Future.delayed(const Duration(milliseconds: 500));
@@ -539,9 +587,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                         LayoutBuilder(
                           builder: (context, constraints) => Autocomplete<String>(
                             optionsBuilder: (TextEditingValue textEditingValue) {
-                              final suggestions = ref
-                                  .read(stokRepositoryProvider)
-                                  .getUniqueSuppliers();
+                              final suggestions = ref.read(uniqueSuppliersProvider);
                               if (textEditingValue.text.isEmpty) {
                                 return suggestions;
                               }
@@ -679,6 +725,40 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                             return null;
                           },
                           keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 16),
+                        // Metode Pembayaran Toggle
+                        Text(
+                          'Metode Pembayaran',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildPaymentToggle(
+                                label: 'Tunai',
+                                icon: SolarIconsOutline.wallet,
+                                isSelected: !_isHutang,
+                                onTap: () => setState(() => _isHutang = false),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildPaymentToggle(
+                                label: 'Hutang',
+                                icon: SolarIconsOutline.usersGroupTwoRounded,
+                                isSelected: _isHutang,
+                                onTap: () => setState(() => _isHutang = true),
+                                activeColor: Colors.redAccent,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -855,6 +935,56 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
+      ),
+    );
+  }
+
+  Widget _buildPaymentToggle({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    Color? activeColor,
+  }) {
+    final theme = Theme.of(context);
+    final color = activeColor ?? theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? color : theme.colorScheme.outlineVariant,
+              width: 1.5,
+            ),
+            color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

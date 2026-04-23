@@ -203,6 +203,10 @@ final currentProfileProvider = Provider<UserProfile?>((ref) {
   return ref.watch(authStateProvider).value?.profile;
 });
 
+final bengkelIdProvider = Provider<String?>((ref) {
+  return ref.watch(currentProfileProvider)?.bengkelId;
+});
+
 final permissionProvider = Provider.family<bool, Permission>((ref, permission) {
   return ref.watch(currentProfileProvider)?.can(permission) ?? false;
 });

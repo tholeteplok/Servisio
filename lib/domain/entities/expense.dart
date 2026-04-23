@@ -1,5 +1,7 @@
 import 'package:objectbox/objectbox.dart';
 import 'package:uuid/uuid.dart';
+import 'supplier.dart';
+import 'debt_payment.dart';
 
 @Entity()
 class Expense {
@@ -55,6 +57,20 @@ class Expense {
   @Property(type: PropertyType.date)
   late DateTime updatedAt;
 
+  /// Status hutang: 'HUTANG', 'PARTIAL', 'LUNAS'.
+  /// null jika bukan transaksi hutang.
+  @Index()
+  String? debtStatus;
+
+  /// Link ke entity Supplier.
+  final supplier = ToOne<Supplier>();
+
+  /// Snapshot nama supplier (penting untuk audit & migrasi bertahap).
+  String? supplierName;
+
+  /// Link ke ID hutang induk (jika record ini adalah cicilan/pembayaran).
+  final parentExpense = ToOne<Expense>();
+
   Expense({
     required this.amount,
     required this.category,
@@ -67,6 +83,10 @@ class Expense {
     this.aiConfidence,
     this.isVerified = false,
     this.isDeleted = false,
+    this.debtStatus,
+    this.supplierName,
+    int? supplierId,
+    int? relatedExpenseId,
     this.createdBy,
     String? uuid,
     DateTime? createdAt,
@@ -74,7 +94,19 @@ class Expense {
   })  : uuid = uuid ?? const Uuid().v4(),
         date = date ?? DateTime.now(),
         createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+        updatedAt = updatedAt ?? DateTime.now() {
+    if (supplierId != null) supplier.targetId = supplierId;
+    if (relatedExpenseId != null) parentExpense.targetId = relatedExpenseId;
+  }
+
+  // Helper getters for compatibility with existing code
+  @Transient()
+  int? get supplierId => supplier.targetId == 0 ? null : supplier.targetId;
+  set supplierId(int? value) => supplier.targetId = value ?? 0;
+
+  @Transient()
+  int? get relatedExpenseId => parentExpense.targetId == 0 ? null : parentExpense.targetId;
+  set relatedExpenseId(int? value) => parentExpense.targetId = value ?? 0;
 
   /// True jika scan oleh AI dengan confidence tinggi (≥ 0.8).
   bool get isHighConfidenceAI =>
@@ -82,4 +114,21 @@ class Expense {
 
   /// True jika data berasal dari scan OCR (memiliki extractedText).
   bool get isFromOcr => extractedText != null && extractedText!.isNotEmpty;
+
+  /// Sisa hutang (khusus untuk record bertipe HUTANG).
+  /// Dihitung dari amount - total cicilan.
+  double? get debtBalance {
+    if (debtStatus == null || debtStatus == 'LUNAS') return 0;
+    
+    // Hitung dari record Expense yang merupakan cicilan
+    double totalPaid = 0;
+    if (debtPayments.isNotEmpty) {
+      totalPaid = debtPayments.fold<double>(0, (sum, item) => sum + item.amount);
+    }
+    return amount - totalPaid;
+  }
+
+  /// Relasi ke record pembayaran (cicilan) untuk hutang ini.
+  @Backlink('expense')
+  final ToMany<DebtPayment> debtPayments = ToMany<DebtPayment>();
 }
