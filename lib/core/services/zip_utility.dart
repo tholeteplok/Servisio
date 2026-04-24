@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:flutter/foundation.dart';
 import 'settings_backup_service.dart';
+import '../utils/app_logger.dart';
 
 class ZipUtility {
   static const int maxBackupSizeBytes = 100 * 1024 * 1024; // 100MB
@@ -105,7 +105,7 @@ class ZipUtility {
       throw Exception('Backup corrupt: settings.json is invalid - $e');
     }
 
-    debugPrint('✅ ZIP archive validation passed');
+    appLogger.info('ZIP archive validation passed', context: 'ZipUtility');
   }
 
   /// Extracts a ZIP archive and overwrites local data.
@@ -137,7 +137,7 @@ class ZipUtility {
         }
       }
     }
-    debugPrint('✅ Backup restore completed successfully');
+    appLogger.info('Backup restore completed successfully', context: 'ZipUtility');
   }
 }
 

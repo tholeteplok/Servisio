@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'sync_telemetry.dart';
+import '../utils/app_logger.dart';
 
 /// 🛡️ HierarchicalCircuitBreaker — Global + per-item error isolation.
 /// Prevents repetitive failures from overloading the system or causing lag.
@@ -31,7 +31,7 @@ class HierarchicalCircuitBreaker {
   SyncDecision shouldProceed(String itemId, DriveErrorType error) {
     // Global always checked first
     if (_global.isOpen) {
-      debugPrint('🔴 Global circuit open: ${_global.state}');
+      appLogger.warning('Global circuit open: ${_global.state}', context: 'CircuitBreaker');
       return SyncDecision.block;
     }
 
@@ -43,7 +43,7 @@ class HierarchicalCircuitBreaker {
       );
 
       if (breaker.isOpen) {
-        debugPrint('🟡 Item-level breaker open for $itemId: ${breaker.state}');
+        appLogger.info('Item-level breaker open for $itemId: ${breaker.state}', context: 'CircuitBreaker');
         return SyncDecision.skip;
       }
     }
@@ -58,13 +58,13 @@ class HierarchicalCircuitBreaker {
   void recordFailure(String itemId, DriveErrorType error) {
     if (_isGlobalError(error)) {
       _global.recordFailure();
-      debugPrint('🔴 Global circuit failure recorded: ${error.name}');
+      appLogger.warning('Global circuit failure recorded: ${error.name}', context: 'CircuitBreaker');
     } else {
       _itemBreakers.putIfAbsent(
         itemId,
         () => _CircuitBreaker(name: 'item_$itemId', failureThreshold: 2),
       ).recordFailure();
-      debugPrint('🟡 Item-level failure recorded: $itemId - ${error.name}');
+      appLogger.info('Item-level failure recorded: $itemId - ${error.name}', context: 'CircuitBreaker');
     }
   }
 
@@ -83,7 +83,7 @@ class HierarchicalCircuitBreaker {
   void resetAll() {
     _global.reset();
     _itemBreakers.clear();
-    debugPrint('🔄 All circuit breakers reset');
+    appLogger.info('All circuit breakers reset', context: 'CircuitBreaker');
   }
 
   /// Get status for debugging purposes.
@@ -147,6 +147,6 @@ class _CircuitBreaker {
       ));
     }
     
-    debugPrint('🔄 Circuit breaker $name reset');
+    appLogger.info('Circuit breaker $name reset', context: 'CircuitBreaker');
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -464,7 +463,7 @@ class SessionManager {
         }
       } catch (e) {
         if (e is http.ClientException) {
-          debugPrint('🌐 Handshake network error (attempt ${retry + 1}): Periksa koneksi internet. $e');
+          appLogger.warning('Handshake network error (attempt ${retry + 1}): Periksa koneksi internet.', context: 'SessionManager', error: e);
         } else if (e is SocketException) {
           appLogger.warning('Handshake socket error (attempt ${retry + 1}): Server tidak terjangkau.', context: 'SessionManager', error: e);
         } else {
@@ -562,7 +561,7 @@ class SessionManager {
       await _secureStorage.delete(key: 'emergency_logs');
       appLogger.info('Audit logs synced and cleared', context: 'SessionManager');
     } catch (e) {
-      debugPrint('❌ Failed to sync emergency logs: $e');
+      appLogger.error('Failed to sync emergency logs', context: 'SessionManager', error: e);
     }
   }
   

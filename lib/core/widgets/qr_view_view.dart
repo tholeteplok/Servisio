@@ -6,6 +6,7 @@ import 'package:solar_icons/solar_icons.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:share_plus/share_plus.dart';
 import 'glass_card.dart';
+import '../utils/app_logger.dart';
 
 class QRViewView extends StatefulWidget {
   final String imagePath;
@@ -32,7 +33,7 @@ class _QRViewViewState extends State<QRViewView> {
       _originalBrightness = await ScreenBrightness.instance.application;
       await ScreenBrightness.instance.setApplicationScreenBrightness(1.0);
     } catch (e) {
-      debugPrint('Failed to boost brightness: $e');
+      appLogger.warning('Failed to boost brightness', context: 'QRViewView', error: e);
     }
   }
 
@@ -46,7 +47,7 @@ class _QRViewViewState extends State<QRViewView> {
         await ScreenBrightness.instance.resetApplicationScreenBrightness();
       }
     } catch (e) {
-      debugPrint('Failed to restore brightness: $e');
+      appLogger.warning('Failed to restore brightness', context: 'QRViewView', error: e);
     }
   }
 
@@ -66,7 +67,7 @@ class _QRViewViewState extends State<QRViewView> {
         XFile(widget.imagePath),
       ], text: 'QRIS ${widget.workshopName ?? "Bengkel"}');
     } catch (e) {
-      debugPrint('Failed to share QR: $e');
+      appLogger.warning('Failed to share QR', context: 'QRViewView', error: e);
     }
   }
 

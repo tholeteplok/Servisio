@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../../domain/entities/expense_category.dart';
 import 'media_service.dart';
+import '../utils/app_logger.dart';
 
 /// Hasil scanning nota via OCR + AI kategorisasi.
 class ExpenseScanResult {
@@ -92,7 +92,7 @@ class ExpenseAIService {
       final recognizedText = await _recognizer.processImage(inputImage);
       final fullText = recognizedText.text;
 
-      debugPrint('📷 OCR Result (${fullText.length} chars): ${fullText.substring(0, fullText.length.clamp(0, 100))}...');
+      appLogger.debug('OCR Result (${fullText.length} chars): ${fullText.substring(0, fullText.length.clamp(0, 100))}...', context: 'ExpenseAIService');
 
       if (fullText.trim().isEmpty) {
         return ExpenseScanResult.empty();
@@ -114,7 +114,7 @@ class ExpenseAIService {
         confidence: confidence,
       );
     } catch (e, st) {
-      debugPrint('❌ ExpenseAIService error: $e\n$st');
+      appLogger.error('ExpenseAIService error', context: 'ExpenseAIService', error: e, stackTrace: st);
       return ExpenseScanResult.error('Gagal memproses gambar: ${e.toString()}');
     }
   }

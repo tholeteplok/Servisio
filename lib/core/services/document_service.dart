@@ -11,6 +11,7 @@ import '../../domain/entities/transaction.dart';
 import '../../domain/entities/sale.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_strings.dart';
+import '../utils/app_logger.dart';
 
 /// Interface for platform-dependent actions in DocumentService
 abstract class DocumentPlatformActions {
@@ -219,7 +220,7 @@ class DocumentService {
           logoImage = pw.MemoryImage(await file.readAsBytes());
         }
       } catch (e) {
-        debugPrint('Error loading logo for PDF: $e');
+        appLogger.warning('Error loading logo for PDF', context: 'DocumentService', error: e);
       }
     }
 

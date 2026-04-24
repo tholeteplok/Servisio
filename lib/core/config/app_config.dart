@@ -19,7 +19,8 @@ class AppConfig {
   );
 
   /// App version identifier for security audit and version matching.
-  static const String appVersion = '1.2.0-core';
+  /// Fallback version when package_info_plus is not available.
+  static const String appVersionFallback = '1.2.0';
 
   /// ✅ NEW: Config version for secret rotation tracking
   static const String configVersion = '1.0.0';

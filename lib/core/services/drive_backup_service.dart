@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:googleapis/drive/v3.dart' as drive_api;
+import '../utils/app_logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'auth_service.dart';
@@ -24,7 +24,7 @@ class DriveBackupService {
       if (retryCount >= maxRetries) rethrow;
 
       final backoff = initialBackoff * (1 << retryCount);
-      debugPrint('⚠️ Drive operation failed, retrying in ${backoff.inSeconds}s: $e');
+      appLogger.warning('Drive operation failed, retrying in ${backoff.inSeconds}s', context: 'DriveBackupService', error: e);
       await Future.delayed(backoff);
       return _retry(operation, retryCount: retryCount + 1);
     }
@@ -135,7 +135,7 @@ class DriveBackupService {
       for (var file in filesToDelete) {
         if (file.id != null) {
           await drive.files.delete(file.id!);
-          debugPrint('🗑️ Deleted Drive backup: ${file.name}');
+          appLogger.info('Deleted Drive backup: ${file.name}', context: 'DriveBackupService');
         }
       }
     });

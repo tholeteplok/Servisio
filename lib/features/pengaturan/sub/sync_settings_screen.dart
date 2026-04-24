@@ -12,6 +12,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/services/session_manager.dart';
 import '../../../core/widgets/atelier_header.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/providers/sync_provider.dart';
 
 class SyncSettingsScreen extends ConsumerStatefulWidget {
   const SyncSettingsScreen({super.key});
@@ -101,6 +102,8 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                 children: [
                   _buildSectionHeader(AppStrings.dataCenter.storageStatus),
                   _buildStatusCard(theme, isDark, isActive, sessionStatus),
+                  const SizedBox(height: 16),
+                  _buildQueueSummary(theme, isDark),
                   const SizedBox(height: 24),
                   _buildSectionHeader(AppStrings.dataCenter.workshopInfo),
                   _buildInfoCard(theme, isDark, settings, profile, settings.bengkelId),
@@ -200,6 +203,78 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQueueSummary(ThemeData theme, bool isDark) {
+    final summary = ref.watch(syncQueueSummaryProvider);
+    final hasFailed = (summary['failed'] ?? 0) > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildQueueItem(theme, 'Pending', summary['pending'] ?? 0, Colors.blue),
+              _buildQueueItem(theme, 'Synced', summary['synced'] ?? 0, AppColors.success),
+              _buildQueueItem(theme, 'Failed', summary['failed'] ?? 0, AppColors.error),
+            ],
+          ),
+          if (hasFailed) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => ref.read(syncStatusProvider.notifier).retryFailed(),
+                icon: const Icon(SolarIconsOutline.restart, size: 18),
+                label: Text(
+                  'Coba Lagi Item Gagal',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQueueItem(ThemeData theme, String label, int count, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            count.toString(),
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: count > 0 ? color : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],

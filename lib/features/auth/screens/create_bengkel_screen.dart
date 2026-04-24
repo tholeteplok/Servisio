@@ -7,6 +7,7 @@ import 'package:solar_icons/solar_icons.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/system_providers.dart';
+import '../../../core/utils/app_logger.dart';
 
 class CreateBengkelScreen extends ConsumerStatefulWidget {
   const CreateBengkelScreen({super.key});
@@ -92,7 +93,7 @@ class _CreateBengkelScreenState extends ConsumerState<CreateBengkelScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Check Availability Error: $e');
+      appLogger.error('Check Availability Error', context: 'CreateBengkelScreen', error: e);
       if (mounted) {
         setState(() {
           _isAvailable = null;

@@ -234,8 +234,10 @@ class SyncSection extends ConsumerWidget {
     switch (state) {
       case SyncWorkerState.syncing:
         return 'Sedang Sinkronisasi...';
+      case SyncWorkerState.warning:
+        return 'Ada Antrean Tertunda';
       case SyncWorkerState.error:
-        return 'Sinkronisasi Tertunda';
+        return 'Sinkronisasi Gagal';
       case SyncWorkerState.success:
       case SyncWorkerState.idle:
         return 'Data Tersinkronisasi';
@@ -820,7 +822,9 @@ class SyncPulseIndicatorState extends State<SyncPulseIndicator> with SingleTicke
   }
 
   void _updateAnimation() {
-    if (widget.state == SyncWorkerState.syncing || widget.state == SyncWorkerState.error) {
+    if (widget.state == SyncWorkerState.syncing || 
+        widget.state == SyncWorkerState.error || 
+        widget.state == SyncWorkerState.warning) {
       _controller.repeat();
     } else {
       _controller.stop();
@@ -835,9 +839,12 @@ class SyncPulseIndicatorState extends State<SyncPulseIndicator> with SingleTicke
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.state == SyncWorkerState.syncing 
-        ? AppColors.success 
-        : (widget.state == SyncWorkerState.error ? AppColors.warning : AppColors.textSecondary);
+    final color = switch (widget.state) {
+      SyncWorkerState.syncing => AppColors.success,
+      SyncWorkerState.warning => AppColors.warning,
+      SyncWorkerState.error => AppColors.error,
+      _ => AppColors.textSecondary,
+    };
     
     return AnimatedBuilder(
       animation: _controller,

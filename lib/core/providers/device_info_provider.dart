@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/app_logger.dart';
 
 /// 📱 Data model for the current device information.
 class DeviceDisplayInfo {
@@ -46,7 +47,7 @@ final currentDeviceInfoProvider = FutureProvider<DeviceDisplayInfo>((ref) async 
       );
     }
   } catch (e) {
-    debugPrint('⚠️ Error fetching device info: $e');
+    appLogger.warning('Error fetching device info', context: 'DeviceInfoProvider', error: e);
   }
 
   // Fallback

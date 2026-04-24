@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/drive_backup_service.dart';
 import '../services/auth_service.dart';
 import 'pengaturan_provider.dart';
+import '../utils/app_logger.dart';
 
 class BackupState {
   final bool isUploading;
@@ -56,7 +56,7 @@ class BackupNotifier extends StateNotifier<BackupState> {
       try {
         final result = await _authService.signInSilently();
         if (result == null) {
-          debugPrint('⏭️ Auto-backup dilewati — silent sign-in gagal (user perlu login manual).');
+          appLogger.info('Auto-backup dilewati — silent sign-in gagal (user perlu login manual)', context: 'BackupProvider');
           return;
         }
       } catch (_) {

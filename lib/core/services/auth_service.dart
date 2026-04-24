@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:http/http.dart' as http;
 import '../utils/app_logger.dart';
@@ -58,25 +56,25 @@ class AuthService {
   /// Google Sign-In → Firebase Auth
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      debugPrint('AUTH: Initiating Google Sign-In UI...');
+      appLogger.info('Initiating Google Sign-In UI...', context: 'AuthService');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().timeout(
         const Duration(seconds: 30),
         onTimeout: () => throw Exception('Waktu habis saat mencoba masuk ke akun Google. Silakan coba lagi.'),
       );
       
       if (googleUser == null) {
-        debugPrint('AUTH: Google Sign-In cancelled by user');
+        appLogger.info('Google Sign-In cancelled by user', context: 'AuthService');
         return null;
       }
 
-      debugPrint('AUTH: Fetching Google Authentication tokens...');
+      appLogger.info('Fetching Google Authentication tokens...', context: 'AuthService');
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication.timeout(
         const Duration(seconds: 15),
         onTimeout: () => throw Exception('Waktu habis saat mengambil token autentikasi.'),
       );
       
       if (googleAuth.idToken == null) {
-        debugPrint('AUTH ERROR: idToken is null. Potential misconfiguration in Firebase console / serverClientId.');
+        appLogger.error('idToken is null. Potential misconfiguration in Firebase console / serverClientId.', context: 'AuthService');
         throw Exception('Gagal mendapatkan ID Token. Periksa konfigurasi Firebase (SHA-1).');
       }
 
@@ -85,13 +83,13 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-      debugPrint('AUTH: Signing into Firebase with credential...');
+      appLogger.info('Signing into Firebase with credential...', context: 'AuthService');
       final userCredential = await _auth.signInWithCredential(credential).timeout(
         const Duration(seconds: 20),
         onTimeout: () => throw Exception('Gagal menghubungi server Firebase. Periksa koneksi internet Anda.'),
       );
       
-      debugPrint('AUTH: Firebase Sign-In successful for UID: ${userCredential.user?.uid}');
+      appLogger.info('Firebase Sign-In successful', context: 'AuthService');
       return userCredential;
 
     } catch (e) {
@@ -140,7 +138,7 @@ class AuthService {
       return userCredential;
     } catch (e) {
       // Silent failure - don't show any error dialog
-      debugPrint('Silent Sign-In Error (not shown to user): $e');
+      appLogger.debug('Silent Sign-In Error (not shown to user)', context: 'AuthService', error: e);
       return null;
     }
   }

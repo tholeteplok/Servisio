@@ -23,6 +23,7 @@ import '../../core/providers/expense_provider.dart';
 import '../../domain/entities/expense.dart';
 import '../../core/providers/pengaturan_provider.dart';
 import '../../core/services/session_manager.dart';
+import '../../core/utils/app_logger.dart';
 
 class KatalogScreen extends ConsumerStatefulWidget {
   final PageController? mainPageController;
@@ -62,6 +63,11 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
     _searchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _loadInitial() {
+    ref.read(stokListProvider.notifier).loadStok();
+    ref.read(serviceMasterListProvider.notifier).refresh();
   }
 
   Future<void> _openScanner() async {
@@ -132,25 +138,31 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
             actions: [
               if (_tabController.index == 0) ...[
                 IconButton(
-                  onPressed: _openScanner,
-                  icon: Icon(SolarIconsOutline.scanner,
-                      color: theme.colorScheme.onPrimary, size: 20),
+                  onPressed: () => _openScanner(),
+                  icon: const Icon(SolarIconsOutline.scanner,
+                      color: Colors.white, size: 20),
                   tooltip: AppStrings.catalog.tooltipScanner,
                   style: IconButton.styleFrom(
                     minimumSize: const Size(48, 48),
-                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
               IconButton(
-                onPressed: () => ref.invalidate(serviceMasterListProvider),
-                icon: Icon(SolarIconsOutline.refresh,
-                    color: theme.colorScheme.onPrimary, size: 20),
+                onPressed: () => _loadInitial(),
+                icon: const Icon(SolarIconsOutline.refresh,
+                    color: Colors.white, size: 20),
                 tooltip: AppStrings.common.refresh,
                 style: IconButton.styleFrom(
                   minimumSize: const Size(48, 48),
-                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -819,7 +831,7 @@ class _StokCard extends ConsumerWidget {
                         .restock(item.uuid, amount, 'Restock cepat dari menu');
                     Navigator.pop(context);
                   } catch (e) {
-                    debugPrint('❌ Restock error: $e');
+                    appLogger.error('Restock error', context: 'KatalogScreen', error: e);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Gagal tambah stok: $e')),

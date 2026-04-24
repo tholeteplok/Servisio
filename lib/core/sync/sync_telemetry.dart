@@ -3,6 +3,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'circuit_breaker.dart'; // For error typing
+import '../utils/app_logger.dart';
 
 /// 📊 SyncTelemetry — Structured logging for production observability.
 /// Dispatches logs to Firebase Crashlytics and local storage.
@@ -92,7 +93,7 @@ class SyncTelemetry {
     _sessionId = _generateSessionId();
     _deviceId = deviceId;
     _isInitialized = true;
-    debugPrint('📊 SyncTelemetry: Initialized with session=$_sessionId');
+    appLogger.info('SyncTelemetry initialized with session=$_sessionId', context: 'SyncTelemetry');
   }
 
   void log(SyncEvent event) {
@@ -108,7 +109,7 @@ class SyncTelemetry {
 
     // Local debug print
     if (kDebugMode) {
-      debugPrint('[SYNC:${enriched.level.name.toUpperCase()}] ${enriched.toString()}');
+      appLogger.debug('[SYNC:${enriched.level.name.toUpperCase()}] ${enriched.toString()}', context: 'SyncTelemetry');
     }
   }
 

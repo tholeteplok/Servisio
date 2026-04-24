@@ -1,8 +1,8 @@
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/objectbox_provider.dart';
 import '../../domain/entities/trx_counter.dart';
+import '../utils/app_logger.dart';
 
 final trxNumberServiceProvider = Provider<TrxNumberService>((ref) {
   final db = ref.watch(dbProvider);
@@ -93,7 +93,7 @@ class TrxNumberService {
       }
     }
 
-    debugPrint('🧹 Cleaned up $removed old transaction counters');
+    appLogger.debug('Cleaned up $removed old transaction counters', context: 'TrxNumberService');
   }
 }
 

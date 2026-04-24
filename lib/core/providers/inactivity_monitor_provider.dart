@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/encryption_service.dart';
 import 'system_providers.dart';
 import 'pengaturan_provider.dart';
+import '../utils/app_logger.dart';
 
 /// Provider to monitor app inactivity and background time.
 /// Triggers auto-lock if enabled and 30 minutes have passed in background.
@@ -27,7 +28,7 @@ class InactivityMonitor extends WidgetsBindingObserver {
 
   void start() {
     // This can be used to explicitly start if needed
-    debugPrint('🛡️ InactivityMonitor started');
+    appLogger.info('InactivityMonitor started', context: 'InactivityMonitor');
   }
 
   @override
@@ -37,11 +38,11 @@ class InactivityMonitor extends WidgetsBindingObserver {
 
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _backgroundTime = DateTime.now();
-      debugPrint('🕒 App went to background at $_backgroundTime');
+      appLogger.debug('App went to background', context: 'InactivityMonitor');
     } else if (state == AppLifecycleState.resumed) {
       if (_backgroundTime != null) {
         final diff = DateTime.now().difference(_backgroundTime!);
-        debugPrint('🕒 App resumed. Background duration: ${diff.inMinutes}m');
+        appLogger.debug('App resumed. Background duration: ${diff.inMinutes}m', context: 'InactivityMonitor');
 
         if (diff.inMinutes >= settings.autoLockDuration) {
           _lockApp(settings.autoLockDuration);
@@ -52,7 +53,7 @@ class InactivityMonitor extends WidgetsBindingObserver {
   }
 
   void _lockApp(int duration) {
-    debugPrint('☢️ Auto-lock triggered (${duration}m inactivity)');
+    appLogger.warning('Auto-lock triggered (${duration}m inactivity)', context: 'InactivityMonitor');
     // Clearing the in-memory encrypter will force AuthGate to show UnlockScreen
     EncryptionService().lock();
     

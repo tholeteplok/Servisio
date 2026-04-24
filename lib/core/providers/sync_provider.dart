@@ -53,6 +53,10 @@ class SyncStatusNotifier extends StateNotifier<SyncStatusState> {
       lastSyncedAt: newState == SyncWorkerState.success ? now : state.lastSyncedAt,
     );
   }
+
+  void retryFailed() {
+    ref.read(syncWorkerProvider)?.retryFailedItems();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +65,16 @@ class SyncStatusNotifier extends StateNotifier<SyncStatusState> {
 
 final syncStatusProvider = StateNotifierProvider<SyncStatusNotifier, SyncStatusState>((ref) {
   return SyncStatusNotifier(ref);
+});
+
+final syncQueueSummaryProvider = Provider<Map<String, int>>((ref) {
+  final worker = ref.watch(syncWorkerProvider);
+  if (worker == null) return {'pending': 0, 'synced': 0, 'failed': 0, 'syncing': 0, 'total': 0};
+  
+  // Refresh when status changes
+  ref.watch(syncStatusProvider);
+  
+  return worker.getQueueSummary();
 });
 
 

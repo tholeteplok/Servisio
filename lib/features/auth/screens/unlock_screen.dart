@@ -8,6 +8,7 @@ import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/constants/app_strings.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'sync_restore_screen.dart';
+import '../../../core/utils/app_logger.dart';
 
 class UnlockScreen extends ConsumerStatefulWidget {
   final String bengkelId;
@@ -152,7 +153,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               userId: uid,
             );
           } catch (e) {
-            debugPrint('⚠️ Firestore migration push gagal: $e');
+            appLogger.warning('Firestore migration push gagal', context: 'UnlockScreen', error: e);
           }
         },
       );
@@ -170,7 +171,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
             final existingKey = await encryption.getSavedDerivedKey(widget.bengkelId);
             if (existingKey == null) {
               await encryption.saveDerivedKeyForBiometric(pin, widget.bengkelId);
-              debugPrint('🔗 Biometric auto-linked for workshop ${widget.bengkelId}');
+              appLogger.info('Biometric auto-linked for workshop', context: 'UnlockScreen');
             }
           }
         }

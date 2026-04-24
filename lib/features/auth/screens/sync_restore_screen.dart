@@ -7,6 +7,7 @@ import '../../../core/services/sync_worker.dart';
 import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/services/encryption_service.dart';
 import '../../../core/providers/system_providers.dart';
+import '../../../core/utils/app_logger.dart';
 
 class SyncRestoreScreen extends ConsumerStatefulWidget {
   final String bengkelId;
@@ -100,7 +101,7 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         widget.onFinish();
       }
     } catch (e) {
-      debugPrint('Restore Error: $e');
+      appLogger.error('Restore Error', context: 'SyncRestoreScreen', error: e);
       if (mounted) {
         setState(() {
           _isError = true;

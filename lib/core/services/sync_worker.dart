@@ -220,17 +220,23 @@ class SyncWorker {
         eagerError: false,
       );
 
-      final hasErrors = _db.syncQueueBox
-              .query(SyncQueueItem_.status.equals('failed') |
-                  (SyncQueueItem_.status.equals('pending') &
-                      SyncQueueItem_.retryCount.greaterThan(0)))
+      final failedCount = _db.syncQueueBox
+              .query(SyncQueueItem_.status.equals('failed'))
               .build()
-              .count() >
-          0;
+              .count();
 
-      onStateChanged?.call(
-          hasErrors ? SyncWorkerState.error : SyncWorkerState.success);
+      final pendingCount = _db.syncQueueBox
+              .query(SyncQueueItem_.status.equals('pending'))
+              .build()
+              .count();
 
+      if (failedCount > 0) {
+        onStateChanged?.call(SyncWorkerState.error);
+      } else if (pendingCount > 0) {
+        onStateChanged?.call(SyncWorkerState.warning);
+      } else {
+        onStateChanged?.call(SyncWorkerState.success);
+      }
     } catch (e, stack) {
       SyncTelemetry().log(SyncEvent(
         type: 'queue_processing_error',
@@ -248,6 +254,42 @@ class SyncWorker {
     }
   }
 
+  /// Forces a retry of all failed items by moving them back to pending.
+  void retryFailedItems() {
+    final failedItems = _db.syncQueueBox
+        .query(SyncQueueItem_.status.equals('failed'))
+        .build()
+        .find();
+    
+    if (failedItems.isEmpty) return;
+
+    for (final item in failedItems) {
+      item.status = 'pending';
+      item.retryCount = 0;
+    }
+    _db.syncQueueBox.putMany(failedItems);
+    
+    if (_isRunning && !_isProcessing) {
+      _processQueue();
+    }
+  }
+
+  /// Returns a summary of the current sync queue.
+  Map<String, int> getQueueSummary() {
+    final pending = _db.syncQueueBox.query(SyncQueueItem_.status.equals('pending')).build().count();
+    final synced = _db.syncQueueBox.query(SyncQueueItem_.status.equals('synced')).build().count();
+    final failed = _db.syncQueueBox.query(SyncQueueItem_.status.equals('failed')).build().count();
+    final syncing = _db.syncQueueBox.query(SyncQueueItem_.status.equals('syncing')).build().count();
+
+    return {
+      'pending': pending,
+      'synced': synced,
+      'failed': failed,
+      'syncing': syncing,
+      'total': pending + synced + failed + syncing,
+    };
+  }
+
   /// Protects single item sync with CircuitBreaker and Telemetry.
   Future<void> _syncWithProtection(SyncQueueItem item) async {
     // 1. Exponential Backoff Check
@@ -257,7 +299,6 @@ class SyncWorker {
       final nextAllowed = item.lastRetryAt!.add(Duration(minutes: delayMins));
       
       if (DateTime.now().isBefore(nextAllowed)) {
-        // debugPrint('SyncWorker: Skipping ${item.entityUuid} (Backoff: next move in $delayMinsm)');
         return;
       }
     }
@@ -746,4 +787,4 @@ class SyncWorker {
   }
 }
 
-enum SyncWorkerState { idle, syncing, success, error }
+enum SyncWorkerState { idle, syncing, success, warning, error }

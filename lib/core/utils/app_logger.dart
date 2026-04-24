@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 /// SEC-FIX: Centralized Logger - Production-ready logging dengan level control
 /// Replaces debugPrint untuk logging yang lebih baik di production
@@ -116,11 +117,29 @@ class AppLogger {
 class _CrashlyticsOutput extends LogOutput {
   @override
   void output(OutputEvent event) {
-    // TODO: Integrate dengan Firebase Crashlytics untuk error logs
-    // Saat ini hanya output ke console
-    for (final line in event.lines) {
-      // ignore: avoid_print
-      print(line);
+    // Hanya kirim ke Crashlytics di production (mobile)
+    if (!kIsWeb && kReleaseMode) {
+      final message = event.lines.join('\n');
+      
+      // Semua level: log sebagai breadcrumb
+      FirebaseCrashlytics.instance.log(message);
+      
+      // Level error ke atas: record sebagai non-fatal error
+      if (event.level.index >= Level.error.index) {
+        FirebaseCrashlytics.instance.recordError(
+          Exception(message),
+          null,
+          reason: message,
+          fatal: false,
+          printDetails: false, // Sudah di-log di atas
+        );
+      }
+    } else {
+      // Debug/non-production: tetap print ke console
+      for (final line in event.lines) {
+        // ignore: avoid_print
+        print(line);
+      }
     }
   }
 }

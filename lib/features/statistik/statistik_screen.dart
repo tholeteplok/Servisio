@@ -8,6 +8,7 @@ import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';
 import '../../core/providers/system_providers.dart';
+import '../../core/utils/app_logger.dart';
 
 // Tabs
 import 'tabs/ringkasan_tab.dart';
@@ -75,7 +76,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
         if (mounted) Navigator.pop(context);
       }
     } catch (e) {
-      debugPrint('❌ StatistikScreen: Security check error: $e');
+      appLogger.error('Security check error', context: 'StatistikScreen', error: e);
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isVerifying = false);

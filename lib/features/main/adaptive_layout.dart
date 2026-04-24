@@ -38,6 +38,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
 import '../../core/services/device_session_service.dart';
 import '../../core/widgets/standard_dialog.dart';
+import '../../core/utils/app_logger.dart';
 import '../home/home_screen.dart';
 import '../pelanggan/pelanggan_screen.dart';
 import '../katalog/katalog_screen.dart';
@@ -219,7 +220,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ref.read(settingsProvider.notifier).setHasCheckedBackupDiscovery(true);
           }
         } catch (e) {
-          debugPrint('Silent backup check failed: $e');
+          appLogger.warning('Silent backup check failed', context: 'AdaptiveLayout', error: e);
         }
       } else {
         ref.read(settingsProvider.notifier).setHasCheckedBackupDiscovery(true);

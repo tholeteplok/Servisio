@@ -1,12 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Functionalities Helpers
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function getUserBengkelId() {
       return request.auth.token.bengkelId;
     }
@@ -19,63 +22,154 @@ service cloud.firestore {
       return request.auth.token.role == 'staff';
     }
 
-    // Bengkel Collection
+    function isMember(bengkelId) {
+      return isSignedIn() && getUserBengkelId() == bengkelId;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BENGKEL ROOT COLLECTION
+    // ─────────────────────────────────────────────────────────────────────────
+
     match /bengkel/{bengkelId} {
-      // Any authenticated user can create a bengkel
-      allow create: if isSignedIn();
-      // Any authenticated user can check if a bengkel exists or get its basic info
+
+      // Siapa saja yang sudah login bisa cek ketersediaan bengkelId
       allow get: if isSignedIn();
-      // Only users belonging to this bengkel can list/query it
-      allow list: if isSignedIn() && getUserBengkelId() == bengkelId;
-      // Only the owner of the bengkel can write/update it
-      allow update, delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
-      
-      // Staff-specific permissions helper
+      // Hanya member bengkel ini yang bisa list/query
+      allow list: if isMember(bengkelId);
+      // Siapa saja yang sudah login bisa buat bengkel baru
+      allow create: if isSignedIn();
+      // Hanya owner yang bisa update/delete data bengkel
+      allow update, delete: if isMember(bengkelId) && isOwner();
+
+      // ── Permission helper (membaca customPermissions dari dokumen staff) ──
       function hasStaffPermission(permission) {
         let staffDoc = get(/databases/$(database)/documents/bengkel/$(bengkelId)/staff/$(request.auth.uid));
-        // Check customPermissions map directly
-        let hasCustom = staffDoc.data.customPermissions != null && staffDoc.data.customPermissions[permission] == true;
-        // If has roleTemplateId, we might need another check, but for now focus on customPermissions
-        // which serves as the override and primary point of truth for staff.
-        return hasCustom;
+        return staffDoc.data.customPermissions != null
+          && staffDoc.data.customPermissions[permission] == true;
       }
 
-      // Nested collections inside Bengkel (Transactions, Stok, Pelanggan, Staff)
-      // SEC-FIX: S-02 Granular Staff Write Permissions
+      // ── TRANSACTIONS ──────────────────────────────────────────────────────
       match /transactions/{documentId} {
-        allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
-        allow create: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('transaksi_create'));
-        allow update: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('transaksi_update'));
-        allow delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+        allow read: if isMember(bengkelId);
+        allow create: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('transaksi_create'));
+        allow update: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('transaksi_update'));
+        allow delete: if isMember(bengkelId) && isOwner();
+
+        // Items sub-subcollection (mirroring parent transaction permissions)
+        match /items/{itemId} {
+          allow read: if isMember(bengkelId);
+          allow create: if isMember(bengkelId)
+            && (isOwner() || hasStaffPermission('transaksi_create'));
+          allow update: if isMember(bengkelId)
+            && (isOwner() || hasStaffPermission('transaksi_update'));
+          allow delete: if isMember(bengkelId) && isOwner();
+        }
       }
 
+      // ── STOK (ObjectBox sync — legacy collection name) ────────────────────
       match /stok/{documentId} {
-        allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
-        allow create: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('stok_create'));
-        allow update: if isSignedIn() && getUserBengkelId() == bengkelId && (isOwner() || hasStaffPermission('stok_update_jumlah'));
-        allow delete: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+        allow read: if isMember(bengkelId);
+        allow create: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('stok_create'));
+        allow update: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('stok_update_jumlah'));
+        allow delete: if isMember(bengkelId) && isOwner();
       }
 
+      // ── INVENTORY (Firestore sync collection name) ────────────────────────
+      match /inventory/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow create: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('stok_create'));
+        allow update: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('stok_update_jumlah'));
+        allow delete: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── CUSTOMERS ─────────────────────────────────────────────────────────
+      match /customers/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow create: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('pelanggan_create'));
+        allow update: if isMember(bengkelId)
+          && (isOwner() || hasStaffPermission('pelanggan_update'));
+        allow delete: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── VEHICLES ──────────────────────────────────────────────────────────
+      // Staff perlu bisa tambah/edit kendaraan saat membuat transaksi
+      match /vehicles/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow create, update: if isMember(bengkelId)
+          && (isOwner() || isStaff());
+        allow delete: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── STAFF (sync data, bukan permission management) ────────────────────
+      // Hanya owner yang bisa kelola data staff
+      match /staff/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow create, update: if isMember(bengkelId) && isOwner();
+        allow delete: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── INVENTORY HISTORY ─────────────────────────────────────────────────
+      // Staff bisa create (otomatis saat transaksi), tapi tidak bisa edit/hapus
+      match /inventory_history/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow create: if isMember(bengkelId)
+          && (isOwner() || isStaff());
+        allow update, delete: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── SECRETS (master key storage) ──────────────────────────────────────
       match /secrets/{documentId} {
-        allow read: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+        allow read: if isMember(bengkelId) && isOwner();
         allow create: if isSignedIn() && (
-          (getUserBengkelId() == bengkelId && isOwner()) ||
+          (isMember(bengkelId) && isOwner()) ||
           (getAfter(/databases/$(database)/documents/bengkel/$(bengkelId)).data.ownerUid == request.auth.uid)
         );
-        allow update: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+        allow update: if isMember(bengkelId) && isOwner();
+        allow delete: if false;
       }
 
-      match /{subcollection}/{documentId} {
-        allow read: if isSignedIn() && getUserBengkelId() == bengkelId;
-        allow write: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+      // ── SECURITY AUDIT LOGS ───────────────────────────────────────────────
+      // Hanya owner yang bisa baca. Tidak ada yang bisa tulis dari client —
+      // hanya Cloud Functions yang boleh menulis ke sini.
+      match /security_audit_logs/{documentId} {
+        allow read: if isMember(bengkelId) && isOwner();
+        allow write: if false;
+      }
+
+      // ── OPERATIONS (idempotency keys) ─────────────────────────────────────
+      // Semua member perlu bisa baca & tulis untuk idempotency check saat sync
+      match /_operations/{documentId} {
+        allow read, write: if isMember(bengkelId);
+      }
+
+      // ── INTERNAL (migration status, config) ───────────────────────────────
+      match /_internal/{documentId} {
+        allow read: if isMember(bengkelId);
+        allow write: if isMember(bengkelId) && isOwner();
+      }
+
+      // ── FALLBACK: deny semua subcollection yang tidak terdaftar ──────────
+      // Subcollection baru tidak otomatis dapat akses — harus didaftarkan eksplisit
+      match /{unknownSubcollection}/{documentId} {
+        allow read, write: if false;
       }
     }
 
-    // Top-level collections partitioned by `bengkelId` field.
-    // SEC-FIX: T-01 null resource check — consistently used for all operations.
+    // ─────────────────────────────────────────────────────────────────────────
+    // TOP-LEVEL COLLECTIONS (partitioned by bengkelId field)
+    // ─────────────────────────────────────────────────────────────────────────
 
     function getIncomingBengkelId() {
-      return request.resource != null && request.resource.data != null ? request.resource.data.bengkelId : null;
+      return request.resource != null && request.resource.data != null
+        ? request.resource.data.bengkelId
+        : null;
     }
 
     function resourceMatchesBengkel(bengkelId) {
@@ -102,13 +196,14 @@ service cloud.firestore {
 
     match /pelanggans/{id} {
       allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
-      allow create: if isSignedIn() && (isOwner() || isStaff()) && getIncomingBengkelId() == getUserBengkelId();
+      allow create: if isSignedIn() && (isOwner() || isStaff())
+                    && getIncomingBengkelId() == getUserBengkelId();
       allow update: if isSignedIn() && (isOwner() || isStaff())
                     && resourceMatchesBengkel(getUserBengkelId())
                     && getIncomingBengkelId() == getUserBengkelId();
       allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
     }
-    
+
     match /staff/{id} {
       allow read: if isSignedIn() && resourceMatchesBengkel(getUserBengkelId());
       allow create: if isSignedIn() && isOwner() && getIncomingBengkelId() == getUserBengkelId();
@@ -118,16 +213,45 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isOwner() && resourceMatchesBengkel(getUserBengkelId());
     }
 
-    // 👤 Users / Profiles collection
+    // ─────────────────────────────────────────────────────────────────────────
+    // BENGKELS COLLECTION (permission management — collection terpisah)
+    // Dipakai oleh permission_service.dart untuk staff permissions & role templates
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /bengkels/{bengkelId} {
+      allow read, write: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+
+      match /staff/{staffId} {
+        // Owner bisa kelola semua staff
+        allow read, write: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+        // Staff hanya bisa baca dokumen dirinya sendiri (untuk cek permission sendiri)
+        allow read: if isSignedIn() && getUserBengkelId() == bengkelId
+          && request.auth.uid == staffId;
+      }
+
+      match /role_templates/{templateId} {
+        // Hanya owner yang bisa kelola role templates
+        allow read, write: if isSignedIn() && getUserBengkelId() == bengkelId && isOwner();
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // USERS / PROFILES
+    // ─────────────────────────────────────────────────────────────────────────
+
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
     }
 
-    // 🛠️ Internal configuration (Read only for authenticated users)
+    // ─────────────────────────────────────────────────────────────────────────
+    // INTERNAL CONFIGURATION (top-level, read-only untuk authenticated users)
+    // ─────────────────────────────────────────────────────────────────────────
+
     match /_internal/{configId} {
       allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }
-

@@ -8,6 +8,7 @@ import '../services/session_manager.dart';
 import '../providers/pengaturan_provider.dart';
 import '../providers/system_providers.dart';
 import 'security_dialogs.dart';
+import '../utils/app_logger.dart';
 
 // 🛡️ Critical Action Guard Widget
 class CriticalActionGuard extends ConsumerStatefulWidget {
@@ -64,7 +65,7 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
           onTimeout: () => currentAccess,
         );
       } catch (e) {
-        debugPrint('⚠️ CriticalActionGuard: Fallback to cache due to error: $e');
+        appLogger.warning('CriticalActionGuard: Fallback to cache due to error', context: 'CriticalActionGuard', error: e);
         accessLevel = currentAccess;
       }
     }
@@ -102,7 +103,7 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
       ).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          debugPrint('⚠️ CriticalActionGuard: Security verification timeout');
+          appLogger.warning('CriticalActionGuard: Security verification timeout', context: 'CriticalActionGuard');
           return false;
         },
       );
@@ -112,7 +113,7 @@ class CriticalActionGuard extends ConsumerStatefulWidget {
         return true;
       }
     } catch (e) {
-      debugPrint('❌ CriticalActionGuard: Verification error: $e');
+      appLogger.error('CriticalActionGuard: Verification error', context: 'CriticalActionGuard', error: e);
     }
 
     return false;

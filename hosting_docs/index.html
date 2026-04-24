@@ -3,298 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kebijakan Privasi - ServisLog+</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>ServisI/O - Manajemen Bengkel Modern</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #9d50bb; /* Precision Violet */
-            --secondary: #6e48aa;
-            --dark: #0f1218;
-            --light: #f8f9fa;
-            --accent: #6c5ce7;
-            --text-main: #2d3436;
-            --text-muted: #636e72;
-            --card-bg: #ffffff;
-            --border: #edf2f7;
+            --primary: #2563eb;
+            --surface: #f8fafc;
+            --text: #1e293b;
+            --text-muted: #64748b;
         }
-
-        * {
-            box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
-        }
-
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            line-height: 1.7;
-            color: var(--text-main);
-            background-color: var(--light);
+            background-color: var(--surface);
+            color: var(--text);
+            line-height: 1.6;
             margin: 0;
             padding: 0;
-        }
-
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 100px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            position: relative;
-            overflow: hidden;
         }
-
-        /* Abstract shapes */
-        header::before, header::after {
-            content: '';
-            position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+        .container {
+            max-width: 600px;
+            padding: 40px;
         }
-        header::before { width: 300px; height: 300px; top: -150px; left: -100px; }
-        header::after { width: 200px; height: 200px; bottom: -100px; right: -50px; }
-
-        header h1 {
-            margin: 0;
+        h1 {
             font-weight: 800;
             font-size: 3rem;
-            letter-spacing: -1.5px;
-            position: relative;
-            z-index: 1;
-        }
-
-        header p {
-            opacity: 0.95;
-            font-weight: 600;
-            margin-top: 15px;
-            font-size: 1.1rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        main {
-            max-width: 900px;
-            margin: -60px auto 80px;
-            background: var(--card-bg);
-            padding: 60px;
-            border-radius: 32px;
-            box-shadow: 0 40px 100px rgba(15, 18, 24, 0.08);
-            position: relative;
-            z-index: 10;
-        }
-
-        .meta-info {
-            display: inline-block;
-            background: #f0f3ff;
-            color: var(--accent);
-            padding: 8px 20px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            margin-bottom: 30px;
-        }
-
-        h2 {
-            color: var(--dark);
-            font-weight: 800;
-            font-size: 1.8rem;
-            margin-top: 50px;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-        }
-
-        h2::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 32px;
-            background: linear-gradient(to bottom, var(--primary), var(--accent));
-            border-radius: 4px;
-            margin-right: 15px;
-        }
-
-        h3 {
-            color: var(--dark);
-            margin-top: 35px;
-            font-weight: 700;
-            font-size: 1.3rem;
-        }
-
-        p, li {
-            font-size: 1.05rem;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        strong {
-            color: var(--dark);
-            font-weight: 700;
-        }
-
-        ul {
-            padding-left: 20px;
-            list-style: none;
-        }
-
-        ul li {
-            position: relative;
-            padding-left: 25px;
-            margin-bottom: 12px;
-        }
-
-        ul li::before {
-            content: '•';
-            position: absolute;
-            left: 0;
+            margin-bottom: 1rem;
             color: var(--primary);
-            font-weight: 900;
-            font-size: 1.2rem;
         }
-
-        code {
-            background: #f1f2f6;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-family: inherit;
-            color: var(--accent);
-            font-weight: 600;
+        p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
         }
-
-        hr {
-            border: 0;
-            height: 1px;
-            background: radial-gradient(circle, #eee 0%, transparent 100%);
-            margin: 60px 0;
+        .links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
-
-        .contact-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f9f9ff 100%);
-            padding: 40px;
-            border-radius: 24px;
-            border: 1px solid #eef0ff;
-            margin-top: 60px;
-            text-align: center;
-        }
-
-        .contact-card a {
+        .links a {
             color: var(--primary);
             text-decoration: none;
-            font-weight: 700;
-            border-bottom: 2px solid rgba(157, 80, 187, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .contact-card a:hover {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        footer {
-            text-align: center;
-            padding-bottom: 60px;
-            color: var(--text-muted);
-            font-size: 0.95rem;
             font-weight: 600;
+            padding: 10px 20px;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            transition: all 0.3s;
         }
-
-        footer span { color: #eb4d4b; }
-
-        @media (max-width: 768px) {
-            header { padding: 60px 20px; }
-            main { margin: -30px 15px 40px; padding: 35px 25px; border-radius: 24px; }
-            header h1 { font-size: 2.2rem; }
-            h2 { font-size: 1.4rem; }
+        .links a:hover {
+            background: var(--primary);
+            color: white;
+        }
+        footer {
+            margin-top: auto;
+            padding: 40px;
+            color: var(--text-muted);
         }
     </style>
 </head>
 <body>
-
-<header>
-    <h1>ServisLog+</h1>
-    <p>Teknologi Presisi untuk Manajemen Bengkel Modern</p>
-</header>
-
-<main>
-    <div class="meta-info">Terakhir Diperbarui: 14 April 2026</div>
-    
-    <h1>Kebijakan Privasi</h1>
-    <p>Selamat datang di <strong>ServisLog+</strong>. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda serta data pelanggan bengkel Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda saat Anda menggunakan aplikasi Android ServisLog+.</p>
-
-    <hr>
-
-    <h2>1. Informasi yang Kami Kumpulkan</h2>
-    <p>Kami mengumpulkan informasi untuk memberikan layanan manajemen bengkel yang efisien dan aman.</p>
-
-    <h3>A. Informasi Akun Pengguna (Pemilik Bengkel/Staff)</h3>
-    <ul>
-        <li><strong>Informasi Identitas:</strong> Nama lengkap, alamat email, dan identitas unik pengguna saat mendaftar melalui Firebase Authentication (termasuk Google Sign-In).</li>
-        <li><strong>Informasi Bengkel:</strong> Nama bengkel, alamat, nomor telepon bengkel, dan logo.</li>
-    </ul>
-
-    <h3>B. Data Pelanggan dan Kendaraan (Dikelola oleh Anda)</h3>
-    <p>Aplikasi ini memungkinkan Anda menyimpan data pihak ketiga (pelanggan Anda), yang meliputi:</p>
-    <ul>
-        <li><strong>Identitas Pelanggan:</strong> Nama dan nomor telepon.</li>
-        <li><strong>Informasi Kendaraan:</strong> Nomor plat (TNKB), merk, model, nomor rangka, dan riwayat servis.</li>
-        <li><strong>Catatan Transaksi:</strong> Detail layanan yang dilakukan, produk yang dibeli, harga, dan tanggal transaksi.</li>
-    </ul>
-
-    <h3>C. Informasi Teknis dan Perangkat</h3>
-    <ul>
-        <li><strong>Identitas Perangkat:</strong> Nama perangkat, model, dan ID unik perangkat (Fingerprint) untuk keperluan keamanan sesi dan lisensi.</li>
-        <li><strong>Data Log & Crash:</strong> Melalui Google Firebase Crashlytics, kami mengumpulkan laporan teknis jika terjadi kesalahan aplikasi guna meningkatkan stabilitas.</li>
-    </ul>
-
-    <h2>2. Bagaimana Kami Menggunakan Informasi Anda</h2>
-    <p>ServisLog+ menggunakan data yang dikumpulkan untuk:</p>
-    <ul>
-        <li><strong>Operasional Aplikasi:</strong> Mengelola inventaris, riwayat servis, dan pencatatan keuangan bengkel Anda.</li>
-        <li><strong>Sinkronisasi Awan:</strong> Memungkinkan Anda mengakses data dari berbagai perangkat secara real-time melalui layanan Cloud Firestore.</li>
-        <li><strong>Keamanan:</strong> Mencegah akses yang tidak sah melalui verifikasi perangkat dan sesi tunggal (Single Device Policy).</li>
-        <li><strong>Komunikasi:</strong> Mengirimkan nota atau bukti transaksi kepada pelanggan Anda melalui integrasi pihak ketiga (seperti WhatsApp).</li>
-    </ul>
-
-    <h2>3. Penyimpanan dan Keamanan Data</h2>
-    <p>Keamanan data adalah prioritas utama kami. Kami menerapkan standar industri untuk melindungi informasi Anda:</p>
-
-    <h3>A. Enkripsi Tingkat Tinggi & Zero-Knowledge</h3>
-    <p>Semua data sensitif dan PII (Personally Identifiable Information) dienkripsi menggunakan standar <strong>AES-256-GCM</strong> sebelum disimpan, baik di penyimpanan lokal maupun di awan. Kami menerapkan prinsip <strong>Zero-Knowledge Architecture</strong>, yang berarti kunci enkripsi dibuat dan disimpan secara eksklusif pada perangkat Anda. Kami (pengembang) tidak memiliki akses teknis untuk membaca atau memulihkan data transaksi dan pelanggan Anda.</p>
-
-    <h3>B. Penyimpanan Lokal dan Awan</h3>
-    <ul>
-        <li><strong>Lokal:</strong> Data disimpan di perangkat Anda menggunakan database <strong>ObjectBox</strong> yang berperforma tinggi.</li>
-        <li><strong>Awan (Cloud):</strong> Data disinkronkan ke <strong>Google Cloud Firestore</strong> dalam bentuk terenkripsi.</li>
-        <li><strong>Google Drive (Opsional):</strong> Jika Anda mengaktifkan fitur pencadangan ke Google Drive, aplikasi hanya akan mengakses folder khusus <code>appData</code>. Data cadangan ini tetap berada di akun Google pribadi Anda.</li>
-    </ul>
-
-    <h3>C. Keamanan Akses</h3>
-    <p>Aplikasi mendukung penguncian biometrik (sidik jari/wajah) dan PIN untuk mencegah akses fisik yang tidak sah ke data aplikasi di perangkat Anda.</p>
-
-    <h2>4. Berbagi Informasi dengan Pihak Ketiga</h2>
-    <p>Kami tidak menjual data Anda kepada pihak ketiga. Kami hanya berbagi informasi dengan penyedia layanan yang membantu operasional aplikasi:</p>
-    <ul>
-        <li><strong>Google Firebase:</strong> Untuk otentikasi, penyimpanan basis data, dan laporan <em>crash</em>.</li>
-        <li><strong>WhatsApp:</strong> Saat Anda membagikan nota digital ke pelanggan.</li>
-    </ul>
-
-    <h2>5. Hak Anda atas Data</h2>
-    <p>Anda memiliki kontrol penuh atas data Anda:</p>
-    <ul>
-        <li><strong>Akses dan Koreksi:</strong> Anda dapat melihat dan mengubah semua data kapan saja melalui menu aplikasi.</li>
-        <li><strong>Penghapusan Data (Logout):</strong> Saat Anda keluar dan menghapus sesi, kunci enkripsi akan dihapus dari perangkat.</li>
-        <li><strong>Penghapusan Akun:</strong> Anda dapat meminta penghapusan akun permanen dari server Cloud Firestore kami.</li>
-    </ul>
-
-    <div class="contact-card">
-        <h2>Kontak Kami</h2>
-        <p>Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami melalui:</p>
-        <p><strong>Email:</strong> <a href="mailto:support.servislog@gmail.com">support.servislog@gmail.com</a></p>
+    <div class="container">
+        <h1>ServisI/O</h1>
+        <p>Teknologi Presisi untuk Manajemen Bengkel Modern</p>
+        <div class="links">
+            <a href="privacy.html">Kebijakan Privasi</a>
+            <a href="terms.html">Syarat & Ketentuan</a>
+            <a href="faq.html">Bantuan & FAQ</a>
+        </div>
     </div>
-</main>
-
-<footer>
-    <p>&copy; 2026 ServisLog+ | Dibuat dengan <span>&hearts;</span> oleh Precision Mechanic Team</p>
-</footer>
-
+    <footer>
+        &copy; 2026 ServisI/O Platforms. All rights reserved.
+    </footer>
 </body>
 </html>

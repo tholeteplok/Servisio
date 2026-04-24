@@ -8,9 +8,8 @@ import '../providers/objectbox_provider.dart';
 import '../../domain/entities/staff.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/service_master.dart';
-
-import 'package:flutter/foundation.dart';
 import 'encryption_service.dart';
+import '../utils/app_logger.dart';
 
 class BackupService {
   final ObjectBoxProvider _db;
@@ -186,7 +185,7 @@ class BackupService {
       ], text: isEncrypted ? '🔐 ServisLog+ Secure Backup' : 'ServisLog+ Data Backup');
       return dateStr;
     } catch (e) {
-      debugPrint('Backup Export Error: $e');
+      appLogger.error('Backup Export Error', context: 'BackupService', error: e);
       rethrow;
     }
   }
@@ -233,7 +232,7 @@ class BackupService {
 
       return data;
     } catch (e) {
-      debugPrint('Backup Import Error: $e');
+      appLogger.error('Backup Import Error', context: 'BackupService', error: e);
       rethrow;
     }
   }

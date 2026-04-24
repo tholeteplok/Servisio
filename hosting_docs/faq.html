@@ -3,210 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pusat Bantuan & FAQ - ServisLog+</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Bantuan & FAQ - ServisI/O</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #9d50bb;
-            --secondary: #6e48aa;
-            --dark: #0f1218;
-            --light: #f8f9fa;
-            --accent: #6c5ce7;
-            --text-main: #2d3436;
-            --text-muted: #636e72;
-            --card-bg: #ffffff;
-            --border: #edf2f7;
+            --primary: #2563eb;
+            --surface: #f8fafc;
+            --text: #1e293b;
+            --text-muted: #64748b;
         }
-
-        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            line-height: 1.7;
-            color: var(--text-main);
-            background-color: var(--light);
+            background-color: var(--surface);
+            color: var(--text);
+            line-height: 1.6;
             margin: 0;
             padding: 0;
         }
-
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 100px 20px;
-            text-align: center;
-            position: relative;
+        .container {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
         }
-
-        header h1 {
-            margin: 0;
+        h1 {
             font-weight: 800;
-            font-size: 3rem;
-            letter-spacing: -1.5px;
-        }
-
-        header p {
-            opacity: 0.95;
-            font-weight: 600;
-            margin-top: 15px;
-            font-size: 1.1rem;
-        }
-
-        main {
-            max-width: 900px;
-            margin: -60px auto 80px;
-            background: var(--card-bg);
-            padding: 60px;
-            border-radius: 32px;
-            box-shadow: 0 40px 100px rgba(15, 18, 24, 0.08);
-        }
-
-        .faq-section {
-            margin-top: 50px;
-        }
-
-        .category-title {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
             color: var(--primary);
-            font-size: 1rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
         }
-
-        .category-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-            margin-left: 20px;
-        }
-
         .faq-item {
-            margin-bottom: 30px;
-            padding-bottom: 30px;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 16px;
         }
-
-        .faq-item:last-child {
-            border-bottom: none;
-        }
-
         .question {
             font-weight: 800;
-            font-size: 1.25rem;
-            color: var(--dark);
-            margin-bottom: 15px;
-            letter-spacing: -0.3px;
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
         }
-
         .answer {
             color: var(--text-muted);
-            font-size: 1.05rem;
-            font-weight: 500;
         }
-
-        .important-note {
-            background: #fff5f5;
-            padding: 25px;
-            border-radius: 20px;
-            border-left: 5px solid #ff7675;
-            margin-top: 15px;
-        }
-
-        .important-note strong {
-            color: #d63031;
-            display: block;
-            margin-bottom: 5px;
-        }
-
         footer {
             text-align: center;
-            padding-bottom: 60px;
+            margin-top: 40px;
+            padding: 20px;
             color: var(--text-muted);
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-
-        @media (max-width: 768px) {
-            header { padding: 60px 20px; }
-            main { margin: -30px 15px 40px; padding: 35px 25px; border-radius: 24px; }
-            header h1 { font-size: 2.2rem; }
-            .question { font-size: 1.1rem; }
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
-
-<header>
-    <h1>Pusat Bantuan</h1>
-    <p>Solusi dan Jawaban untuk Manajemen Bengkel Anda</p>
-</header>
-
-<main>
-    <div class="faq-section">
-        <div class="category-title">🛡️ Keamanan & Privasi</div>
+    <div class="container">
+        <h1>Bantuan & FAQ</h1>
         
         <div class="faq-item">
-            <div class="question">1. Apakah data bengkel saya aman?</div>
-            <div class="answer"> Ya, ServisLog+ menggunakan arsitektur <strong>Zero-Knowledge</strong>. Data Anda dienkripsi secara lokal menggunakan kunci khusus (Master Password) yang hanya Anda yang tahu. Bahkan kami sebagai pengembang tidak dapat melihat detail transaksi atau data pelanggan Anda di server.</div>
+            <span class="question">Apa itu ServisI/O?</span>
+            <p class="answer">ServisI/O adalah platform manajemen bengkel profesional yang membantu Anda mengelola transaksi, inventaris, dan pelanggan dalam satu aplikasi laptop/mobile.</p>
         </div>
 
         <div class="faq-item">
-            <div class="question">2. Bagaimana jika saya lupa Master Password?</div>
-            <div class="answer">
-                <div class="important-note">
-                    <strong>PENTING:</strong> Karena sistem kami bersifat Zero-Knowledge, kami tidak menyimpan salinan Master Password Anda. Jika Anda lupa, kami tidak bisa meresetnya. Sangat disarankan untuk menyimpan Master Password di tempat yang aman (seperti Password Manager atau catatan fisik).
-                </div>
-            </div>
+            <span class="question">Apakah data saya aman di Cloud?</span>
+            <p class="answer">Ya. Semua data dienkripsi menggunakan AES-256-GCM. Kami tidak memiliki akses ke data tersebut karena kunci enkripsi hanya ada di perangkat Anda (Zero-Knowledge).</p>
+        </div>
+
+        <div class="faq-item">
+            <span class="question">Bagaimana jika saya ganti HP?</span>
+            <p class="answer">Anda bisa memulihkan data melalui fitur Sync Cloud dengan masuk menggunakan akun Google yang sama. Pastikan Anda mengingat PIN keamanan Anda.</p>
         </div>
     </div>
-
-    <div class="faq-section">
-        <div class="category-title">☁️ Sinkronisasi & Data</div>
-        
-        <div class="faq-item">
-            <div class="question">3. Apakah aplikasi bisa digunakan tanpa internet?</div>
-            <div class="answer">Bisa. ServisLog+ didesain dengan prinsip <strong>Offline-First</strong>. Anda tetap bisa menginput transaksi saat tidak ada sinyal. Data akan secara otomatis disinkronkan ke Cloud saat perangkat kembali terhubung ke internet.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="question">4. Bagaimana cara menyambungkan HP staf ke data bengkel?</div>
-            <div class="answer">Pemilik bengkel dapat membagikan <strong>Bengkel ID</strong> (ID Unik) dan <strong>Master Password</strong> kepada staf. Staf kemudian memilih menu "Gabung Bengkel" dan memasukkan kredensial tersebut untuk mengakses data yang sama secara real-time.</div>
-        </div>
-    </div>
-
-    <div class="faq-section">
-        <div class="category-title">🛠️ Operasional & Fitur</div>
-        
-        <div class="faq-item">
-            <div class="question">5. Printer apa yang didukung untuk cetak struk?</div>
-            <div class="answer">ServisLog+ mendukung sebagian besar <strong>Bluetooth Thermal Printer</strong> dengan ukuran kertas 58mm atau 80mm. Pastikan Bluetooth perangkat Anda aktif dan printer sudah dipasangkan (paired) di pengaturan Bluetooth Android.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="question">6. Bagaimana cara mengirim struk lewat WhatsApp?</div>
-            <div class="answer">Pada detail transaksi, klik ikon WhatsApp. Aplikasi akan membuka WhatsApp dan menyiapkan teks invoice beserta link/file struk (jika tersedia) untuk dikirim ke nomor pelanggan secara otomatis.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="question">7. Apakah saya bisa melakukan backup manual?</div>
-            <div class="answer">Ya. Di menu <strong>Pengaturan > Backup & Restore</strong>, Anda bisa membuat file cadangan lokal (.json yang terenkripsi) dan menyimpannya di Google Drive pribadi atau penyimpanan internal HP.</div>
-        </div>
-    </div>
-
-    <div class="faq-section" style="margin-top: 80px; text-align: center; border-top: 1px solid var(--border); padding-top: 40px;">
-        <h3>Masih memiliki pertanyaan?</h3>
-        <p>Hubungi tim dukungan kami melalui email di <a href="mailto:support.servislog@gmail.com" style="color: var(--primary); font-weight: 700;">support.servislog@gmail.com</a></p>
-    </div>
-</main>
-
-<footer>
-    <p>&copy; 2026 ServisLog+ | Keandalan & Presisi</p>
-</footer>
-
+    <footer>
+        &copy; 2026 ServisI/O Platforms. All rights reserved.
+    </footer>
 </body>
 </html>

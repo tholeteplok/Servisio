@@ -11,6 +11,7 @@ class SyncStatusIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(syncStatusProvider);
+    final summary = ref.watch(syncQueueSummaryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget icon;
@@ -28,7 +29,7 @@ class SyncStatusIndicator extends ConsumerWidget {
           ),
         );
         color = const Color(0xFF7C3AED);
-        tooltip = 'Menyinkronkan data...';
+        tooltip = 'Menyinkronkan data... (${summary['syncing']} aktif)';
         break;
       case SyncWorkerState.success:
         icon = const Icon(
@@ -39,6 +40,15 @@ class SyncStatusIndicator extends ConsumerWidget {
         color = const Color(0xFF10B981);
         tooltip = 'Data tersinkronisasi';
         break;
+      case SyncWorkerState.warning:
+        icon = const Icon(
+          SolarIconsBold.infoCircle,
+          size: 16,
+          color: Colors.amber,
+        );
+        color = Colors.amber;
+        tooltip = '${summary['pending']} item menunggu antrean';
+        break;
       case SyncWorkerState.error:
         icon = const Icon(
           SolarIconsBold.dangerCircle,
@@ -46,7 +56,7 @@ class SyncStatusIndicator extends ConsumerWidget {
           color: Colors.redAccent,
         );
         color = Colors.redAccent;
-        tooltip = 'Gagal menyinkronkan data';
+        tooltip = '${summary['failed']} item gagal sinkronisasi';
         break;
       case SyncWorkerState.idle:
         icon = Icon(

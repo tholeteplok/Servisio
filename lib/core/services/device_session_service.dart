@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 import 'encryption_service.dart';
+import '../utils/app_logger.dart';
 
 // ──────────────────────────────────────────────────────────────
 // DATA MODEL
@@ -114,7 +115,7 @@ class DeviceSessionService {
         osVersion = '${info.systemName} ${info.systemVersion}';
       }
     } catch (e) {
-      debugPrint('⚠️ DeviceInfo fetch error: $e');
+      appLogger.warning('DeviceInfo fetch error', context: 'DeviceSessionService', error: e);
     }
 
     return DeviceInfo(
@@ -141,9 +142,9 @@ class DeviceSessionService {
       }
       
       await _firestore.collection('users').doc(userId).update(updateData);
-      debugPrint('💓 Heartbeat synced for $userId');
+      appLogger.info('Heartbeat synced', context: 'DeviceSessionService');
     } catch (e) {
-      debugPrint('⚠️ Heartbeat sync error: $e');
+      appLogger.warning('Heartbeat sync error', context: 'DeviceSessionService', error: e);
     }
   }
 
@@ -177,9 +178,9 @@ class DeviceSessionService {
         'pendingRemoteWipe': false,
       }, SetOptions(merge: true));
 
-      debugPrint('📱 Device registered: ${info.model} (${info.deviceId})');
+      appLogger.info('Device registered: ${info.model}', context: 'DeviceSessionService');
     } catch (e) {
-      debugPrint('❌ registerDevice error: $e');
+      appLogger.error('registerDevice error', context: 'DeviceSessionService', error: e);
     }
   }
 
@@ -232,9 +233,9 @@ class DeviceSessionService {
       await _firestore.collection('users').doc(userId).set({
         'pendingRemoteWipe': true,
       }, SetOptions(merge: true));
-      debugPrint('💣 Remote wipe requested for user: $userId');
+      appLogger.warning('Remote wipe requested', context: 'DeviceSessionService');
     } catch (e) {
-      debugPrint('❌ requestRemoteWipe error: $e');
+      appLogger.error('requestRemoteWipe error', context: 'DeviceSessionService', error: e);
     }
   }
 
@@ -254,7 +255,7 @@ class DeviceSessionService {
       // Jika reload berhasil dan user masih ada, cek apakah statusnya berubah (jarang terjadi di reload, biasanya throw)
       return false; 
     } on FirebaseAuthException catch (e) {
-      debugPrint('🛡️ Verification check: ${e.code}');
+      appLogger.info('Verification check: ${e.code}', context: 'DeviceSessionService');
       // Handle confirmed revocation codes
       if (e.code == 'user-disabled' || 
           e.code == 'user-not-found' || 
@@ -264,7 +265,7 @@ class DeviceSessionService {
       // Network error atau lainnya -> Jangan wipe (Safe Stop)
       return false;
     } catch (e) {
-      debugPrint('🛡️ Unexpected verification error: $e');
+      appLogger.warning('Unexpected verification error', context: 'DeviceSessionService', error: e);
       return false;
     }
   }
@@ -277,7 +278,7 @@ class DeviceSessionService {
   }) async {
     // 1. Set global state & Stop workers
     onWipeStarted();
-    debugPrint('☢️ NUCLEAR SEQUENCE INITIATED');
+    appLogger.warning('Nuclear sequence initiated', context: 'DeviceSessionService');
 
     // 2. Buffer & Final Check (Optional logic here)
     await Future.delayed(const Duration(seconds: 2));
@@ -285,16 +286,16 @@ class DeviceSessionService {
     try {
       // 3. Close ObjectBox Store (Critical step)
       await onCloseDatabase();
-      debugPrint('☢️ Step 3: ObjectBox closed');
+      appLogger.info('Step 3: ObjectBox closed', context: 'DeviceSessionService');
 
       // 4. Delete Database Directory
       await executeLocalWipe();
-      debugPrint('☢️ Step 4 & 5: Local data wiped');
+      appLogger.info('Step 4 & 5: Local data wiped', context: 'DeviceSessionService');
 
       // 5. Clear Secure Storage (Additional wipe)
       // SEC-01 FIX: Gunakan centralized clearSecureStorage dari EncryptionService.
       await _encryption.clearSecureStorage();
-      debugPrint('☢️ Step 6: Secure storage cleared');
+      appLogger.info('Step 6: Secure storage cleared', context: 'DeviceSessionService');
 
       // 6. Clear Auth Session in Firestore (Explicitly reset active state)
       final user = _auth.currentUser;
@@ -303,17 +304,17 @@ class DeviceSessionService {
           'activeDeviceId': FieldValue.delete(),
           'activeDeviceInfo': FieldValue.delete(),
         });
-        debugPrint('☢️ Step 7: Firestore active session cleared');
+        appLogger.info('Step 7: Firestore active session cleared', context: 'DeviceSessionService');
       }
 
       // 7. Auth Sign Out
       await _auth.signOut();
-      debugPrint('☢️ Step 8: FirebaseAuth signed out');
+      appLogger.info('Step 8: FirebaseAuth signed out', context: 'DeviceSessionService');
 
-      debugPrint('☢️ NUCLEAR SEQUENCE COMPLETE');
+      appLogger.info('Nuclear sequence complete', context: 'DeviceSessionService');
       await onComplete();
     } catch (e) {
-      debugPrint('❌ Nuclear sequence error: $e');
+      appLogger.error('Nuclear sequence error', context: 'DeviceSessionService', error: e);
       // Tetap paksa logout sekalipun wipe parsial gagal
       await _auth.signOut();
       await onComplete();
@@ -333,14 +334,14 @@ class DeviceSessionService {
   /// TIDAK menghapus foto/media yang tersimpan di Gallery publik.
   Future<void> executeLocalWipe() async {
     try {
-      debugPrint('🗑️ Executing local data wipe...');
+      appLogger.info('Executing local data wipe...', context: 'DeviceSessionService');
 
       // 1. Hapus folder ObjectBox (biasanya di documents/objectbox/)
       final docsDir = await getApplicationDocumentsDirectory();
       final objectboxDir = Directory('${docsDir.path}/objectbox');
       if (await objectboxDir.exists()) {
         await objectboxDir.delete(recursive: true);
-        debugPrint('✅ ObjectBox database wiped');
+        appLogger.info('ObjectBox database wiped', context: 'DeviceSessionService');
       }
 
       // 2. Hapus SharedPreferences (kecuali deviceId, agar masih terlacak)
@@ -352,9 +353,9 @@ class DeviceSessionService {
         await prefs.setString(_deviceIdKey, myDeviceId);
       }
 
-      debugPrint('✅ Local wipe complete');
+      appLogger.info('Local wipe complete', context: 'DeviceSessionService');
     } catch (e) {
-      debugPrint('❌ executeLocalWipe error: $e');
+      appLogger.error('executeLocalWipe error', context: 'DeviceSessionService', error: e);
     }
   }
 
@@ -372,7 +373,7 @@ class DeviceSessionService {
 
       return DeviceInfo.fromFirestore(data);
     } catch (e) {
-      debugPrint('❌ getActiveDeviceInfo error: $e');
+      appLogger.error('getActiveDeviceInfo error', context: 'DeviceSessionService', error: e);
       return null;
     }
   }
@@ -385,7 +386,7 @@ class DeviceSessionService {
         'pendingRemoteWipe': false,
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('❌ clearWipeFlag error: $e');
+      appLogger.error('clearWipeFlag error', context: 'DeviceSessionService', error: e);
     }
   }
 }

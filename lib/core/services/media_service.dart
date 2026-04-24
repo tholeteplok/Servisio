@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import '../utils/app_logger.dart';
 
 class MediaService {
   final ImagePicker _picker = ImagePicker();
@@ -38,10 +38,10 @@ class MediaService {
       final file = File(path);
       if (await file.exists()) {
         await file.delete();
-        debugPrint('🧹 Cleaned up temp file: $path');
+        appLogger.debug('Cleaned up temp file', context: 'MediaService');
       }
     } catch (e) {
-      debugPrint('Failed to cleanup temp file: $e');
+      appLogger.warning('Failed to cleanup temp file', context: 'MediaService', error: e);
     }
   }
 

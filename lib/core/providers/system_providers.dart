@@ -7,7 +7,6 @@ import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 
 import '../services/encryption_service.dart';
 import '../services/bengkel_service.dart';
@@ -23,6 +22,7 @@ import '../models/user_profile.dart';
 import '../constants/app_settings.dart';
 import 'objectbox_provider.dart';
 import 'pengaturan_provider.dart';
+import '../utils/app_logger.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🏗️ Base Infrastructure Providers
@@ -189,7 +189,7 @@ final authStateProvider = StreamProvider<AuthStateContainer>((ref) async* {
         }
       }
     } catch (e) {
-      debugPrint('Auth State Error: $e');
+      appLogger.error('Auth State Error', context: 'SystemProviders', error: e);
       yield AuthStateContainer(state: AuthState.unauthenticated, isError: true, errorMessage: e.toString());
     }
   }

@@ -60,3 +60,11 @@ app.*.map.json
 # Sensitive Configs
 google-services.json
 **/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# Android Signing — JANGAN commit keystore atau key.properties
+*.jks
+*.keystore
+android/key.properties
+android/KEYSTORE_INFO.md

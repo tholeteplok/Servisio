@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'encryption_service.dart';
+import '../utils/app_logger.dart';
 
 /// Checkpoint state untuk migrasi yang bisa di-resume.
 class MigrationCheckpoint {
@@ -33,7 +33,7 @@ class MigrationService {
   /// Menggunakan checkpoint system sehingga migrasi yang terputus bisa dilanjutkan.
   Future<void> migrateToEncryption(String bengkelId) async {
     try {
-      debugPrint('🛡️ Starting Atomic Migration for Bengkel: $bengkelId');
+      appLogger.info('Starting Atomic Migration for Bengkel: $bengkelId', context: 'MigrationService');
 
       final checkpoint = await _getCheckpoint(bengkelId);
 
@@ -67,10 +67,9 @@ class MigrationService {
       // Mark entire migration as complete
       await _saveCheckpoint(bengkelId, completed: true);
 
-      debugPrint('✅ Migration Completed Successfully for $bengkelId');
+      appLogger.info('Migration Completed Successfully for $bengkelId', context: 'MigrationService');
     } catch (e, stack) {
-      debugPrint('❌ Migration Error: $e');
-      debugPrint(stack.toString());
+      appLogger.error('Migration Error', context: 'MigrationService', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -87,11 +86,11 @@ class MigrationService {
   }) async {
     // Skip jika collection ini sudah selesai di run sebelumnya
     if (checkpoint.isCompleted(collection)) {
-      debugPrint('🛡️ Skipping $entityName (already completed in checkpoint)');
+      appLogger.info('Skipping $entityName (already completed in checkpoint)', context: 'MigrationService');
       return;
     }
 
-    debugPrint('🛡️ Migrating $entityName...');
+    appLogger.info('Migrating $entityName...', context: 'MigrationService');
 
     // Fetch hanya docs yang belum di-encrypt, max 500 per iterasi
     final snapshot = await _firestore
@@ -105,11 +104,11 @@ class MigrationService {
     if (snapshot.docs.isEmpty) {
       // Tidak ada lagi docs yang perlu dimigrasikan — tandai selesai
       await _saveCheckpoint(bengkelId, collection: collection, isCollectionCompleted: true);
-      debugPrint('✅ $entityName migration complete (no unencrypted docs remaining)');
+      appLogger.info('$entityName migration complete (no unencrypted docs remaining)', context: 'MigrationService');
       return;
     }
 
-    debugPrint('🛡️ Processing ${snapshot.docs.length} $entityName docs...');
+    appLogger.info('Processing ${snapshot.docs.length} $entityName docs...', context: 'MigrationService');
 
     final batch = _firestore.batch();
     for (var doc in snapshot.docs) {
@@ -166,7 +165,7 @@ class MigrationService {
         processedCounts: counts,
       );
     } catch (e) {
-      debugPrint('⚠️ Failed to read migration checkpoint: $e');
+      appLogger.warning('Failed to read migration checkpoint', context: 'MigrationService', error: e);
       return const MigrationCheckpoint();
     }
   }

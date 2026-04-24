@@ -75,6 +75,8 @@ class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMas
     state = AsyncData(repository.getAll());
   }
 
+  void refresh() => _init();
+
   Future<void> addItem(ServiceMaster item) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
