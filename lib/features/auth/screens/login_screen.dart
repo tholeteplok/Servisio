@@ -7,6 +7,8 @@ import '../../../core/models/user_profile.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_logger.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +20,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  bool _isAgreed = false;
   String? _error;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -245,6 +248,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   const SizedBox(height: 24),
                 ],
 
+                // Terms of Service Checkbox
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _isAgreed,
+                          activeColor: AppColors.precisionViolet,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _isAgreed = val ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: isDark ? Colors.white54 : Colors.black54,
+                              height: 1.4,
+                            ),
+                            children: [
+                              TextSpan(text: AppStrings.auth.acceptTermsPrefix),
+                              TextSpan(
+                                text: AppStrings.auth.termsOfService,
+                                style: const TextStyle(
+                                  color: AppColors.precisionViolet,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () async {
+                                    final url = Uri.parse('https://servisio.id/terms');
+                                    if (await canLaunchUrl(url)) {
+                                      await launchUrl(url);
+                                    }
+                                  },
+                              ),
+                              TextSpan(text: AppStrings.auth.and),
+                              TextSpan(
+                                text: AppStrings.auth.privacyPolicy,
+                                style: const TextStyle(
+                                  color: AppColors.precisionViolet,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () async {
+                                    final url = Uri.parse('https://servisio.id/privacy');
+                                    if (await canLaunchUrl(url)) {
+                                      await launchUrl(url);
+                                    }
+                                  },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+
                 // Authentication Action
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -252,7 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     width: double.infinity,
                     height: 60,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signIn,
+                      onPressed: (_isLoading || !_isAgreed) ? null : _signIn,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.precisionViolet,
                         foregroundColor: Colors.white,

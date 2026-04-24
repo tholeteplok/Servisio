@@ -131,6 +131,12 @@ class AuthStrings {
   final idAvailable = 'ID tersedia';
   final idUnavailable = 'ID sudah digunakan';
   final registerNow = 'Daftarkan Sekarang';
+  
+  final acceptTermsPrefix = 'Saya menyetujui ';
+  final termsOfService = 'Syarat Penggunaan';
+  final privacyPolicy = 'Kebijakan Privasi';
+  final and = ' & ';
+  final mustAcceptTerms = 'Harap setujui Syarat Penggunaan untuk melanjutkan';
 }
 
 class HomeStrings {
