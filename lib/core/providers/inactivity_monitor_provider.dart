@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/encryption_service.dart';
 import 'system_providers.dart';
 import 'pengaturan_provider.dart';
 import '../utils/app_logger.dart';
@@ -55,7 +54,7 @@ class InactivityMonitor extends WidgetsBindingObserver {
   void _lockApp(int duration) {
     appLogger.warning('Auto-lock triggered (${duration}m inactivity)', context: 'InactivityMonitor');
     // Clearing the in-memory encrypter will force AuthGate to show UnlockScreen
-    EncryptionService().lock();
+    _ref.read(encryptionServiceProvider).lock();
     
     // We need to trigger a rebuild of the AuthGate. 
     // Invalidating authStateProvider is a clean way to force a re-check.

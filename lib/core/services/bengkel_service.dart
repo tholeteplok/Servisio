@@ -15,7 +15,7 @@ class BengkelService {
     EncryptionService? encryption,
     DeviceSessionService? deviceSession,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _encryption = encryption ?? EncryptionService(),
+        _encryption = encryption!,
         _deviceSession = deviceSession ?? DeviceSessionService();
 
   /// Generate unique BengkelID dengan prefix dari nama bengkel.

@@ -81,7 +81,7 @@ class DeviceSessionService {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance,
         _deviceInfoPlugin = deviceInfoPlugin ?? DeviceInfoPlugin(),
-        _encryption = encryption ?? EncryptionService();
+        _encryption = encryption!;
 
   // ── Device ID (persistent per install) ─────────────────────
 

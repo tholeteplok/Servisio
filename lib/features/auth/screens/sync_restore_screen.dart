@@ -5,7 +5,6 @@ import 'package:lottie/lottie.dart';
 import '../../../core/services/firestore_sync_service.dart';
 import '../../../core/services/sync_worker.dart';
 import '../../../core/providers/objectbox_provider.dart';
-import '../../../core/services/encryption_service.dart';
 import '../../../core/providers/system_providers.dart';
 import '../../../core/utils/app_logger.dart';
 
@@ -47,8 +46,11 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
     });
 
     try {
-      final syncService = FirestoreSyncService();
-      final encryption = EncryptionService();
+      final syncService = FirestoreSyncService(
+        firestore: ref.read(firestoreProvider),
+        encryption: ref.read(encryptionServiceProvider),
+      );
+      final encryption = ref.read(encryptionServiceProvider);
       final db = ref.read(dbProvider);
 
       // Guard: Pastikan EncryptionService sudah siap sebelum menarik data
@@ -60,8 +62,13 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         });
         await encryption.init();
         if (!encryption.isInitialized) {
+          appLogger.warning('Encryption not ready during restore, attempting init...', context: 'SyncRestoreScreen');
+          await encryption.init();
+        }
+        
+        if (!encryption.isInitialized) {
           throw Exception(
-            'Kunci enkripsi tidak tersedia. Pastikan PIN Workshop sudah dimasukkan dengan benar sebelum memulihkan data.',
+            'Kunci enkripsi tidak tersedia (Session Expired). Silakan logout dan login kembali untuk memulihkan kunci.',
           );
         }
       }

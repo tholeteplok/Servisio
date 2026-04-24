@@ -40,7 +40,7 @@ class BiometricService {
               iOptions: IOSOptions(
                   accessibility: KeychainAccessibility.first_unlock_this_device),
             ),
-        _encryptionService = encryptionService ?? EncryptionService();
+        _encryptionService = encryptionService!;
 
   static const _pinKey = 'biometric_pin';
   static const _failureCountKey = 'biometric_fail_count';

@@ -55,7 +55,7 @@ class FirestoreSyncService {
     FirebaseFirestore? firestore,
     EncryptionService? encryption,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _encryption = encryption ?? EncryptionService();
+        _encryption = encryption!;
 
   // ===== IDEMPOTENCY HELPERS =====
 
