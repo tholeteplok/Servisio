@@ -28,13 +28,18 @@ class FAQScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildFAQItem(
                     context,
-                    'Apakah data saya benar-benar aman?',
-                    'Ya, ServisLog+ menggunakan arsitektur Zero-Knowledge. Data dienkripsi secara lokal di HP Anda menggunakan Master Password sebelum dikirim ke Cloud.',
+                    'Apakah data bisa dipulihkan jika HP ganti/install ulang?',
+                    'YA, data Anda tetap aman dan dapat dipulihkan sepenuhnya baik di perangkat yang sama maupun perangkat baru, selama Akun Google dan PIN yang digunakan tetap sama.',
                   ),
                   _buildFAQItem(
                     context,
-                    'Bagaimana jika saya lupa Master Password?',
-                    'Kami tidak menyimpan salinan Master Password Anda. Jika lupa, data tidak dapat dipulihkan. Pastikan Anda mencatatnya di tempat yang aman.',
+                    'Bagaimana alur keamanan ServisLog?',
+                    '1. Data Lokal: Disimpan di HP untuk kecepatan.\n2. Cloud Encryption: Data disinkronkan ke Google Cloud dalam kondisi terenkripsi (acak). Tidak ada yang bisa membacanya tanpa kunci Anda.\n3. PIN Power: Saat install ulang, aplikasi menarik "Kunci Terbungkus" dari Cloud. PIN Anda digunakan untuk membuka kunci tersebut di memori (RAM) untuk mendekripsi data.',
+                  ),
+                  _buildFAQItem(
+                    context,
+                    'Apa risiko jika saya lupa PIN?',
+                    'Ini adalah risiko terbesar. Karena sistem arsitektur Zero-Knowledge, jika Anda lupa PIN, kunci pembuka data hilang selamanya. Kami tidak menyimpan kunci cadangan demi privasi Anda.',
                   ),
                   const SizedBox(height: 24),
                   _buildSectionLabel(context, 'SINKRONISASI'),
