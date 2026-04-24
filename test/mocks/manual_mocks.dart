@@ -33,6 +33,8 @@ import 'package:servisio_core/domain/entities/stok_history.dart';
 import 'package:servisio_core/domain/entities/service_master.dart';
 import 'package:servisio_core/domain/entities/sync_queue_item.dart';
 import 'package:servisio_core/domain/entities/sale.dart';
+import 'package:servisio_core/domain/entities/expense.dart';
+import 'package:servisio_core/domain/entities/debt_payment.dart';
 import 'package:servisio_core/core/services/firestore_sync_service.dart';
 import 'package:servisio_core/objectbox.g.dart';
 
@@ -337,6 +339,10 @@ class FakeObjectBoxProvider extends Fake implements ObjectBoxProvider {
   Box<StokHistory> get stokHistoryBox => fakeStore.box<StokHistory>();
   @override
   Box<Sale> get saleBox => fakeStore.box<Sale>();
+  @override
+  Box<Expense> get expenseBox => fakeStore.box<Expense>();
+  @override
+  Box<DebtPayment> get debtPaymentBox => fakeStore.box<DebtPayment>();
   
   // ServiceMaster is often accessed via Box<ServiceMaster>(db.store)
   Box<ServiceMaster> get serviceMasterBox => fakeStore.box<ServiceMaster>();

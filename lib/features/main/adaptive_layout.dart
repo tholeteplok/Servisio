@@ -595,37 +595,36 @@ class _CompactLayoutState extends State<_CompactLayout> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: widget.currentIndex == 0 
-            ? 'Aksi Cepat' 
-            : widget.currentIndex == 1 
-                ? 'Tambah Katalog' 
-                : widget.currentIndex == 2 
-                    ? 'Tambah Pelanggan' 
-                    : 'Cari Riwayat',
-        onPressed: () {
-          switch (widget.currentIndex) {
-            case 0:
-              setState(() => _isMenuExpanded = !_isMenuExpanded);
-              break;
-            case 1:
-              widget.onCreateBarang();
-              break;
-            case 2:
-              widget.onCreatePelanggan();
-              break;
-            case 3:
-              setState(() => _isHistoryMenuExpanded = !_isHistoryMenuExpanded);
-              break;
-          }
-        },
-        backgroundColor: (_isMenuExpanded || _isHistoryMenuExpanded)
-            ? Colors.grey
-            : Theme.of(context).colorScheme.primary,
-        elevation: (widget.currentIndex == 3 && widget.ref.watch(historyActiveTabProvider) == 0) ? 0 : 6,
-        child: (widget.currentIndex == 3 && widget.ref.watch(historyActiveTabProvider) == 0)
-            ? const SizedBox.shrink()
-            : AnimatedSwitcher(
+      floatingActionButton: (widget.currentIndex == 3 && widget.ref.watch(historyActiveTabProvider) == 0)
+          ? null
+          : FloatingActionButton(
+              tooltip: widget.currentIndex == 0
+                  ? 'Aksi Cepat'
+                  : widget.currentIndex == 1
+                      ? 'Tambah Katalog'
+                      : widget.currentIndex == 2
+                          ? 'Tambah Pelanggan'
+                          : 'Cari Riwayat',
+              onPressed: () {
+                switch (widget.currentIndex) {
+                  case 0:
+                    setState(() => _isMenuExpanded = !_isMenuExpanded);
+                    break;
+                  case 1:
+                    widget.onCreateBarang();
+                    break;
+                  case 2:
+                    widget.onCreatePelanggan();
+                    break;
+                  case 3:
+                    setState(() => _isHistoryMenuExpanded = !_isHistoryMenuExpanded);
+                    break;
+                }
+              },
+              backgroundColor: (_isMenuExpanded || _isHistoryMenuExpanded)
+                  ? Colors.grey
+                  : Theme.of(context).colorScheme.primary,
+              child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 transitionBuilder: (child, animation) => ScaleTransition(
                   scale: animation,
@@ -637,7 +636,7 @@ class _CompactLayoutState extends State<_CompactLayout> {
                   ref: widget.ref,
                 ),
               ),
-      ),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _BottomBar(
         currentIndex: widget.currentIndex,

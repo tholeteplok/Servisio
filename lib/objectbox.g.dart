@@ -1366,6 +1366,10 @@ final _entities = <obx_int.ModelEntity>[
       relations: <obx_int.ModelRelation>[],
       backlinks: <obx_int.ModelBacklink>[
         obx_int.ModelBacklink(
+            name: 'repayments',
+            srcEntity: 'Expense',
+            srcField: 'parentExpense'),
+        obx_int.ModelBacklink(
             name: 'debtPayments', srcEntity: 'DebtPayment', srcField: 'expense')
       ])
 ];
@@ -2703,6 +2707,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
         toOneRelations: (Expense object) =>
             [object.supplier, object.parentExpense],
         toManyRelations: (Expense object) => {
+              obx_int.RelInfo<Expense>.toOneBacklink(20, object.id,
+                      (Expense srcObject) => srcObject.parentExpense):
+                  object.repayments,
               obx_int.RelInfo<DebtPayment>.toOneBacklink(8, object.id,
                       (DebtPayment srcObject) => srcObject.expense):
                   object.debtPayments
@@ -2826,6 +2833,11 @@ obx_int.ModelDefinition getObjectBoxModel() {
           object.parentExpense.targetId =
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 42, 0);
           object.parentExpense.attach(store);
+          obx_int.InternalToManyAccess.setRelInfo<Expense>(
+              object.repayments,
+              store,
+              obx_int.RelInfo<Expense>.toOneBacklink(20, object.id,
+                  (Expense srcObject) => srcObject.parentExpense));
           obx_int.InternalToManyAccess.setRelInfo<Expense>(
               object.debtPayments,
               store,
@@ -3775,6 +3787,10 @@ class Expense_ {
   /// see [Expense.parentExpense]
   static final parentExpense =
       obx.QueryRelationToOne<Expense, Expense>(_entities[15].properties[19]);
+
+  /// see [Expense.repayments]
+  static final repayments =
+      obx.QueryBacklinkToMany<Expense, Expense>(Expense_.parentExpense);
 
   /// see [Expense.debtPayments]
   static final debtPayments =

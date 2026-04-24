@@ -18,8 +18,14 @@ class TrendData {
   final String label;
   final int revenue;
   final int profit;
+  final int expense;
 
-  TrendData({required this.label, required this.revenue, required this.profit});
+  TrendData({
+    required this.label,
+    required this.revenue,
+    required this.profit,
+    this.expense = 0,
+  });
 }
 
 class TopItem {
@@ -69,14 +75,23 @@ class TransactionStats {
   final Map<String, int> paymentStats7D;
   final Map<String, int> paymentStats30D;
 
-  // Expense Fields
+  // Expense & Debt Fields
   final int todayExpense;
   final int weeklyExpense;
   final int monthlyExpense;
+  final int totalDebt;
   final Map<String, int> expenseByCategoryToday;
   final Map<String, int> expenseByCategory7D;
   final Map<String, int> expenseByCategory30D;
   final List<TrendData> expenseTrendWeekly;
+
+  // Expense Breakdown: Operasional vs Cicilan Hutang
+  final int todayExpenseOperasional;
+  final int weeklyExpenseOperasional;
+  final int monthlyExpenseOperasional;
+  final int todayExpenseDebtPaid;
+  final int weeklyExpenseDebtPaid;
+  final int monthlyExpenseDebtPaid;
 
   TransactionStats({
     this.todayPendapatan = 0,
@@ -105,10 +120,17 @@ class TransactionStats {
     this.todayExpense = 0,
     this.weeklyExpense = 0,
     this.monthlyExpense = 0,
+    this.totalDebt = 0,
     this.expenseByCategoryToday = const {},
     this.expenseByCategory7D = const {},
     this.expenseByCategory30D = const {},
     this.expenseTrendWeekly = const [],
+    this.todayExpenseOperasional = 0,
+    this.weeklyExpenseOperasional = 0,
+    this.monthlyExpenseOperasional = 0,
+    this.todayExpenseDebtPaid = 0,
+    this.weeklyExpenseDebtPaid = 0,
+    this.monthlyExpenseDebtPaid = 0,
   });
 }
 
@@ -134,6 +156,8 @@ TransactionStats calculateStats(
   
   // Expense Accumulators
   int dailyExpense = 0, weeklyExpense = 0, monthlyExpense = 0;
+  int dailyExpOps = 0, weeklyExpOps = 0, monthlyExpOps = 0;
+  int dailyExpDebt = 0, weeklyExpDebt = 0, monthlyExpDebt = 0;
   Map<String, int> expCatToday = {};
   Map<String, int> expCat7D = {};
   Map<String, int> expCat30D = {};
@@ -141,8 +165,10 @@ TransactionStats calculateStats(
 
   Map<int, int> hourlyRevenueMap = {};
   Map<int, int> hourlyProfitMap = {};
+  Map<int, int> hourlyExpenseMap = {};
   Map<String, int> dailyRevenueMap = {};
   Map<String, int> dailyProfitMap = {};
+  Map<String, int> dailyExpenseMap = {};
 
   Map<String, int> topServicesMap = {};
   Map<String, int> topServicesRevenueMap = {};
@@ -226,6 +252,11 @@ TransactionStats calculateStats(
       todayProfitVal += s.totalProfit;
       todayVisitors++;
       updatePaymentStats(payToday, s.paymentMethod, s.totalPrice);
+
+      // Populate hourly map for today's sales
+      int hour = s.createdAt.hour;
+      hourlyRevenueMap[hour] = (hourlyRevenueMap[hour] ?? 0) + s.totalPrice;
+      hourlyProfitMap[hour] = (hourlyProfitMap[hour] ?? 0) + s.totalProfit;
     } else if (s.createdAt.isAfter(yesterdayStart)) {
       yesterday += s.totalPrice;
     }
@@ -249,16 +280,29 @@ TransactionStats calculateStats(
   }
 
   // Process Expenses
+  int totalDebtVal = 0;
   for (var e in expenses) {
     String category = e.category;
+    // Categorize: is this a debt repayment/installment or an operational expense?
+    final bool isDebtPayment = e.parentExpense.targetId != 0;
+
+    // Debt Calculation: only for original debt records (not repayments)
+    if (e.debtStatus != null && e.debtStatus != 'LUNAS' && !isDebtPayment) {
+      totalDebtVal += (e.debtBalance ?? 0).toInt();
+    }
     
     if (e.date.isAfter(todayStart)) {
       dailyExpense += e.amount;
       expCatToday[category] = (expCatToday[category] ?? 0) + e.amount;
+      if (isDebtPayment) { dailyExpDebt += e.amount; } else { dailyExpOps += e.amount; }
+
+      int hour = e.date.hour;
+      hourlyExpenseMap[hour] = (hourlyExpenseMap[hour] ?? 0) + e.amount;
     }
     if (e.date.isAfter(weekStart)) {
       weeklyExpense += e.amount;
       expCat7D[category] = (expCat7D[category] ?? 0) + e.amount;
+      if (isDebtPayment) { weeklyExpDebt += e.amount; } else { weeklyExpOps += e.amount; }
       
       String dayKey = DateFormat('dd/MM').format(e.date);
       expTrendWeeklyMap[dayKey] = (expTrendWeeklyMap[dayKey] ?? 0) + e.amount;
@@ -266,7 +310,11 @@ TransactionStats calculateStats(
     if (e.date.isAfter(monthStart)) {
       monthlyExpense += e.amount;
       expCat30D[category] = (expCat30D[category] ?? 0) + e.amount;
+      if (isDebtPayment) { monthlyExpDebt += e.amount; } else { monthlyExpOps += e.amount; }
     }
+
+    String dayKey = DateFormat('dd/MM').format(e.date);
+    dailyExpenseMap[dayKey] = (dailyExpenseMap[dayKey] ?? 0) + e.amount;
   }
 
   // Final Profit Adjustment (Net Profit)
@@ -278,6 +326,7 @@ TransactionStats calculateStats(
     label: '$h:00',
     revenue: hourlyRevenueMap[h] ?? 0,
     profit: hourlyProfitMap[h] ?? 0,
+    expense: hourlyExpenseMap[h] ?? 0,
   ));
 
   // Prepare Weekly Trend (Exactly Last 7 Days, one bar per day)
@@ -289,6 +338,7 @@ TransactionStats calculateStats(
       label: key,
       revenue: dailyRevenueMap[key] ?? 0,
       profit: dailyProfitMap[key] ?? 0,
+      expense: dailyExpenseMap[key] ?? 0,
     ));
   }
 
@@ -317,6 +367,7 @@ TransactionStats calculateStats(
     label: e.key,
     revenue: e.value,
     profit: dailyProfitMap[e.key] ?? 0,
+    expense: dailyExpenseMap[e.key] ?? 0,
   )).toList();
 
 
@@ -360,10 +411,17 @@ TransactionStats calculateStats(
     todayExpense: dailyExpense,
     weeklyExpense: weeklyExpense,
     monthlyExpense: monthlyExpense,
+    totalDebt: totalDebtVal,
     expenseByCategoryToday: expCatToday,
     expenseByCategory7D: expCat7D,
     expenseByCategory30D: expCat30D,
     expenseTrendWeekly: expenseTrendWeekly,
+    todayExpenseOperasional: dailyExpOps,
+    weeklyExpenseOperasional: weeklyExpOps,
+    monthlyExpenseOperasional: monthlyExpOps,
+    todayExpenseDebtPaid: dailyExpDebt,
+    weeklyExpenseDebtPaid: weeklyExpDebt,
+    monthlyExpenseDebtPaid: monthlyExpDebt,
   );
 }
 

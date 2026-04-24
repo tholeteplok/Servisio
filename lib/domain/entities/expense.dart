@@ -120,15 +120,26 @@ class Expense {
   double? get debtBalance {
     if (debtStatus == null || debtStatus == 'LUNAS') return 0;
     
-    // Hitung dari record Expense yang merupakan cicilan
     double totalPaid = 0;
-    if (debtPayments.isNotEmpty) {
-      totalPaid = debtPayments.fold<double>(0, (sum, item) => sum + item.amount);
+    
+    // 1. Hitung dari record Expense yang merupakan cicilan (backlink parentExpense)
+    if (repayments.isNotEmpty) {
+      totalPaid += repayments.fold<double>(0, (sum, item) => sum + item.amount);
     }
+    
+    // 2. Hitung dari record DebtPayment (jika ada)
+    if (debtPayments.isNotEmpty) {
+      totalPaid += debtPayments.fold<double>(0, (sum, item) => sum + item.amount);
+    }
+    
     return amount - totalPaid;
   }
 
-  /// Relasi ke record pembayaran (cicilan) untuk hutang ini.
+  /// Relasi ke record pembayaran (cicilan) yang berupa Expense.
+  @Backlink('parentExpense')
+  final ToMany<Expense> repayments = ToMany<Expense>();
+
+  /// Relasi ke record pembayaran (cicilan) yang berupa DebtPayment.
   @Backlink('expense')
   final ToMany<DebtPayment> debtPayments = ToMany<DebtPayment>();
 }

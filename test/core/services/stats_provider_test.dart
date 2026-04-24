@@ -9,6 +9,7 @@ import 'package:servisio_core/domain/entities/transaction.dart';
 import 'package:servisio_core/domain/entities/transaction_item.dart';
 import 'package:servisio_core/domain/entities/sale.dart';
 import 'package:servisio_core/domain/entities/stok.dart';
+import 'package:servisio_core/domain/entities/expense.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../mocks/manual_mocks.dart';
 
@@ -143,6 +144,54 @@ void main() {
       expect(stats.todayPendapatan, 100000);
       expect(stats.weeklyPendapatan, 150000); // 100k + 50k
       expect(stats.monthlyPendapatan, 180000); // 100k + 50k + 30k
+    });
+
+    test('calculateStats correctly separates operational vs debt expenses', () {
+      final now = DateTime.now();
+
+      // 1. Operational expense hari ini
+      final expOps = Expense(
+        amount: 50000,
+        category: 'LISTRIK',
+        bengkelId: 'test-bengkel',
+        date: now,
+      );
+
+      // 2. Hutang induk (10 hari lalu, belum lunas)
+      final parentDebt = Expense(
+        amount: 1000000,
+        category: 'STOK',
+        bengkelId: 'test-bengkel',
+        debtStatus: 'HUTANG',
+        date: now.subtract(const Duration(days: 10)),
+      );
+      parentDebt.id = 99;
+
+      // 3. Cicilan hutang hari ini (expense anak — parentExpense.targetId != 0)
+      final expDebtPaid = Expense(
+        amount: 100000,
+        category: 'CICILAN',
+        bengkelId: 'test-bengkel',
+        date: now,
+      );
+      expDebtPaid.parentExpense.targetId = 99; // Link ke parentDebt
+
+      final stats = calculateStats(
+        [], // transactions
+        [], // sales
+        [], // stok
+        [expOps, parentDebt, expDebtPaid],
+      );
+
+      // Expense hari ini: 50k ops + 100k cicilan = 150k
+      expect(stats.todayExpense, 150000, reason: 'Total pengeluaran hari ini harus 150.000');
+      expect(stats.todayExpenseOperasional, 50000, reason: 'Operasional harus 50.000');
+      expect(stats.todayExpenseDebtPaid, 100000, reason: 'Cicilan hutang harus 100.000');
+
+      // Catatan: totalDebt dihitung dari debtBalance pada parentDebt.
+      // Dalam unit test (tanpa ObjectBox), backlink `repayments` tidak terisi otomatis,
+      // sehingga debtBalance == amount penuh. Logika backlink ditest di expense_test.dart.
+      expect(stats.totalDebt, 1000000, reason: 'Hutang induk (tanpa backlink DB) = full amount');
     });
 
     group('StatsProvider Offline/Edge Cases', () {

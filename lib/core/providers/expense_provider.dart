@@ -135,16 +135,13 @@ final activeDebtsProvider = Provider.family<List<Expense>, String>((ref, bengkel
 /// Map Supplier -> Total Hutang Aktif
 final debtSummaryBySupplierProvider = Provider.family<Map<String, int>, String>((ref, bengkelId) {
   final activeDebts = ref.watch(activeDebtsProvider(bengkelId));
-  final repo = ref.watch(expenseRepositoryProvider);
   final summary = <String, int>{};
 
   for (final debt in activeDebts) {
     final name = debt.supplierName ?? 'Tanpa Nama';
     
-    // Hitung sisa hutang: total - yang sudah dibayar
-    final payments = repo.getPaymentsForDebt(debt.id);
-    final totalPaid = payments.fold(0, (sum, e) => sum + e.amount);
-    final remaining = debt.amount - totalPaid;
+    // Gunakan getter debtBalance yang sudah tersentralisasi di entity
+    final remaining = debt.debtBalance?.toInt() ?? 0;
 
     if (remaining > 0) {
       summary[name] = (summary[name] ?? 0) + remaining;

@@ -10,9 +10,8 @@ import '../../core/services/session_manager.dart';
 import '../../core/providers/system_providers.dart';
 
 // Tabs
-import 'tabs/pendapatan_tab.dart';
-import 'tabs/layanan_tab.dart';
-import 'tabs/produk_tab.dart';
+import 'tabs/ringkasan_tab.dart';
+import 'tabs/pemasukan_tab.dart';
 import 'tabs/pengeluaran_tab.dart';
 import 'tabs/teknisi_tab.dart';
 import 'tabs/hutang_tab.dart';
@@ -34,7 +33,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     
     // ⚡ OPTIMISTIC CHECK: Jika akses sudah penuh (diverifikasi sebelumnya), skip skeleton.
     final currentAccess = ref.read(currentAccessLevelProvider);
@@ -110,9 +109,8 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
                   TabBarView(
                     controller: _tabController,
                     children: [
-                      PendapatanTab(isPrivate: _isPrivate),
-                      const LayananTab(),
-                      const ProdukTab(),
+                      RingkasanTab(isPrivate: _isPrivate),
+                      const PemasukanTab(),
                       const PengeluaranTab(),
                       const HutangTab(),
                       TeknisiTab(isPrivate: _isPrivate),
@@ -198,6 +196,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
       subtitle: 'Laporan performa bengkel secara real-time',
       showBackButton: true,
       onBackPressed: () => Navigator.pop(context),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       actions: [
         IconButton(
           onPressed: () => setState(() => _isPrivate = !_isPrivate),
@@ -267,8 +266,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
         ),
         tabs: const [
           Tab(text: 'Ringkasan'),
-          Tab(text: 'Layanan'),
-          Tab(text: 'Produk'),
+          Tab(text: 'Pemasukan'),
           Tab(text: 'Pengeluaran'),
           Tab(text: 'Hutang'),
           Tab(text: 'Teknisi'),
