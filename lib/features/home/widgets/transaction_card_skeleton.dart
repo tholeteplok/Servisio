@@ -57,3 +57,4 @@ class TransactionCardSkeleton extends StatelessWidget {
     );
   }
 }
+

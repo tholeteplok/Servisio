@@ -24,3 +24,4 @@ class StokHistoryRepository {
     return _box.getAll();
   }
 }
+

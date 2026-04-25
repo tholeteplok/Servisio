@@ -57,3 +57,4 @@ class SaleRepository {
     _box.remove(id);
   }
 }
+

@@ -57,3 +57,4 @@ class _PermissionCategoryCardState extends State<PermissionCategoryCard> {
     );
   }
 }
+

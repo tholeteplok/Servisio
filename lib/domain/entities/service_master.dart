@@ -11,6 +11,7 @@ class ServiceMaster {
 
   @Index()
   bool isDeleted = false; // Soft delete support STEP 3
+  String bengkelId = "";
 
   late String name;
   int basePrice = 0; // Fixed precision (Rp)
@@ -36,3 +37,4 @@ class ServiceMaster {
     this.updatedAt = updatedAt ?? DateTime.now();
   }
 }
+

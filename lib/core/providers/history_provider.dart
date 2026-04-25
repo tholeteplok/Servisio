@@ -250,3 +250,4 @@ final historyListProvider = StateNotifierProvider<HistoryListNotifier, HistorySt
   notifier.loadInitial();
   return notifier;
 });
+

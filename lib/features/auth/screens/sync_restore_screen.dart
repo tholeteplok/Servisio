@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/firestore_sync_service.dart';
 import '../../../core/services/sync_worker.dart';
+import '../../../core/services/migration_service.dart';
 import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/providers/system_providers.dart';
+import '../../../core/constants/app_settings.dart';
 import '../../../core/utils/app_logger.dart';
 
 class SyncRestoreScreen extends ConsumerStatefulWidget {
@@ -34,6 +37,51 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startRestore();
     });
+  }
+
+  Future<void> _runPostRestoreMigrations() async {
+    // Cek apakah migrasi sudah pernah dijalankan
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyMigrated = prefs.getBool(AppSettings.migrationV122ServiceMasterName) ?? false;
+    
+    if (alreadyMigrated) {
+      appLogger.info('Migration v1.2.2 already completed', 
+          context: 'SyncRestoreScreen');
+      return;
+    }
+    
+    setState(() {
+      _statusText = 'Memigrasi data service...';
+      _progress = 0.92;
+    });
+    
+    try {
+      final migrationService = MigrationService(
+        firestore: ref.read(firestoreProvider),
+        encryption: ref.read(encryptionServiceProvider),
+      );
+      
+      final result = await migrationService.migrateServiceMasterNameEncryption(
+        widget.bengkelId,
+      );
+      
+      appLogger.info('Migration completed: ${result.successCount}/${result.totalProcessed} success', 
+          context: 'SyncRestoreScreen');
+      
+      // Tandai migrasi selesai (walaupun ada kegagalan parsial)
+      await prefs.setBool(AppSettings.migrationV122ServiceMasterName, true);
+      
+      if (result.failedCount > 0) {
+        appLogger.warning('Migration partial failure: ${result.failedCount} items failed',
+            context: 'SyncRestoreScreen');
+      }
+      
+    } catch (e) {
+      // NON-FATAL: migrasi gagal, restore tetap dianggap selesai
+      appLogger.error('Migration failed, but restore continues', 
+          context: 'SyncRestoreScreen', error: e);
+      // JANGAN set flag agar dicoba ulang di lain waktu
+    }
   }
 
   Future<void> _startRestore() async {
@@ -94,7 +142,10 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         bengkelId: widget.bengkelId,
       );
 
-      await worker.syncDownAll(allData);
+      await worker.syncDownAll(allData, forceOverwrite: true); // ← pake forceOverwrite
+      
+      // FIX: Jalankan post-restore migration
+      await _runPostRestoreMigrations();
 
       if (mounted) {
         setState(() {
@@ -225,3 +276,4 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
     );
   }
 }
+

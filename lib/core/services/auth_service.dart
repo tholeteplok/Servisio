@@ -211,3 +211,4 @@ class UserCredentialImpl implements UserCredential {
   UserCredentialImpl({this.user, this.credential, this.additionalUserInfo});
 }
 
+

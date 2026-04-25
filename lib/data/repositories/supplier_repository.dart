@@ -25,3 +25,4 @@ class SupplierRepository {
 
   bool delete(int id) => _box.remove(id);
 }
+

@@ -13,6 +13,7 @@ import '../../../core/services/session_manager.dart';
 import '../../../core/widgets/atelier_header.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/sync_provider.dart';
+import '../../../core/utils/app_logger.dart';
 
 class SyncSettingsScreen extends ConsumerStatefulWidget {
   const SyncSettingsScreen({super.key});
@@ -74,49 +75,168 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final settings = ref.watch(settingsProvider);
-    final profile = ref.watch(currentProfileProvider);
+    final authState = ref.watch(authStateProvider);
 
-    final sessionStatus = ref.watch(currentSessionStatusProvider).value ?? SessionStatus.full;
-    final isActive = settings.bengkelId.isNotEmpty;
-
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        slivers: [
-          SliverAtelierHeaderSub(
-            title: AppStrings.dataCenter.title,
-            subtitle: AppStrings.dataCenter.subtitle,
-            showBackButton: true,
+    return authState.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, s) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error: $e',
+                style: GoogleFonts.plusJakartaSans(),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(authStateProvider),
+                child: const Text('Coba Lagi'),
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(AppStrings.dataCenter.storageStatus),
-                  _buildStatusCard(theme, isDark, isActive, sessionStatus),
-                  const SizedBox(height: 16),
-                  _buildQueueSummary(theme, isDark),
-                  const SizedBox(height: 24),
-                  _buildSectionHeader(AppStrings.dataCenter.workshopInfo),
-                  _buildInfoCard(theme, isDark, settings, profile, settings.bengkelId),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader(AppStrings.dataCenter.maintenanceActions),
-                  _buildMigrationButton(theme, isDark),
-                  const SizedBox(height: 12),
-                  _buildSecurityInfo(theme, isDark),
-                ],
+        ),
+      ),
+      data: (container) => _buildBody(theme, isDark, container),
+    );
+  }
+
+  Widget _buildBody(ThemeData theme, bool isDark, dynamic container) {
+    // Error boundary untuk mencegah white screen
+    try {
+      final profile = container.profile;
+      final settings = ref.watch(settingsProvider);
+
+      // Async providers dengan error handling
+      final summary = ref.watch(syncQueueSummaryProvider);
+      final sessionStatusAsync = ref.watch(currentSessionStatusProvider);
+
+      // Extract values dengan fallback
+      final sessionStatus = sessionStatusAsync.value ?? SessionStatus.full;
+
+      final isActive = settings.bengkelId.isNotEmpty && settings.bengkelId != '-';
+
+      // Log untuk debugging
+      appLogger.debug(
+        'SyncSettingsScreen build - isActive: $isActive, sessionStatus: $sessionStatus',
+        context: 'SyncSettingsScreen',
+      );
+
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: CustomScrollView(
+          slivers: [
+            SliverAtelierHeaderSub(
+              title: AppStrings.dataCenter.title,
+              subtitle: AppStrings.dataCenter.subtitle,
+              showBackButton: true,
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(AppStrings.dataCenter.storageStatus),
+                    _buildStatusCard(theme, isDark, isActive, sessionStatus),
+                    const SizedBox(height: 16),
+                    _buildQueueSummary(theme, isDark, summary),
+                    const SizedBox(height: 24),
+                    _buildSectionHeader(AppStrings.dataCenter.workshopInfo),
+                    _buildInfoCard(theme, isDark, settings, profile, settings.bengkelId),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(AppStrings.dataCenter.maintenanceActions),
+                    _buildMigrationButton(theme, isDark),
+                    const SizedBox(height: 12),
+                    _buildSecurityInfo(theme, isDark),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
+          ],
+        ),
+      );
+    } catch (e, stack) {
+      appLogger.error(
+        'SyncSettingsScreen build error',
+        context: 'SyncSettingsScreen',
+        error: e,
+        stackTrace: stack,
+      );
+      return _buildErrorWidget(e.toString(), theme);
+    }
+  }
+
+  Widget _buildErrorWidget(String message, ThemeData theme) {
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.bug_report_outlined,
+                  size: 64,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Terjadi Kesalahan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        ref.invalidate(authStateProvider);
+                        ref.invalidate(settingsProvider);
+                        ref.invalidate(syncQueueSummaryProvider);
+                        ref.invalidate(currentSessionStatusProvider);
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Muat Ulang'),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Kembali'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -137,17 +257,27 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     );
   }
 
-  Widget _buildStatusCard(ThemeData theme, bool isDark, bool isActive, SessionStatus sessionStatus) {
+  Widget _buildStatusCard(
+    ThemeData theme,
+    bool isDark,
+    bool isActive,
+    SessionStatus sessionStatus,
+  ) {
     var statusColor = isActive ? AppColors.success : AppColors.error;
-    var statusTitle = isActive ? AppStrings.dataCenter.connected : AppStrings.dataCenter.notConnected;
+    var statusTitle = isActive
+        ? AppStrings.dataCenter.connected
+        : AppStrings.dataCenter.notConnected;
     var statusSubtitle = isActive
         ? AppStrings.dataCenter.connectedDesc
         : AppStrings.dataCenter.notConnectedDesc;
-    var statusIcon = isActive ? SolarIconsOutline.cloudCheck : SolarIconsOutline.cloudCross;
+    var statusIcon = isActive
+        ? SolarIconsOutline.cloudCheck
+        : SolarIconsOutline.cloudCross;
 
-    // UX-05: Override UI if session is restricted or blocked
+    // Override UI if session is restricted or blocked
     if (isActive) {
-      if (sessionStatus == SessionStatus.blocked || sessionStatus == SessionStatus.invalid) {
+      if (sessionStatus == SessionStatus.blocked ||
+          sessionStatus == SessionStatus.invalid) {
         statusColor = AppColors.error;
         statusTitle = AppStrings.dataCenter.sessionLocked;
         statusSubtitle = AppStrings.dataCenter.sessionLockedDesc;
@@ -210,8 +340,11 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     );
   }
 
-  Widget _buildQueueSummary(ThemeData theme, bool isDark) {
-    final summary = ref.watch(syncQueueSummaryProvider);
+  Widget _buildQueueSummary(
+    ThemeData theme,
+    bool isDark,
+    Map<String, int> summary,
+  ) {
     final hasFailed = (summary['failed'] ?? 0) > 0;
 
     return Container(
@@ -237,7 +370,25 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => ref.read(syncStatusProvider.notifier).retryFailed(),
+                onPressed: () {
+                  try {
+                    ref.read(syncStatusProvider.notifier).retryFailed();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Memproses ulang item yang gagal...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } catch (e) {
+                    appLogger.error('Retry failed error: $e', context: 'SyncSettingsScreen');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal memproses: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
                 icon: const Icon(SolarIconsOutline.restart, size: 18),
                 label: Text(
                   'Coba Lagi Item Gagal',
@@ -247,7 +398,9 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -266,7 +419,9 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: count > 0 ? color : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              color: count > 0
+                  ? color
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
           ),
           Text(
@@ -289,8 +444,8 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     UserProfile? profile,
     String bengkelId,
   ) {
-    final currentRole = profile?.role;
-    final role = currentRole != null 
+    final currentRole = profile?.role ?? '';
+    final role = currentRole.isNotEmpty
         ? (currentRole[0].toUpperCase() + currentRole.substring(1).toLowerCase())
         : 'Owner (Local)';
 
@@ -309,7 +464,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
             theme,
             SolarIconsOutline.shop,
             AppStrings.dataCenter.workshopName,
-            settings.workshopName,
+            settings.workshopName.isEmpty ? '-' : settings.workshopName,
           ),
           Divider(height: 32, color: theme.colorScheme.outlineVariant),
           _buildBengkelIDRow(theme, bengkelId),
@@ -327,15 +482,21 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
 
   Widget _buildBengkelIDRow(ThemeData theme, String bengkelId) {
     final isEmpty = bengkelId.isEmpty || bengkelId == '-';
-    final displayId = isEmpty ? '-' : (_showBengkelId ? bengkelId : '••••••••••••');
+    final displayId = isEmpty
+        ? '-'
+        : (_showBengkelId ? bengkelId : '••••••••••••');
 
     return Row(
       children: [
         Icon(SolarIconsOutline.key, size: 18, color: theme.colorScheme.primary),
         const SizedBox(width: 12),
-        Text('Bengkel ID',
-            style: GoogleFonts.inter(
-                fontSize: 13, color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          'Bengkel ID',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const Spacer(),
         GestureDetector(
           onLongPress: isEmpty
@@ -376,14 +537,22 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
   }
 
   Widget _buildInfoRow(
-      ThemeData theme, IconData icon, String label, String value) {
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 18, color: theme.colorScheme.primary),
         const SizedBox(width: 12),
-        Text(label,
-            style: GoogleFonts.inter(
-                fontSize: 13, color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const Spacer(),
         Text(
           value.isEmpty ? '-' : value,
@@ -425,8 +594,10 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(SolarIconsOutline.shieldCheck,
-                      color: Colors.white),
+                  : const Icon(
+                      SolarIconsOutline.shieldCheck,
+                      color: Colors.white,
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -461,7 +632,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

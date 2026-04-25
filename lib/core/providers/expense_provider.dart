@@ -207,3 +207,4 @@ final expenseCountThisMonthProvider =
   );
   return expenses.length;
 });
+

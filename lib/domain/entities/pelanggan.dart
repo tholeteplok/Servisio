@@ -46,3 +46,4 @@ class Pelanggan {
     updatedAt ??= this.createdAt;
   }
 }
+

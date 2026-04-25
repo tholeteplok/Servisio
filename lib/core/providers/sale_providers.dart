@@ -236,3 +236,4 @@ final customerSalesProvider = Provider.family<List<Sale>, String>((ref, customer
   final repository = ref.watch(saleRepositoryProvider);
   return repository.getByCustomerName(customerName);
 });
+

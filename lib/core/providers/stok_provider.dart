@@ -251,3 +251,4 @@ final uniqueSuppliersProvider = Provider<List<String>>((ref) {
   merged.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   return merged;
 });
+

@@ -399,9 +399,7 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
                                 color: theme.cardColor,
                                 borderRadius: BorderRadius.circular(40),
                                 border: Border.all(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.1,),
                                   width: 2,
                                 ),
                                 image: _imagePath != null
@@ -989,3 +987,4 @@ class _CreateBarangScreenState extends ConsumerState<CreateBarangScreen> {
     );
   }
 }
+

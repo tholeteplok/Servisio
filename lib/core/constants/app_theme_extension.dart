@@ -59,3 +59,4 @@ extension AppThemeExtensionX on ThemeData {
     color: brightness == Brightness.dark ? Colors.white70 : Colors.black54,
   );
 }
+

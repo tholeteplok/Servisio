@@ -80,3 +80,4 @@ class VehicleDataService {
     return suggestions.toList();
   }
 }
+

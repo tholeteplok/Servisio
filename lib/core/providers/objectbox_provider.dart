@@ -8,11 +8,14 @@ import '../../domain/entities/stok_history.dart';
 import '../../domain/entities/sale.dart';
 import '../../domain/entities/staff.dart';
 import '../../domain/entities/vehicle.dart';
+import '../../domain/entities/service_master.dart';
 import '../../domain/entities/sync_queue_item.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/expense_category.dart';
 import '../../domain/entities/supplier.dart';
 import '../../domain/entities/debt_payment.dart';
+import '../../domain/entities/invoice.dart';
+import '../../domain/entities/debt.dart';
 
 class ObjectBoxProvider {
   late final Store _store;
@@ -23,11 +26,14 @@ class ObjectBoxProvider {
   late final Box<StokHistory> _stokHistoryBox;
   late final Box<Staff> _staffBox;
   late final Box<Vehicle> _vehicleBox;
+  late final Box<ServiceMaster> _serviceMasterBox;
   late final Box<SyncQueueItem> _syncQueueBox;
   late final Box<Expense> _expenseBox;
   late final Box<ExpenseCategory> _expenseCategoryBox;
   late final Box<Supplier> _supplierBox;
   late final Box<DebtPayment> _debtPaymentBox;
+  late final Box<Invoice> _invoiceBox;
+  late final Box<Debt> _debtBox;
 
   Box<Transaction> get transactionBox => _transactionBox;
   Box<Pelanggan> get pelangganBox => _pelangganBox;
@@ -36,11 +42,14 @@ class ObjectBoxProvider {
   Box<StokHistory> get stokHistoryBox => _stokHistoryBox;
   Box<Staff> get staffBox => _staffBox;
   Box<Vehicle> get vehicleBox => _vehicleBox;
+  Box<ServiceMaster> get serviceMasterBox => _serviceMasterBox;
   Box<SyncQueueItem> get syncQueueBox => _syncQueueBox;
   Box<Expense> get expenseBox => _expenseBox;
   Box<ExpenseCategory> get expenseCategoryBox => _expenseCategoryBox;
   Box<Supplier> get supplierBox => _supplierBox;
   Box<DebtPayment> get debtPaymentBox => _debtPaymentBox;
+  Box<Invoice> get invoiceBox => _invoiceBox;
+  Box<Debt> get debtBox => _debtBox;
   Store get store => _store;
 
   ObjectBoxProvider._create(this._store) {
@@ -51,11 +60,14 @@ class ObjectBoxProvider {
     _stokHistoryBox = Box<StokHistory>(_store);
     _staffBox = Box<Staff>(_store);
     _vehicleBox = Box<Vehicle>(_store);
+    _serviceMasterBox = Box<ServiceMaster>(_store);
     _syncQueueBox = Box<SyncQueueItem>(_store);
     _expenseBox = Box<Expense>(_store);
     _expenseCategoryBox = Box<ExpenseCategory>(_store);
     _supplierBox = Box<Supplier>(_store);
     _debtPaymentBox = Box<DebtPayment>(_store);
+    _invoiceBox = Box<Invoice>(_store);
+    _debtBox = Box<Debt>(_store);
   }
 
   static Future<ObjectBoxProvider> create() async {
@@ -98,3 +110,4 @@ final dbProvider = Provider<ObjectBoxProvider>((ref) {
     ),
   );
 });
+

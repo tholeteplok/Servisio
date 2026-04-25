@@ -325,3 +325,4 @@ class AuthStateContainer {
 
   bool get isAuthenticated => state == AuthState.authenticated;
 }
+

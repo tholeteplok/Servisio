@@ -215,3 +215,4 @@ class _ShimmerBox extends StatelessWidget {
     );
   }
 }
+

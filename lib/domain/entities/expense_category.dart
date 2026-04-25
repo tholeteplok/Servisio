@@ -137,3 +137,4 @@ class ExpenseCategory {
         'BAYAR_HUTANG': ['bayar', 'hutang', 'utang', 'pelunasan', 'cicilan', 'debt'],
       };
 }
+

@@ -150,3 +150,4 @@ class _CircuitBreaker {
     appLogger.info('Circuit breaker $name reset', context: 'CircuitBreaker');
   }
 }
+

@@ -165,9 +165,7 @@ class _QRViewViewState extends State<QRViewView> {
                             icon: const Icon(SolarIconsOutline.share),
                             label: const Text('BAGIKAN'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.1,
-                              ),
+                              backgroundColor: Colors.white.withValues(alpha: 0.1,),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -205,3 +203,4 @@ class _QRViewViewState extends State<QRViewView> {
     );
   }
 }
+

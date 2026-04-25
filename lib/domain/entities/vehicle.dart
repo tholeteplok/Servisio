@@ -23,6 +23,7 @@ class Vehicle {
   String? vin; // Engine number or chassis number
 
   bool isDeleted = false;
+  String bengkelId = "";
 
   final owner = ToOne<Pelanggan>();
 
@@ -49,3 +50,4 @@ class Vehicle {
     this.updatedAt = updatedAt ?? DateTime.now();
   }
 }
+

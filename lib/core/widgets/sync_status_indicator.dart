@@ -99,3 +99,4 @@ class SyncStatusIndicator extends ConsumerWidget {
     );
   }
 }
+

@@ -279,3 +279,4 @@ extension AuthStateExtension on AuthState {
   bool get isLoading => this == AuthState.authenticating;
   bool get needsProfile => this == AuthState.missingProfile;
 }
+

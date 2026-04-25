@@ -88,8 +88,7 @@ class ShieldSection extends ConsumerWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
+                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark
                         ? 0.4
                         : 0.1),
                 blurRadius: 30,
@@ -169,8 +168,7 @@ class SyncSection extends ConsumerWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
+                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark
                         ? 0.4
                         : 0.1),
                 blurRadius: 30,
@@ -275,8 +273,7 @@ class AccountInfoSection extends ConsumerWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
+                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark
                         ? 0.4
                         : 0.1),
                 blurRadius: 30,
@@ -711,8 +708,7 @@ class HealthDashboard extends ConsumerWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: Theme.of(context).brightness == Brightness.dark
                     ? 0.4
                     : 0.1),
             blurRadius: 30,
@@ -868,3 +864,4 @@ class SyncPulseIndicatorState extends State<SyncPulseIndicator> with SingleTicke
     );
   }
 }
+

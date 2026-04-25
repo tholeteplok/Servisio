@@ -60,15 +60,18 @@ class Transaction {
   @Backlink('transaction')
   final items = ToMany<TransactionItem>();
 
+  String? paymentMethod; // Tunai, QRIS, Transfer
+
   // 💰 Finance
   int totalAmount = 0;
   int partsCost = 0;
   int laborCost = 0;
+  int overheadCost = 0;      // 🆕 Cost like rent, electricity allocated
+  int additionalCost = 0;    // 🆕 Expedisi, etc
 
   // 📊 Status
   String status = "pending"; // pending, in_progress, completed, lunas
   String? notes;
-  String? paymentMethod; // Tunai, QRIS, Transfer
 
   // 🕒 Queue System (One-Way Workflow)
   int statusValue = 0; // 0: antri, 1: dikerjakan, 2: selesai
@@ -151,7 +154,11 @@ class Transaction {
   int totalRevenue = 0;
   int totalHpp = 0;
   int totalMechanicBonus = 0;
-  int totalProfit = 0;
+  int totalProfit = 0; // Legacy / Gross
+  int grossProfit = 0;
+  int netProfit = 0;
+  double profitMargin = 0.0;
+  int breakEvenPoint = 0;
 
   // Constructor dengan UUID otomatis
   Transaction({
@@ -199,10 +206,23 @@ class Transaction {
     partsCost = parts;
     laborCost = labor;
 
-    // Profit logic
+    // 📊 Profit Logic (COMPREHENSIVE)
     totalRevenue = total;
     totalHpp = hpp;
     totalMechanicBonus = bonuses;
-    totalProfit = total - hpp - bonuses; // Owner profit
+    
+    // Profit Kotor = Harga Jual - Harga Pokok
+    grossProfit = totalRevenue - totalHpp;
+    totalProfit = grossProfit; // Backward compatibility
+    
+    // Profit Bersih = Profit Kotor - Biaya Terkait
+    netProfit = grossProfit - totalMechanicBonus - overheadCost - additionalCost;
+    
+    // Margin Bersih = (Profit Bersih / Harga Jual) * 100%
+    profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0.0;
+    
+    // Break-Even Point = Harga Pokok + Total Biaya Terkait
+    breakEvenPoint = totalHpp + totalMechanicBonus + overheadCost + additionalCost;
   }
 }
+

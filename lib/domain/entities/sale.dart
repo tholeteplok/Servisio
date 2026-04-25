@@ -11,6 +11,7 @@ class Sale {
 
   @Index()
   bool isDeleted = false; // Soft delete support STEP 3
+  String bengkelId = "";
 
   @Index()
   String itemName;
@@ -54,3 +55,4 @@ class Sale {
     totalProfit = totalPrice - (costPrice * quantity);
   }
 }
+

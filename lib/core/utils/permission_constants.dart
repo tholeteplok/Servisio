@@ -191,3 +191,4 @@ class PermissionItem {
   Color get riskColor => riskLevel == RiskLevel.high ? Colors.red :
                          riskLevel == RiskLevel.medium ? Colors.orange : Colors.grey;
 }
+

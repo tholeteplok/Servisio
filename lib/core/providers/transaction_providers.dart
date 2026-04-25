@@ -7,6 +7,9 @@ import '../../domain/entities/sync_queue_item.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
 import '../services/transaction_number_service.dart';
+import '../../domain/services/unit_of_work.dart';
+import '../../domain/services/invoice_number_generator.dart';
+import '../../domain/entities/invoice.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction Notifiers
@@ -113,7 +116,11 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
     state = await AsyncValue.guard(() async {
       final db = ref.read(dbProvider);
       final syncWorker = ref.read(syncWorkerProvider);
+      final invoiceGen = ref.read(invoiceNumberGeneratorProvider);
       final itemsToSync = <({String type, String uuid})>[];
+
+      // 1. Generate Invoice Number (Atomic & Unique)
+      final invNumber = await invoiceGen.generate(category: 'SERVICE');
 
       db.store.runInTransaction(TxMode.write, () {
         for (var item in transaction.items) {
@@ -142,6 +149,17 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
             }
           }
         }
+
+        // 2. Buat Invoice Record untuk Audit & Print
+        final invoice = Invoice(
+          invoiceNumber: invNumber,
+          transactionUuid: transaction.uuid,
+          category: 'SERVICE',
+        );
+        db.invoiceBox.put(invoice);
+        itemsToSync.add((type: 'invoice', uuid: invoice.uuid));
+
+        // 3. Update Transaction Status
         transaction.serviceStatus = ServiceStatus.lunas;
         transaction.paymentMethod = paymentMethod;
         transaction.endTime ??= DateTime.now();
@@ -311,3 +329,14 @@ final customerTransactionsProvider = Provider.family<List<Transaction>, int>((re
   final repository = ref.watch(transactionRepositoryProvider);
   return repository.getByPelangganId(pelangganId);
 });
+
+final unitOfWorkProvider = Provider<UnitOfWork>((ref) {
+  final db = ref.watch(dbProvider);
+  return ObjectBoxUnitOfWork(db.store);
+});
+
+final invoiceNumberGeneratorProvider = Provider<InvoiceNumberGenerator>((ref) {
+  final db = ref.watch(dbProvider);
+  return InvoiceNumberGenerator(db.store);
+});
+

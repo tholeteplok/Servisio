@@ -23,6 +23,7 @@ class TransactionItem {
   bool isService = false; // true for ServiceMaster, false for Stok/Parts
   String? notes;
   int mechanicBonus = 0; // 🎁 Bonus yang didapat mekanik untuk item ini (total per item * quantity)
+  String bengkelId = "";
 
   final transaction = ToOne<Transaction>();
   final stok = ToOne<Stok>();
@@ -57,3 +58,4 @@ class TransactionItem {
     subtotal = price * quantity;
   }
 }
+

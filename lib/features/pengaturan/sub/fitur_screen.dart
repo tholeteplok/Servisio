@@ -190,9 +190,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.3,
-                                ),
+                                color: theme.colorScheme.primary.withValues(alpha: 0.3,),
                               ),
                             ),
                             child: ClipRRect(
@@ -221,9 +219,7 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                                   onPressed: _removeQrisImage,
                                   icon: const Icon(Icons.close, size: 20),
                                   style: IconButton.styleFrom(
-                                    backgroundColor: Colors.red.withValues(
-                                      alpha: 0.8,
-                                    ),
+                                    backgroundColor: Colors.red.withValues(alpha: 0.8,),
                                   ),
                                 ),
                               ],
@@ -253,18 +249,14 @@ class _FiturScreenState extends ConsumerState<FiturScreen> {
                               children: [
                                 Icon(
                                   SolarIconsOutline.upload,
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.6,
-                                  ),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.6,),
                                   size: 36,
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'Unggah Gambar QRIS',
                                   style: TextStyle(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.8,
-                                    ),
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.8,),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -555,3 +547,4 @@ class _LockDurationChip extends StatelessWidget {
     );
   }
 }
+

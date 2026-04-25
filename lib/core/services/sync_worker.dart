@@ -9,6 +9,8 @@ import '../../domain/entities/stok.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_item.dart';
 import '../../domain/entities/stok_history.dart';
+import '../../domain/entities/service_master.dart';
+import '../../domain/entities/sale.dart';
 import 'firestore_sync_service.dart';
 import '../providers/objectbox_provider.dart';
 import '../../objectbox.g.dart';
@@ -419,44 +421,89 @@ class SyncWorker {
             .findFirst();
         if (sh != null) await _syncService.pushStokHistory(bengkelId, sh);
         break;
+      case 'service_master':
+        final sm = _db.serviceMasterBox
+            .query(ServiceMaster_.uuid.equals(item.entityUuid))
+            .build()
+            .findFirst();
+        if (sm != null) await _syncService.pushServiceMaster(bengkelId, sm);
+        break;
+      case 'sale':
+        final s = _db.saleBox
+            .query(Sale_.uuid.equals(item.entityUuid))
+            .build()
+            .findFirst();
+        if (s != null) await _syncService.pushSale(bengkelId, s);
+        break;
     }
   }
 
   static bool _isLocalNewer(dynamic existing, dynamic cloudUpdatedAtStr) {
-    if (existing == null || cloudUpdatedAtStr == null) return false;
+    // REINSTALL CASE: database kosong
+    if (existing == null) return false;
+    if (cloudUpdatedAtStr == null) return false;
+    
     try {
-      final existingUpdatedAt = (existing as dynamic).updatedAt as DateTime?;
+      DateTime? existingUpdatedAt;
+      
+      // Safe type checking (bukan dynamic casting)
+      switch (existing) {
+        case Staff s: existingUpdatedAt = s.updatedAt;
+        case Pelanggan p: existingUpdatedAt = p.updatedAt;
+        case Stok s: existingUpdatedAt = s.updatedAt;
+        case Transaction t: existingUpdatedAt = t.updatedAt;
+        case Vehicle v: existingUpdatedAt = v.updatedAt;
+        case StokHistory h: existingUpdatedAt = h.createdAt;
+        case ServiceMaster sm: existingUpdatedAt = sm.updatedAt;
+        case Sale sale: existingUpdatedAt = sale.updatedAt;
+        default: return false; // Tidak punya updatedAt, overwrite saja
+      }
+      
       if (existingUpdatedAt == null) return false;
+      
       final cloudUpdatedAt = _toDateTime(cloudUpdatedAtStr);
       return existingUpdatedAt.isAfter(cloudUpdatedAt);
-    } catch (_) {
-      return false;
+    } catch (e) {
+      appLogger.warning('_isLocalNewer error: $e', context: 'SyncWorker');
+      return false; // JANGAN SKIP DATA jika error
     }
   }
 
   /// Rebuild local database from Firestore data (Restore process).
   /// ADR-012: Implements Upsert logic to prevent Unique Constraint violations.
-  Future<void> syncDownAll(Map<String, List<Map<String, dynamic>>> data) async {
+  Future<void> syncDownAll(
+    Map<String, List<Map<String, dynamic>>> data, {
+    bool forceOverwrite = false,
+  }) async {
     if (_db.store.isClosed()) return;
 
     // Sanitize data to remove non-sendable types (like Timestamp)
     final sanitizedData = _sanitizeForIsolate(data);
 
-    await _db.store.runInTransactionAsync(TxMode.write, (store, dataMap) {
+    // Pass bengkelId to the isolate
+    final payload = {
+      'data': sanitizedData,
+      'bengkelId': bengkelId,
+    };
+
+    await _db.store.runInTransactionAsync(TxMode.write, (store, p) {
+      final dataMap = p['data'] as Map;
+      final currentBengkelId = p['bengkelId'] as String;
+
       // 1. Staff (with Upsert)
       final staffBox = store.box<Staff>();
       final List<Staff> rawStaffList = [];
-      for (var m in (dataMap['staff'] as List)) {
+      for (var m in (dataMap['staff'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         final existing = staffBox.query(Staff_.uuid.equals(uuid)).build().findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           existing.name = m['name'] ?? '';
           existing.role = m['role'] ?? LogicConstants.roleMekanik;
           existing.phoneNumber = m['phone'];
-          existing.bengkelId = m['bengkelId'] ?? '';
+          existing.bengkelId = currentBengkelId;
           existing.isActive = m['isActive'] ?? true;
           rawStaffList.add(existing);
         } else {
@@ -466,7 +513,7 @@ class SyncWorker {
             phoneNumber: m['phone'],
             uuid: uuid,
           )
-            ..bengkelId = m['bengkelId'] ?? ''
+            ..bengkelId = currentBengkelId
             ..isActive = m['isActive'] ?? true);
         }
       }
@@ -477,17 +524,17 @@ class SyncWorker {
       // 2. Customers (with Upsert)
       final customerBox = store.box<Pelanggan>();
       final List<Pelanggan> rawCustomerList = [];
-      for (var m in (dataMap['customers'] as List)) {
+      for (var m in (dataMap['customers'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         final existing = customerBox.query(Pelanggan_.uuid.equals(uuid)).build().findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           existing.nama = m['name'] ?? '';
           existing.telepon = m['phone'] ?? '';
           existing.alamat = m['address'] ?? '';
-          existing.bengkelId = m['bengkelId'] ?? '';
+          existing.bengkelId = currentBengkelId;
           rawCustomerList.add(existing);
         } else {
           rawCustomerList.add(Pelanggan(
@@ -495,7 +542,7 @@ class SyncWorker {
             telepon: m['phone'] ?? '',
             alamat: m['address'] ?? '',
             uuid: uuid,
-          )..bengkelId = m['bengkelId'] ?? '');
+          )..bengkelId = currentBengkelId);
         }
       }
 
@@ -506,11 +553,11 @@ class SyncWorker {
       // 3. Vehicles (with Upsert)
       final vehicleBox = store.box<Vehicle>();
       final List<Vehicle> rawVehicleList = [];
-      for (var m in (dataMap['vehicles'] as List)) {
+      for (var m in (dataMap['vehicles'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         final existing = vehicleBox.query(Vehicle_.uuid.equals(uuid)).build().findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           existing.model = m['model'] ?? '';
@@ -519,6 +566,7 @@ class SyncWorker {
           existing.vin = m['vin'] ?? '';
           existing.year = m['year'];
           existing.color = m['color'];
+          existing.bengkelId = currentBengkelId;
           rawVehicleList.add(existing);
         } else {
           rawVehicleList.add(Vehicle(
@@ -529,7 +577,7 @@ class SyncWorker {
             year: m['year'],
             color: m['color'],
             uuid: uuid,
-          ));
+          )..bengkelId = currentBengkelId);
         }
       }
 
@@ -538,7 +586,7 @@ class SyncWorker {
       vehicleBox.putMany(vehicleList);
 
       // Set owner reference for vehicles
-      for (var m in (dataMap['vehicles'] as List)) {
+      for (var m in (dataMap['vehicles'] as List? ?? [])) {
         final ownerUuid = m['ownerUuid'] as String?;
         if (ownerUuid != null) {
           final v = vehicleBox
@@ -559,11 +607,11 @@ class SyncWorker {
       // 4. Inventory (Stok) with Upsert
       final stokBox = store.box<Stok>();
       final List<Stok> rawStokList = [];
-      for (var m in (dataMap['inventory'] as List)) {
+      for (var m in (dataMap['inventory'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         final existing = stokBox.query(Stok_.uuid.equals(uuid)).build().findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           existing.nama = m['nama'] ?? m['name'] ?? '';
@@ -574,7 +622,7 @@ class SyncWorker {
           existing.minStok = (m['minStok'] ?? m['minStock'] ?? 5).toInt();
           existing.kategori =
               m['kategori'] ?? m['category'] ?? LogicConstants.catSparepart;
-          existing.bengkelId = m['bengkelId'] ?? '';
+          existing.bengkelId = currentBengkelId;
           existing.updatedAt = SyncWorker._toDateTime(m['updatedAt']);
           rawStokList.add(existing);
         } else {
@@ -589,7 +637,7 @@ class SyncWorker {
                 m['kategori'] ?? m['category'] ?? LogicConstants.catSparepart,
             uuid: uuid,
           )
-            ..bengkelId = m['bengkelId'] ?? ''
+            ..bengkelId = currentBengkelId
             ..createdAt = SyncWorker._toDateTime(m['createdAt'])
             ..updatedAt = SyncWorker._toDateTime(m['updatedAt']));
         }
@@ -602,7 +650,7 @@ class SyncWorker {
       final transactionBox = store.box<Transaction>();
       final transactionItemBox = store.box<TransactionItem>();
 
-      for (var m in (dataMap['transactions'] as List)) {
+      for (var m in (dataMap['transactions'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         Transaction tx;
         final existing = transactionBox
@@ -610,7 +658,7 @@ class SyncWorker {
             .build()
             .findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           tx = existing;
@@ -640,7 +688,7 @@ class SyncWorker {
           );
         }
 
-        tx.bengkelId = m['bengkelId'] ?? '';
+        tx.bengkelId = currentBengkelId;
         tx.status = m['status'] ?? LogicConstants.trxPending;
         tx.statusValue = m['statusValue'] ?? 0;
         tx.paymentMethod = m['paymentMethod'];
@@ -699,7 +747,7 @@ class SyncWorker {
             uuid: im['uuid'],
             createdAt: SyncWorker._toDateTime(im['createdAt']),
             updatedAt: SyncWorker._toDateTime(im['updatedAt']),
-          );
+          )..bengkelId = currentBengkelId;
           item.transaction.target = tx;
           transactionItemBox.put(item);
         }
@@ -708,11 +756,11 @@ class SyncWorker {
       // 6. Inventory History with Upsert
       final historyBox = store.box<StokHistory>();
       final List<StokHistory> rawHistoryList = [];
-      for (var m in (dataMap['stok_history'] as List)) {
+      for (var m in (dataMap['stok_history'] as List? ?? [])) {
         final uuid = m['uuid'] as String;
         final existing = historyBox.query(StokHistory_.uuid.equals(uuid)).build().findFirst();
 
-        if (_isLocalNewer(existing, m['updatedAt'])) continue;
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
 
         if (existing != null) {
           existing.stokUuid = m['stokUuid'] ?? '';
@@ -721,6 +769,7 @@ class SyncWorker {
           existing.newQuantity = (m['newQuantity'] ?? 0).toInt();
           existing.type = m['type'] ?? LogicConstants.catAdjustment;
           existing.note = m['note'];
+          existing.bengkelId = currentBengkelId;
           rawHistoryList.add(existing);
         } else {
           rawHistoryList.add(StokHistory(
@@ -732,19 +781,95 @@ class SyncWorker {
             note: m['note'],
             uuid: uuid,
             createdAt: SyncWorker._toDateTime(m['createdAt']),
-          ));
+          )..bengkelId = currentBengkelId);
         }
       }
 
       final historyList =
           _deduplicateByUuid<StokHistory>(rawHistoryList, (h) => h.uuid);
       historyBox.putMany(historyList);
-    }, sanitizedData);
+
+      // 7. Service Master with Upsert
+      final serviceMasterBox = store.box<ServiceMaster>();
+      final List<ServiceMaster> rawServiceList = [];
+      for (var m in (dataMap['service_master'] as List? ?? [])) {
+        final uuid = m['uuid'] as String;
+        final existing = serviceMasterBox.query(ServiceMaster_.uuid.equals(uuid)).build().findFirst();
+
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
+
+        if (existing != null) {
+          existing.name = m['name'] ?? '';
+          existing.basePrice = (m['basePrice'] ?? 0).toInt();
+          existing.category = m['category'];
+          existing.bengkelId = currentBengkelId;
+          rawServiceList.add(existing);
+        } else {
+          rawServiceList.add(ServiceMaster(
+            name: m['name'] ?? '',
+            basePrice: (m['basePrice'] ?? 0).toInt(),
+            category: m['category'],
+            uuid: uuid,
+            createdAt: SyncWorker._toDateTime(m['createdAt']),
+            updatedAt: SyncWorker._toDateTime(m['updatedAt']),
+          )..bengkelId = currentBengkelId);
+        }
+      }
+      final serviceList = _deduplicateByUuid<ServiceMaster>(rawServiceList, (s) => s.uuid);
+      serviceMasterBox.putMany(serviceList);
+
+      // 8. Sales with Upsert
+      final saleBox = store.box<Sale>();
+      final List<Sale> rawSaleList = [];
+      for (var m in (dataMap['sales'] as List? ?? [])) {
+        final uuid = m['uuid'] as String;
+        final existing = saleBox.query(Sale_.uuid.equals(uuid)).build().findFirst();
+
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
+
+        if (existing != null) {
+          existing.itemName = m['itemName'] ?? '';
+          existing.quantity = (m['quantity'] ?? 0).toInt();
+          existing.totalPrice = (m['totalPrice'] ?? 0).toInt();
+          existing.costPrice = (m['costPrice'] ?? 0).toInt();
+          existing.paymentMethod = m['paymentMethod'];
+          existing.customerName = m['customerName'];
+          existing.stokUuid = m['stokUuid'];
+          existing.transactionId = m['transactionId'];
+          existing.trxNumber = m['trxNumber'] ?? '';
+          existing.bengkelId = currentBengkelId;
+          rawSaleList.add(existing);
+        } else {
+          rawSaleList.add(Sale(
+            itemName: m['itemName'] ?? '',
+            quantity: (m['quantity'] ?? 0).toInt(),
+            totalPrice: (m['totalPrice'] ?? 0).toInt(),
+            costPrice: (m['costPrice'] ?? 0).toInt(),
+            customerName: m['customerName'],
+            stokUuid: m['stokUuid'],
+            transactionId: m['transactionId'],
+            trxNumber: m['trxNumber'] ?? '',
+            uuid: uuid,
+            createdAt: SyncWorker._toDateTime(m['createdAt']),
+            updatedAt: SyncWorker._toDateTime(m['updatedAt']),
+          )..bengkelId = currentBengkelId);
+        }
+      }
+      final saleList = _deduplicateByUuid<Sale>(rawSaleList, (s) => s.uuid);
+      saleBox.putMany(saleList);
+    }, payload); // Fix: pass payload instead of sanitizedData
   }
 
   /// Recursively convert non-sendable types (like Timestamp) to sendable ones (like int).
   static dynamic _sanitizeForIsolate(dynamic data) {
     if (data is Timestamp) return data.millisecondsSinceEpoch;
+    if (data is DateTime) return data.millisecondsSinceEpoch;
+    if (data is String) {
+      // FIX: Konversi ISO string ke milliseconds
+      final parsed = DateTime.tryParse(data);
+      if (parsed != null) return parsed.millisecondsSinceEpoch;
+      return data;
+    }
     if (data is Map) {
       return data.map((key, value) => MapEntry(key, _sanitizeForIsolate(value)));
     }
@@ -757,7 +882,12 @@ class SyncWorker {
   static DateTime _toDateTime(dynamic val) {
     if (val is Timestamp) return val.toDate();
     if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
-    return DateTime.now();
+    if (val is String) {
+      // FIX: Parse ISO 8601 string
+      final parsed = DateTime.tryParse(val);
+      if (parsed != null) return parsed;
+    }
+    return DateTime.now(); // fallback terakhir
   }
 
   void cleanupSyncedItems() {
@@ -788,3 +918,4 @@ class SyncWorker {
 }
 
 enum SyncWorkerState { idle, syncing, success, warning, error }
+

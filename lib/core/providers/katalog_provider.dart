@@ -9,3 +9,4 @@ class KatalogActiveTabNotifier extends StateNotifier<int> {
 final katalogActiveTabProvider = StateNotifierProvider<KatalogActiveTabNotifier, int>((ref) {
   return KatalogActiveTabNotifier();
 });
+

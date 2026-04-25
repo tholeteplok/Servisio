@@ -96,3 +96,4 @@ class ExpenseCategoryChart extends StatelessWidget {
     );
   }
 }
+

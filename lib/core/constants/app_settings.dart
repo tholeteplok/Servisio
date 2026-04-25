@@ -85,5 +85,10 @@ class AppSettings {
 
   /// Flag indicating if the user has seen the overscroll navigation hint.
   static const String hasSeenOverscrollHint = 'has_seen_overscroll_hint';
+
+  /// Migration flag for ServiceMaster name encryption (v1.2.2)
+  static const String migrationV122ServiceMasterName = 
+      'migration_v122_service_master_name';
 }
+
 

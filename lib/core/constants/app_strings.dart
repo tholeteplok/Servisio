@@ -817,3 +817,4 @@ class StatsStrings {
   final week = '7 Hari';
   final month = 'Bulan Ini';
 }
+

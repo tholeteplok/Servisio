@@ -50,3 +50,4 @@ class ExpenseCategoryRepository {
     _box.putMany(defaults);
   }
 }
+

@@ -274,3 +274,4 @@ class _OnboardingIntroScreenState extends ConsumerState<OnboardingIntroScreen> {
     );
   }
 }
+

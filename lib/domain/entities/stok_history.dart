@@ -26,6 +26,8 @@ class StokHistory {
   @Index()
   DateTime createdAt;
 
+  String bengkelId = "";
+
   StokHistory({
     this.id = 0,
     String? uuid,

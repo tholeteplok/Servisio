@@ -254,9 +254,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                       tooltip: AppStrings.common.delete,
                       style: IconButton.styleFrom(
                         minimumSize: const Size(48, 48),
-                        backgroundColor: theme.colorScheme.error.withValues(
-                          alpha: isDark ? 0.2 : 0.8,
-                        ),
+                        backgroundColor: theme.colorScheme.error.withValues(alpha: isDark ? 0.2 : 0.8,),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         padding: const EdgeInsets.all(12),
                         shape: RoundedRectangleBorder(
@@ -402,9 +400,7 @@ class PelangganDetailScreen extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 24),
         padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3,),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: theme.dividerColor.withValues(alpha: 0.05)),
         ),
@@ -595,9 +591,7 @@ class PelangganDetailScreen extends ConsumerWidget {
                       Text(
                         AppStrings.customer.noVehiclesReg,
                         style: GoogleFonts.plusJakartaSans(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.4,
-                          ),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4,),
                         ),
                       ),
                     ],
@@ -875,3 +869,4 @@ class PelangganDetailScreen extends ConsumerWidget {
     );
   }
 }
+

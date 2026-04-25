@@ -13,3 +13,4 @@ abstract class SyncService {
   /// Menandai status sinkronisasi di database lokal.
   Future<void> updateSyncStatus(String uuid, int status);
 }
+

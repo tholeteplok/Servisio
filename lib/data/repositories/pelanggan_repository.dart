@@ -52,3 +52,4 @@ class PelangganRepository {
     return results;
   }
 }
+

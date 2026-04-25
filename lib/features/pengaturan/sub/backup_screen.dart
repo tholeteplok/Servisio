@@ -226,9 +226,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1,),
                           child: Icon(
                             SolarIconsOutline.user,
                             color: theme.colorScheme.primary,
@@ -494,9 +492,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 color: isSelected ? theme.colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withValues(
-                    alpha: isSelected ? 1 : 0.2,
-                  ),
+                  color: theme.colorScheme.primary.withValues(alpha: isSelected ? 1 : 0.2,),
                 ),
               ),
               child: Center(
@@ -579,3 +575,4 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
   }
 }
+

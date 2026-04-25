@@ -166,3 +166,4 @@ extension LoggerExtension on Object {
     appLogger.error(message, context: context ?? runtimeType.toString(), error: error, stackTrace: stackTrace);
   }
 }
+

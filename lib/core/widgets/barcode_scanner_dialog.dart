@@ -182,3 +182,4 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
     );
   }
 }
+

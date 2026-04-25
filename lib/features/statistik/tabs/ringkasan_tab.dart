@@ -846,3 +846,4 @@ class _ExpandableStatCardState extends State<_ExpandableStatCard>
     );
   }
 }
+

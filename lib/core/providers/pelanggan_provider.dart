@@ -79,3 +79,4 @@ final pelangganRepositoryProvider = Provider<PelangganRepository>((ref) {
 final pelangganListProvider = StateNotifierProvider<PelangganListNotifier, List<Pelanggan>>((ref) {
   return PelangganListNotifier(ref);
 });
+

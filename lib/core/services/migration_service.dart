@@ -2,6 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'encryption_service.dart';
 import '../utils/app_logger.dart';
 
+/// Migration result model
+class MigrationResult {
+  final int totalProcessed;
+  final int successCount;
+  final int failedCount;
+  final List<String> failedIds;
+  
+  MigrationResult({
+    this.totalProcessed = 0,
+    this.successCount = 0,
+    this.failedCount = 0,
+    this.failedIds = const [],
+  });
+}
+
 /// Checkpoint state untuk migrasi yang bisa di-resume.
 class MigrationCheckpoint {
   final Set<String> completedCollections;
@@ -202,4 +217,93 @@ class MigrationService {
 
     await docRef.set(updates, SetOptions(merge: true));
   }
+
+  /// Method baru untuk migrasi service_master.name
+  Future<MigrationResult> migrateServiceMasterNameEncryption(
+    String bengkelId, {
+    int batchSize = 500,
+  }) async {
+    int totalProcessed = 0;
+    int successCount = 0;
+    int failedCount = 0;
+    List<String> failedIds = [];
+    
+    bool hasMore = true;
+    DocumentSnapshot? lastDoc;
+    
+    while (hasMore) {
+      try {
+        Query query = _firestore
+            .collection('bengkel')
+            .doc(bengkelId)
+            .collection('service_master')
+            .where('name', isNotEqualTo: null)
+            .limit(batchSize);
+        
+        if (lastDoc != null) {
+          query = query.startAfterDocument(lastDoc);
+        }
+        
+        final snapshot = await query.get();
+        
+        if (snapshot.docs.isEmpty) {
+          hasMore = false;
+          break;
+        }
+        
+        lastDoc = snapshot.docs.last;
+        final batch = _firestore.batch();
+        int batchSuccess = 0;
+        
+        for (var doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name'] as String?;
+          
+          // Deteksi sudah terenkripsi atau belum
+          if (name != null && 
+              name.isNotEmpty && 
+              !name.startsWith(EncryptionService.encryptionPrefix)) {
+            try {
+              final encryptedName = _encryption.encryptText(name);
+              batch.update(doc.reference, {
+                'name': encryptedName,
+                'nameMigratedAt': FieldValue.serverTimestamp(),
+              });
+              batchSuccess++;
+            } catch (e) {
+              failedCount++;
+              failedIds.add(doc.id);
+              appLogger.error('Failed to migrate service master ${doc.id}', 
+                  error: e);
+            }
+          }
+        }
+        
+        if (batchSuccess > 0) {
+          await batch.commit();
+          successCount += batchSuccess;
+        }
+        
+        totalProcessed += snapshot.docs.length;
+        
+        // Delay kecil untuk menghindari rate limit
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (snapshot.docs.length < batchSize) {
+          hasMore = false;
+        }
+      } catch (e) {
+        appLogger.error('Migration batch error', error: e);
+        hasMore = false; // Stop on critical error
+      }
+    }
+    
+    return MigrationResult(
+      totalProcessed: totalProcessed,
+      successCount: successCount,
+      failedCount: failedCount,
+      failedIds: failedIds,
+    );
+  }
 }
+

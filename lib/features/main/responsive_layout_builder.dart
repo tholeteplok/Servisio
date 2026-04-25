@@ -361,3 +361,4 @@ class AdaptiveNavigator {
     return MediaQuery.of(context).size.width >= kExpandedBreakpoint;
   }
 }
+

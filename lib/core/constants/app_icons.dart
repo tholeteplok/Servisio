@@ -32,3 +32,4 @@ class AppIcons {
   static const IconData car = LucideIcons.car;
   static const IconData service = LucideIcons.wrench;
 }
+

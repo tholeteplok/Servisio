@@ -41,6 +41,8 @@ import '../../domain/entities/pelanggan.dart';
 import '../../domain/entities/stok.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/stok_history.dart';
+import '../../domain/entities/service_master.dart';
+import '../../domain/entities/sale.dart';
 import '../sync/sync_telemetry.dart';
 import 'encryption_service.dart';
 
@@ -223,6 +225,7 @@ class FirestoreSyncService {
 
     batch.set(ref, {
       'uuid': p.uuid,
+      'bengkelId': bengkelId, // Add this
       'name': _encryption.encryptText(p.nama),
       'phone': _encryption.encryptText(p.telepon),
       'address': _encryption.encryptText(p.alamat),
@@ -250,6 +253,7 @@ class FirestoreSyncService {
 
     batch.set(ref, {
       'uuid': s.uuid,
+      'bengkelId': bengkelId, // Add this
       'nama': s.nama,
       'kategori': s.kategori,
       'hargaBeli': s.hargaBeli,
@@ -281,6 +285,7 @@ class FirestoreSyncService {
 
     batch.set(ref, {
       'uuid': s.uuid,
+      'bengkelId': bengkelId, // Add this
       'name': _encryption.encryptText(s.name),
       'phone': _encryption.encryptText(s.phoneNumber ?? ''),
       'role': s.role,
@@ -308,6 +313,7 @@ class FirestoreSyncService {
 
     batch.set(ref, {
       'uuid': v.uuid,
+      'bengkelId': bengkelId, // Add this
       'model': v.model,
       'type': v.type,
       'plate': v.plate,
@@ -340,6 +346,7 @@ class FirestoreSyncService {
 
     batch.set(ref, {
       'uuid': sh.uuid,
+      'bengkelId': bengkelId,
       'stokUuid': sh.stokUuid,
       'type': sh.type,
       'quantityChange': sh.quantityChange,
@@ -348,6 +355,69 @@ class FirestoreSyncService {
       'note': sh.note,
       'createdAt': Timestamp.fromDate(sh.createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    _markCompleted(batch, bengkelId, key);
+    await batch.commit();
+  }
+
+  // ===== SERVICE MASTER =====
+
+  Future<void> pushServiceMaster(String bengkelId, ServiceMaster sm) async {
+    final key = _getIdempotencyKey(sm);
+    if (await _isAlreadyCompleted(bengkelId, key)) return;
+
+    final batch = _firestore.batch();
+    final ref = _firestore
+        .collection('bengkel')
+        .doc(bengkelId)
+        .collection('service_master')
+        .doc(sm.uuid);
+
+    batch.set(ref, {
+      'uuid': sm.uuid,
+      'name': _encryption.encryptText(sm.name), // ← FIX: enkripsi name
+      'basePrice': sm.basePrice,
+      'category': sm.category,
+      'createdAt': Timestamp.fromDate(sm.createdAt), // ← FIX: pake Timestamp
+      'updatedAt': Timestamp.fromDate(sm.updatedAt), // ← FIX: pake Timestamp
+      'isDeleted': sm.isDeleted,
+      'bengkelId': bengkelId,
+    }, SetOptions(merge: true));
+
+    _markCompleted(batch, bengkelId, key);
+    await batch.commit();
+  }
+
+  // ===== SALE =====
+
+  Future<void> pushSale(String bengkelId, Sale s) async {
+    final key = _getIdempotencyKey(s);
+    if (await _isAlreadyCompleted(bengkelId, key)) return;
+
+    final batch = _firestore.batch();
+    final ref = _firestore
+        .collection('bengkel')
+        .doc(bengkelId)
+        .collection('sales')
+        .doc(s.uuid);
+
+    batch.set(ref, {
+      'uuid': s.uuid,
+      'trxNumber': s.trxNumber,
+      'itemName': s.itemName,
+      'quantity': s.quantity,
+      'totalPrice': s.totalPrice,
+      'costPrice': s.costPrice,
+      'totalProfit': s.totalProfit,
+      'paymentMethod': s.paymentMethod,
+      'customerName': _encryption.encryptText(s.customerName ?? ''),
+      'stokUuid': s.stokUuid,
+      'transactionId': s.transactionId,
+      'createdAt': Timestamp.fromDate(s.createdAt), // ← FIX: Timestamp
+      'updatedAt': Timestamp.fromDate(s.updatedAt ?? s.createdAt), // ← FIX
+      'isDeleted': s.isDeleted,
+      'bengkelId': bengkelId,
     }, SetOptions(merge: true));
 
     _markCompleted(batch, bengkelId, key);
@@ -483,6 +553,8 @@ class FirestoreSyncService {
         _pullCollectionWithPagination(bengkelId, 'staff', decryptStaff),
         _pullCollectionWithPagination(bengkelId, 'vehicles', decryptVehicle),
         _pullCollectionWithPagination(bengkelId, 'inventory_history', (d) => d), // Maps to 'StokHistory'
+        _pullCollectionWithPagination(bengkelId, 'service_master', decryptServiceMaster),
+        _pullCollectionWithPagination(bengkelId, 'sales', decryptSale),
       ];
 
       final fetchedResults = await Future.wait(futures);
@@ -493,6 +565,8 @@ class FirestoreSyncService {
       results['staff'] = fetchedResults[3];
       results['vehicles'] = fetchedResults[4];
       results['stok_history'] = fetchedResults[5];
+      results['service_master'] = fetchedResults[6];
+      results['sales'] = fetchedResults[7];
 
       return results;
     } catch (e) {
@@ -604,6 +678,23 @@ class FirestoreSyncService {
       'vin': _encryption.decryptText(data['vin'] ?? '').displayValue,
     };
   }
+
+  /// Decrypt a sale map from Firestore.
+  Map<String, dynamic> decryptSale(Map<String, dynamic> data) {
+    return {
+      ...data,
+      'customerName': _encryption.decryptText(data['customerName'] ?? '').displayValue,
+    };
+  }
+
+  /// Decrypt a service master map from Firestore.
+  Map<String, dynamic> decryptServiceMaster(Map<String, dynamic> data) {
+    return {
+      ...data,
+      'name': _encryption.decryptText(data['name'] ?? '').displayValue,
+    };
+  }
 }
+
 
 

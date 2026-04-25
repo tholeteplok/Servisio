@@ -49,3 +49,4 @@ class LogicConstants {
   static const String catBeliStok = 'BELI_STOK';
   static const String catBayarHutang = 'BAYAR_HUTANG';
 }
+

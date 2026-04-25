@@ -102,3 +102,4 @@ class StandardSearchBar extends StatelessWidget {
     );
   }
 }
+

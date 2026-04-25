@@ -21,3 +21,4 @@ class TrxCounter {
     this.count = 0,
   });
 }
+

@@ -18,6 +18,10 @@ class Supplier {
   @Index()
   String bengkelId;
 
+  // 💳 Financial Profile
+  int creditLimit = 0;      // Limit hutang dari supplier ini
+  bool isStrategic = false; // Supplier kunci/penting
+
   @Property(type: PropertyType.date)
   late DateTime createdAt;
 
@@ -36,3 +40,4 @@ class Supplier {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 }
+

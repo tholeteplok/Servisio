@@ -235,3 +235,4 @@ class ExpenseAIService {
     _textRecognizer = null;
   }
 }
+

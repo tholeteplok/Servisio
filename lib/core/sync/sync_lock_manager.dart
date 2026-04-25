@@ -155,3 +155,4 @@ class _LockData {
     instanceId: json['instance_id'] ?? 'legacy',
   );
 }
+

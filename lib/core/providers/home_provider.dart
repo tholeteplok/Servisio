@@ -22,3 +22,4 @@ class HomeSearchQueryNotifier extends StateNotifier<String> {
 final homeSearchQueryProvider = StateNotifierProvider<HomeSearchQueryNotifier, String>((ref) {
   return HomeSearchQueryNotifier(ref);
 });
+

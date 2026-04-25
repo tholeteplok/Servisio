@@ -187,3 +187,4 @@ class AppTheme {
   static ThemeData get modernSiang => light;
   static ThemeData get modernMalam => dark;
 }
+

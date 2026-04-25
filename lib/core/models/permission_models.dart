@@ -99,3 +99,4 @@ class StaffWithPermissions extends Equatable {
   @override
   List<Object?> get props => [userId, name, roleTemplateId, customPermissions];
 }
+

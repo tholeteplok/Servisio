@@ -1,189 +1,138 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/annotations.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:servisio_core/core/services/permission_service.dart';
-import 'package:servisio_core/core/services/auth_service.dart';
-import 'package:servisio_core/core/models/user_profile.dart';
-import 'package:servisio_core/core/utils/permission_constants.dart';
-
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import '../../mocks/manual_mocks.dart';
-import 'permission_service_test.mocks.dart' hide MockIdTokenResult;
+import 'package:servisio_core/core/utils/permission_constants.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-@GenerateMocks([
-  AuthService,
-  FirebaseFirestore,
-  CollectionReference,
-  DocumentReference,
-  DocumentSnapshot,
-  QuerySnapshot,
-  QueryDocumentSnapshot,
-  User,
-  IdTokenResult,
-])
 void main() {
-  group('PermissionService', () {
-    late PermissionService permissionService;
-    late FakeAuthService fakeAuthService;
-    late MockFirebaseFirestore mockFirestore;
-    late FakeUser fakeUser;
+  late PermissionService permissionService;
+  late FakeFirebaseFirestore fakeFirestore;
+  late FakeAuthService fakeAuthService;
 
-    const testBengkelId = 'test-bengkel-123';
-    const testUserId = 'test-user-456';
+  const bengkelId = 'bengkel_123';
+  const ownerUid = 'owner_001';
+  const staffUid = 'staff_001';
+  const roleTemplateId = 'manager_role';
 
-    setUp(() {
-      fakeAuthService = FakeAuthService();
-      mockFirestore = MockFirebaseFirestore();
-      fakeUser = FakeUser(uid: testUserId);
-
-      permissionService = PermissionService(
-        authService: fakeAuthService,
-        firestore: mockFirestore,
-      );
+  setUp(() async {
+    fakeFirestore = FakeFirebaseFirestore();
+    
+    // Setup initial data in Firestore
+    // 1. Role Template
+    await fakeFirestore
+        .collection('bengkels')
+        .doc(bengkelId)
+        .collection('role_templates')
+        .doc(roleTemplateId)
+        .set({
+      'name': 'Manager',
+      'description': 'Manager Role',
+      'permissions': {
+        PermissionConstants.stokRead: true,
+        PermissionConstants.stokUpdateJumlah: true,
+        PermissionConstants.keuanganView: false,
+      },
+      'createdAt': Timestamp.now(),
+      'createdBy': ownerUid,
     });
 
-    group('hasPermission - Owner Access', () {
-      test('owner should have all permissions automatically', () async {
-        // Arrange
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = {
-          'bengkelId': testBengkelId,
-          'role': 'owner',
-        };
-
-        // Act & Assert
-        expect(
-          await permissionService.hasPermission(PermissionConstants.stokCreate),
-          isTrue,
-        );
-        expect(
-          await permissionService.hasPermission(PermissionConstants.stokDelete),
-          isTrue,
-        );
-      });
+    // 2. Staff Member
+    await fakeFirestore
+        .collection('bengkels')
+        .doc(bengkelId)
+        .collection('staff')
+        .doc(staffUid)
+        .set({
+      'name': 'Test Staff',
+      'email': 'staff@test.com',
+      'roleTemplateId': roleTemplateId,
+      'customPermissions': {
+        PermissionConstants.keuanganView: true, // Override to true
+        PermissionConstants.stokUpdateJumlah: false, // Override to false
+      },
+      'assignedAt': Timestamp.now(),
+      'assignedBy': ownerUid,
     });
 
-    group('hasPermission - Unauthenticated', () {
-      test('should return false when user is not logged in', () async {
-        // Arrange
-        fakeAuthService.currentUser = null;
+    fakeAuthService = FakeAuthService();
+    permissionService = PermissionService(
+      authService: fakeAuthService,
+      firestore: fakeFirestore,
+    );
+  });
 
-        // Act & Assert
-        expect(
-          await permissionService.hasPermission(PermissionConstants.stokCreate),
-          isFalse,
-        );
-      });
-
-      test('should return false when token claims are null', () async {
-        // Arrange
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = null;
-
-        // Act & Assert
-        expect(
-          await permissionService.hasPermission(PermissionConstants.stokCreate),
-          isFalse,
-        );
-      });
-
-      test('should return false when bengkelId is null', () async {
-        // Arrange
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = {
-          'role': 'teknisi',
-        };
-
-        // Act & Assert
-        expect(
-          await permissionService.hasPermission(PermissionConstants.stokCreate),
-          isFalse,
-        );
-      });
+  group('PermissionService - hasPermission', () {
+    test('Returns false if user is not logged in', () async {
+      fakeAuthService.currentUser = null;
+      final result = await permissionService.hasPermission(PermissionConstants.stokRead);
+      expect(result, isFalse);
     });
 
-    group('hasAllPermissions', () {
-      test('should return true when all permissions are granted', () async {
-        // Arrange - owner has all permissions
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = {
-          'bengkelId': testBengkelId,
-          'role': 'owner',
-        };
+    test('Owner has all permissions', () async {
+      fakeAuthService.currentUser = FakeUser(uid: ownerUid);
+      fakeAuthService.mockClaims = {
+        'role': 'owner',
+        'bengkelId': bengkelId,
+      };
 
-        // Act & Assert
-        expect(
-          await permissionService.hasAllPermissions([
-            PermissionConstants.stokCreate,
-            PermissionConstants.stokRead,
-          ]),
-          isTrue,
-        );
-      });
+      expect(await permissionService.hasPermission(PermissionConstants.stokRead), isTrue);
+      expect(await permissionService.hasPermission('any_random_permission'), isTrue);
     });
 
-    group('hasAnyPermission', () {
-      test('should return true when at least one permission is granted', () async {
-        // Arrange - owner has all permissions
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = {
-          'bengkelId': testBengkelId,
-          'role': 'owner',
-        };
+    test('Staff uses role template and custom overrides', () async {
+      fakeAuthService.currentUser = FakeUser(uid: staffUid);
+      fakeAuthService.mockClaims = {
+        'role': 'teknisi',
+        'bengkelId': bengkelId,
+      };
 
-        // Act & Assert
-        expect(
-          await permissionService.hasAnyPermission([
-            PermissionConstants.stokDelete,
-            PermissionConstants.backupRestore,
-          ]),
-          isTrue,
-        );
-      });
+      // 1. From template (stokRead: true)
+      expect(await permissionService.hasPermission(PermissionConstants.stokRead), isTrue);
+
+      // 2. Custom override (keuanganView: false in template, but true in staff record)
+      expect(await permissionService.hasPermission(PermissionConstants.keuanganView), isTrue);
+
+      // 3. Custom override (stokUpdateJumlah: true in template, but false in staff record)
+      expect(await permissionService.hasPermission(PermissionConstants.stokUpdateJumlah), isFalse);
     });
 
-    group('can - Backward Compatibility', () {
-      test('should map Permission enum correctly for owner', () async {
-        // Arrange
-        fakeAuthService.currentUser = fakeUser;
-        fakeAuthService.mockClaims = {
-          'bengkelId': testBengkelId,
-          'role': 'owner',
-        };
+    test('Returns false if permission is not defined in either', () async {
+      fakeAuthService.currentUser = FakeUser(uid: staffUid);
+      fakeAuthService.mockClaims = {
+        'role': 'teknisi',
+        'bengkelId': bengkelId,
+      };
 
-        // Act & Assert
-        expect(
-          await permissionService.can(Permission.viewOmzet),
-          isTrue,
-        );
-        expect(
-          await permissionService.can(Permission.deleteTransaction),
-          isTrue,
-        );
-      });
+      expect(await permissionService.hasPermission('unknown_permission'), isFalse);
     });
+  });
 
-    group('Cache Management', () {
-      test('clearCache should clear both caches', () {
-        // Act
-        permissionService.clearCache();
+  group('PermissionService - Caching', () {
+    test('Subsequent calls use cache', () async {
+      fakeAuthService.currentUser = FakeUser(uid: staffUid);
+      fakeAuthService.mockClaims = {
+        'role': 'teknisi',
+        'bengkelId': bengkelId,
+      };
 
-        // Assert
-        expect(true, isTrue); 
-      });
-    });
+      // First call fetches from Firestore
+      await permissionService.hasPermission(PermissionConstants.stokRead);
+      
+      // Modify Firestore directly
+      await fakeFirestore
+          .collection('bengkels')
+          .doc(bengkelId)
+          .collection('staff')
+          .doc(staffUid)
+          .update({'roleTemplateId': null});
 
-    group('isOwner Check', () {
-      test('should correctly identify owner role', () async {
-        // Arrange
-        fakeAuthService.mockClaims = {
-          'role': 'owner',
-        };
-
-        // Act & Assert
-        // This is a placeholder as the method is private or tested indirectly
-        expect(true, isTrue);
-      });
+      // Second call should still return true because it's cached
+      expect(await permissionService.hasPermission(PermissionConstants.stokRead), isTrue);
+      
+      // Clear cache and try again
+      permissionService.clearCache();
+      expect(await permissionService.hasPermission(PermissionConstants.stokRead), isFalse);
     });
   });
 }

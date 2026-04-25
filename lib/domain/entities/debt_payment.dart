@@ -49,3 +49,4 @@ class DebtPayment {
   })  : uuid = uuid ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
 }
+

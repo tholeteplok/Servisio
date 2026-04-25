@@ -16,6 +16,7 @@ class ShopProfile {
   String? phoneNumber;
   String? logoUrl;
   bool isDeleted = false;
+  String bengkelId = "";
 
   @Property(type: PropertyType.date)
   late DateTime createdAt;
@@ -39,3 +40,4 @@ class ShopProfile {
     this.updatedAt = updatedAt ?? DateTime.now();
   }
 }
+

@@ -46,3 +46,4 @@ class Staff {
     this.updatedAt = updatedAt ?? DateTime.now();
   }
 }
+

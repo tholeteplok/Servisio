@@ -66,3 +66,4 @@ class Stok {
   // Helper to check if stock is low
   bool get isLowStock => jumlah <= minStok;
 }
+

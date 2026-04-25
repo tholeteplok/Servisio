@@ -69,3 +69,4 @@ class TransactionRepository {
     return _box.remove(id);
   }
 }
+

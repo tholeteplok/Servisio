@@ -59,3 +59,4 @@ class SyncQueueItem {
   }) : uuid = uuid ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now();
 }
+

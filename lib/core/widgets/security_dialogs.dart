@@ -469,9 +469,7 @@ class _NumButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3,),
         ),
         child: Text(
           label,
@@ -485,3 +483,4 @@ class _NumButton extends StatelessWidget {
     );
   }
 }
+

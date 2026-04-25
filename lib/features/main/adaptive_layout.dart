@@ -51,6 +51,7 @@ import '../riwayat/history_screen.dart';
 import '../auth/screens/session_displaced_screen.dart';
 import '../auth/screens/access_revoked_screen.dart';
 import '../pengaturan/sub/restore_screen.dart';
+import '../pengaturan/sub/security_data_center_screen.dart';
 import '../riwayat/expense/create_expense_screen.dart';
 import '../riwayat/expense/scan_expense_screen.dart';
 // ─────────────────────────────────────────────────────────────
@@ -138,6 +139,46 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     _checkBackupStatus();
     _watchDeviceSession();
     _startStatusPolling();
+    _checkBiometricSetup();
+  }
+
+  Future<void> _checkBiometricSetup() async {
+    // 🛡️ SEC-FIX: Prompt biometric setup after restore/fresh install
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final biometricService = ref.read(biometricServiceProvider);
+      
+      // 1. Check if device supports biometrics
+      final isAvailable = await biometricService.canCheckBiometrics();
+      if (!isAvailable) return;
+
+      // 2. Check if PIN is already set (fingerprint enabled)
+      final isSet = await biometricService.isPinSet();
+      if (isSet) return;
+
+      // 3. Show prompt to enable fingerprint
+      if (!mounted) return;
+      
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => StandardDialog(
+          title: 'Keamanan Biometrik',
+          message: 'Aktifkan Sidik Jari untuk akses yang lebih cepat dan aman ke data bengkel Anda.',
+          icon: const Icon(LucideIcons.fingerprint),
+          primaryActionLabel: 'Aktifkan Sekarang',
+          secondaryActionLabel: 'Nanti',
+          onPrimaryAction: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SecurityDataCenterScreen()),
+            );
+          },
+          onSecondaryAction: () => Navigator.pop(context),
+        ),
+      );
+    });
   }
 
   void _startStatusPolling() {
@@ -1659,3 +1700,4 @@ void openDetailOrPush({
     );
   }
 }
+

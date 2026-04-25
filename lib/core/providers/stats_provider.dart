@@ -457,3 +457,4 @@ final statsProvider = Provider<TransactionStats>((ref) {
     error: (e, s) => defaultStats,
   );
 });
+

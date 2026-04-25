@@ -512,9 +512,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Icon(
                                 SolarIconsOutline.ghost,
                                 size: 48,
-                                color: theme.colorScheme.outline.withValues(
-                                  alpha: 0.3,
-                                ),
+                                color: theme.colorScheme.outline.withValues(alpha: 0.3,),
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -857,9 +855,7 @@ class _ResultCard extends StatelessWidget {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5,),
                       ),
                     ),
                   ],
@@ -1902,4 +1898,5 @@ class _InlineZoneBadge extends ConsumerWidget {
     );
   }
 }
+
 

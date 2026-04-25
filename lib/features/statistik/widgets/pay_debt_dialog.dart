@@ -286,3 +286,4 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
     );
   }
 }
+

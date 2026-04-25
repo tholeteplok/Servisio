@@ -345,6 +345,7 @@ class FakeObjectBoxProvider extends Fake implements ObjectBoxProvider {
   Box<DebtPayment> get debtPaymentBox => fakeStore.box<DebtPayment>();
   
   // ServiceMaster is often accessed via Box<ServiceMaster>(db.store)
+  @override
   Box<ServiceMaster> get serviceMasterBox => fakeStore.box<ServiceMaster>();
 }
 

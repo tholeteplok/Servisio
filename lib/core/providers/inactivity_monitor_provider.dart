@@ -66,3 +66,4 @@ class InactivityMonitor extends WidgetsBindingObserver {
     _timer?.cancel();
   }
 }
+

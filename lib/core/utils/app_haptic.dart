@@ -29,3 +29,4 @@ class AppHaptic {
     await HapticFeedback.heavyImpact();
   }
 }
+

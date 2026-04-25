@@ -60,3 +60,4 @@ class IndonesianLicensePlateFormatter extends TextInputFormatter {
     );
   }
 }
+

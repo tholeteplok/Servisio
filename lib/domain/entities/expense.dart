@@ -143,3 +143,4 @@ class Expense {
   @Backlink('expense')
   final ToMany<DebtPayment> debtPayments = ToMany<DebtPayment>();
 }
+
