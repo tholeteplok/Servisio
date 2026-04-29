@@ -15,6 +15,84 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/sync_provider.dart';
 import '../../../core/utils/app_logger.dart';
 
+/// Error boundary widget untuk mencegah white screen total
+class ErrorBoundary extends StatefulWidget {
+  final Widget child;
+  
+  const ErrorBoundary({super.key, required this.child});
+  
+  @override
+  State<ErrorBoundary> createState() => _ErrorBoundaryState();
+}
+
+class _ErrorBoundaryState extends State<ErrorBoundary> {
+  Object? _error;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Catch errors yang mungkin terjadi di child widget
+    FlutterError.onError = (details) {
+      if (mounted) {
+        setState(() {
+          _error = details.exception;
+        });
+        appLogger.error('ErrorBoundary caught error', 
+            context: 'ErrorBoundary', 
+            error: details.exception, 
+            stackTrace: details.stack);
+      }
+    };
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      final theme = Theme.of(context);
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(LucideIcons.alertTriangle, 
+                    size: 48, color: theme.colorScheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  'Terjadi kesalahan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _error.toString(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(fontSize: 12),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _error = null;
+                    });
+                  },
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return widget.child;
+  }
+}
+
 class SyncSettingsScreen extends ConsumerStatefulWidget {
   const SyncSettingsScreen({super.key});
 
@@ -23,7 +101,6 @@ class SyncSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
-  final _migrationService = MigrationService();
   bool _isMigrating = false;
   bool _showBengkelId = false;
 
@@ -52,7 +129,12 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     setState(() => _isMigrating = true);
     try {
       final settings = ref.read(settingsProvider);
-      await _migrationService.migrateToEncryption(settings.bengkelId);
+      final migrationService = MigrationService(
+        firestore: ref.read(firestoreProvider),
+        encryption: ref.read(encryptionServiceProvider),
+      );
+      
+      await migrationService.migrateToEncryption(settings.bengkelId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -79,61 +161,158 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    return ErrorBoundary(
+      child: _buildContent(context, theme, isDark),
+    );
+  }
+  
+  Widget _buildContent(BuildContext context, ThemeData theme, bool isDark) {
     final authState = ref.watch(authStateProvider);
+    
+    // Watch providers at top-level for consistency and reactivity
+    final settings = ref.watch(settingsProvider);
+    final summary = ref.watch(syncQueueSummaryProvider);
+    final sessionStatusAsync = ref.watch(currentSessionStatusProvider);
 
     return authState.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, s) => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'Error: $e',
-                style: GoogleFonts.plusJakartaSans(),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(authStateProvider),
-                child: const Text('Coba Lagi'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      data: (container) => _buildBody(theme, isDark, container),
+      loading: () => _buildLoadingState(theme),
+      error: (e, s) {
+        appLogger.error('AuthState error in SyncSettingsScreen', 
+            context: 'SyncSettingsScreen', error: e, stackTrace: s);
+        return _buildErrorState(theme, e.toString(), () => ref.invalidate(authStateProvider));
+      },
+      data: (container) {
+        // Handle explicit authenticating state
+        if (container.state == AuthState.authenticating) {
+          return _buildLoadingState(theme, message: 'Menghubungkan ke Cloud...');
+        }
+        
+        final sessionStatus = sessionStatusAsync.valueOrNull ?? SessionStatus.full;
+        return _buildBody(theme, isDark, container, settings, summary, sessionStatus);
+      },
     );
   }
 
-  Widget _buildBody(ThemeData theme, bool isDark, dynamic container) {
-    // Error boundary untuk mencegah white screen
+  Widget _buildLoadingState(ThemeData theme, {String? message}) {
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: CustomScrollView(
+        slivers: [
+          SliverAtelierHeaderSub(
+            title: AppStrings.dataCenter.title,
+            subtitle: message ?? AppStrings.dataCenter.subtitle,
+            showBackButton: true,
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: theme.colorScheme.primary,
+                  ),
+                  if (message != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      message,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ThemeData theme, String error, VoidCallback onRetry) {
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: CustomScrollView(
+        slivers: [
+          SliverAtelierHeaderSub(
+            title: AppStrings.dataCenter.title,
+            subtitle: 'Terjadi gangguan sistem',
+            showBackButton: true,
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(LucideIcons.alertCircle, color: theme.colorScheme.error, size: 40),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Gagal memuat data sinkronisasi',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(LucideIcons.refreshCw, size: 18),
+                    label: const Text('Coba Lagi'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    ThemeData theme,
+    bool isDark,
+    AuthStateContainer container,
+    SettingsState settings,
+    Map<String, int> summary,
+    SessionStatus sessionStatus,
+  ) {
+    // Error boundary untuk mencegah white screen total jika ada bug di sub-widgets
     try {
       final profile = container.profile;
-      final settings = ref.watch(settingsProvider);
-
-      // Async providers dengan error handling
-      final summary = ref.watch(syncQueueSummaryProvider);
-      final sessionStatusAsync = ref.watch(currentSessionStatusProvider);
-
-      // Extract values dengan fallback
-      final sessionStatus = sessionStatusAsync.value ?? SessionStatus.full;
-
       final isActive = settings.bengkelId.isNotEmpty && settings.bengkelId != '-';
-
-      // Log untuk debugging
-      appLogger.debug(
-        'SyncSettingsScreen build - isActive: $isActive, sessionStatus: $sessionStatus',
-        context: 'SyncSettingsScreen',
-      );
 
       return Scaffold(
         backgroundColor: theme.colorScheme.surface,
         body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAtelierHeaderSub(
               title: AppStrings.dataCenter.title,
@@ -168,78 +347,15 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
       );
     } catch (e, stack) {
       appLogger.error(
-        'SyncSettingsScreen build error',
+        'SyncSettingsScreen _buildBody error',
         context: 'SyncSettingsScreen',
         error: e,
         stackTrace: stack,
       );
-      return _buildErrorWidget(e.toString(), theme);
+      return _buildErrorState(theme, e.toString(), () => ref.invalidate(authStateProvider));
     }
   }
 
-  Widget _buildErrorWidget(String message, ThemeData theme) {
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.bug_report_outlined,
-                  size: 64,
-                  color: theme.colorScheme.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Terjadi Kesalahan',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        ref.invalidate(authStateProvider);
-                        ref.invalidate(settingsProvider);
-                        ref.invalidate(syncQueueSummaryProvider);
-                        ref.invalidate(currentSessionStatusProvider);
-                        setState(() {});
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Muat Ulang'),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('Kembali'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSectionHeader(String label) {
     final theme = Theme.of(context);

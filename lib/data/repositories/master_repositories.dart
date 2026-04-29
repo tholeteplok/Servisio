@@ -122,6 +122,8 @@ class ServiceMasterRepository {
     return result;
   }
 
+  ServiceMaster? getById(int id) => _box.get(id);
+
   bool softDelete(int id) {
     final sm = _box.get(id);
     if (sm != null) {

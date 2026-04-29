@@ -89,6 +89,9 @@ class AppSettings {
   /// Migration flag for ServiceMaster name encryption (v1.2.2)
   static const String migrationV122ServiceMasterName = 
       'migration_v122_service_master_name';
+
+  /// Flag indicating if the user has dismissed the biometric setup prompt.
+  static const String hasDismissedBiometricPrompt = 'has_dismissed_biometric_prompt';
 }
 
 

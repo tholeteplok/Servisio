@@ -33,6 +33,9 @@ class Vehicle {
   @Property(type: PropertyType.date)
   late DateTime updatedAt;
 
+  int? syncStatus;
+  DateTime? lastSyncedAt;
+
   Vehicle({
     this.id = 0,
     String? uuid,

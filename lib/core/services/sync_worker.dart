@@ -11,6 +11,7 @@ import '../../domain/entities/transaction_item.dart';
 import '../../domain/entities/stok_history.dart';
 import '../../domain/entities/service_master.dart';
 import '../../domain/entities/sale.dart';
+import '../../domain/entities/expense.dart';
 import 'firestore_sync_service.dart';
 import '../providers/objectbox_provider.dart';
 import '../../objectbox.g.dart';
@@ -72,12 +73,30 @@ class SyncWorker {
         _connectivity = connectivity ?? Connectivity();
 
   /// Start background sync — checks every 30 seconds + on network change.
+  /// FIX: Memastikan workshop ter-resolve sebelum memulai sync
   void start() {
     if (_isRunning || _isDisposed) return;
     _isRunning = true;
 
-    // Process immediately
-    _processQueue();
+    // FIX: Pastikan workshop ter-resolve sebelum memproses queue
+    // Ini penting untuk mendapatkan ownerId yang valid
+    _sessionManager?.ensureWorkshopResolved().then((_) {
+      appLogger.info(
+        'SyncWorker started: workshopId=${_sessionManager.activeWorkshopId}, '
+        'ownerId=${_sessionManager.activeWorkshopOwnerId}',
+        context: 'SyncWorker',
+      );
+      
+      // Process immediately after resolution
+      _processQueue();
+    }).catchError((e) {
+      appLogger.warning(
+        'Failed to resolve workshop, sync may use legacy path: $e',
+        context: 'SyncWorker',
+      );
+      // Tetap coba proses meskipun resolusi gagal (akan menggunakan legacy path)
+      _processQueue();
+    });
 
     // Check every 120 seconds for automatic retries
     _timer = Timer.periodic(const Duration(seconds: 120), (_) {
@@ -96,7 +115,11 @@ class SyncWorker {
 
     SyncTelemetry().log(SyncEvent(
       type: 'worker_started',
-      metadata: {'bengkelId': bengkelId, 'syncWifiOnly': syncWifiOnly},
+      metadata: {
+        'ownerId': _sessionManager?.activeWorkshopOwnerId,
+        'workshopId': _sessionManager?.activeWorkshopId,
+        'syncWifiOnly': syncWifiOnly
+      },
       level: TelemetryLevel.info,
       timestamp: DateTime.now(),
     ));
@@ -373,6 +396,9 @@ class SyncWorker {
 
   /// Sync a single entity (Core Implementation).
   Future<void> _syncEntity(SyncQueueItem item) async {
+    final now = DateTime.now();
+    final syncedCode = SyncStatus.synced.code;
+
     switch (item.entityType) {
       case 'transaction':
         final tx = _db.transactionBox
@@ -381,60 +407,119 @@ class SyncWorker {
             .findFirst();
         if (tx != null) {
           await _syncService.pushTransaction(bengkelId, tx);
-          tx.syncStatus = SyncStatus.synced.code;
-          tx.lastSyncedAt = DateTime.now();
+          tx.syncStatus = syncedCode;
+          tx.lastSyncedAt = now;
           _db.transactionBox.put(tx);
         }
         break;
+
       case 'pelanggan':
         final p = _db.pelangganBox
             .query(Pelanggan_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (p != null) await _syncService.pushPelanggan(bengkelId, p);
+        if (p != null) {
+          await _syncService.pushPelanggan(bengkelId, p);
+          p.syncStatus = syncedCode;
+          p.lastSyncedAt = now;
+          _db.pelangganBox.put(p);
+        }
         break;
+
       case 'stok':
         final s = _db.stokBox
             .query(Stok_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (s != null) await _syncService.pushStok(bengkelId, s);
+        if (s != null) {
+          await _syncService.pushStok(bengkelId, s);
+          s.syncStatus = syncedCode;
+          s.lastSyncedAt = now;
+          _db.stokBox.put(s);
+        }
         break;
+
       case 'staff':
         final s = _db.staffBox
             .query(Staff_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (s != null) await _syncService.pushStaff(bengkelId, s);
+        if (s != null) {
+          await _syncService.pushStaff(bengkelId, s);
+          s.syncStatus = syncedCode;
+          s.lastSyncedAt = now;
+          _db.staffBox.put(s);
+        }
         break;
+
       case 'vehicle':
         final v = _db.vehicleBox
             .query(Vehicle_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (v != null) await _syncService.pushVehicle(bengkelId, v);
+        if (v != null) {
+          await _syncService.pushVehicle(bengkelId, v);
+          v.syncStatus = syncedCode;
+          v.lastSyncedAt = now;
+          _db.vehicleBox.put(v);
+        }
         break;
+
       case 'stok_history':
         final sh = _db.stokHistoryBox
             .query(StokHistory_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (sh != null) await _syncService.pushStokHistory(bengkelId, sh);
+        if (sh != null) {
+          await _syncService.pushStokHistory(bengkelId, sh);
+          sh.syncStatus = syncedCode;
+          sh.lastSyncedAt = now;
+          _db.stokHistoryBox.put(sh);
+        }
         break;
+
       case 'service_master':
         final sm = _db.serviceMasterBox
             .query(ServiceMaster_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (sm != null) await _syncService.pushServiceMaster(bengkelId, sm);
+        if (sm != null) {
+          await _syncService.pushServiceMaster(bengkelId, sm);
+          sm.syncStatus = syncedCode;
+          sm.lastSyncedAt = now;
+          _db.serviceMasterBox.put(sm);
+        }
         break;
+
       case 'sale':
         final s = _db.saleBox
             .query(Sale_.uuid.equals(item.entityUuid))
             .build()
             .findFirst();
-        if (s != null) await _syncService.pushSale(bengkelId, s);
+        if (s != null) {
+          await _syncService.pushSale(bengkelId, s);
+          s.syncStatus = syncedCode;
+          s.lastSyncedAt = now;
+          _db.saleBox.put(s);
+        }
         break;
+
+      case 'expense':
+        final e = _db.expenseBox
+            .query(Expense_.uuid.equals(item.entityUuid))
+            .build()
+            .findFirst();
+        if (e != null) {
+          await _syncService.pushExpense(bengkelId, e);
+          e.syncStatus = syncedCode;
+          e.lastSyncedAt = now;
+          _db.expenseBox.put(e);
+        }
+        break;
+
+      default:
+        appLogger.warning('Unknown entity type: ${item.entityType}',
+            context: 'SyncWorker');
     }
   }
 
@@ -456,6 +541,7 @@ class SyncWorker {
         case StokHistory h: existingUpdatedAt = h.createdAt;
         case ServiceMaster sm: existingUpdatedAt = sm.updatedAt;
         case Sale sale: existingUpdatedAt = sale.updatedAt;
+        case Expense e: existingUpdatedAt = e.updatedAt;
         default: return false; // Tidak punya updatedAt, overwrite saja
       }
       
@@ -476,6 +562,19 @@ class SyncWorker {
     bool forceOverwrite = false,
   }) async {
     if (_db.store.isClosed()) return;
+
+    // FIX: Log data yang masuk untuk debugging
+    appLogger.info(
+      'syncDownAll called with: '
+      'transactions=${data['transactions']?.length ?? 0}, '
+      'customers=${data['customers']?.length ?? 0}, '
+      'inventory=${data['inventory']?.length ?? 0}, '
+      'staff=${data['staff']?.length ?? 0}, '
+      'vehicles=${data['vehicles']?.length ?? 0}, '
+      'sales=${data['sales']?.length ?? 0}, '
+      'expenses=${data['expenses']?.length ?? 0}',
+      context: 'SyncWorker',
+    );
 
     // Sanitize data to remove non-sendable types (like Timestamp)
     final sanitizedData = _sanitizeForIsolate(data);
@@ -505,6 +604,8 @@ class SyncWorker {
           existing.phoneNumber = m['phone'];
           existing.bengkelId = currentBengkelId;
           existing.isActive = m['isActive'] ?? true;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawStaffList.add(existing);
         } else {
           rawStaffList.add(Staff(
@@ -514,7 +615,9 @@ class SyncWorker {
             uuid: uuid,
           )
             ..bengkelId = currentBengkelId
-            ..isActive = m['isActive'] ?? true);
+            ..isActive = m['isActive'] ?? true
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
 
@@ -535,6 +638,8 @@ class SyncWorker {
           existing.telepon = m['phone'] ?? '';
           existing.alamat = m['address'] ?? '';
           existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawCustomerList.add(existing);
         } else {
           rawCustomerList.add(Pelanggan(
@@ -542,7 +647,10 @@ class SyncWorker {
             telepon: m['phone'] ?? '',
             alamat: m['address'] ?? '',
             uuid: uuid,
-          )..bengkelId = currentBengkelId);
+          )
+            ..bengkelId = currentBengkelId
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
 
@@ -567,6 +675,8 @@ class SyncWorker {
           existing.year = m['year'];
           existing.color = m['color'];
           existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawVehicleList.add(existing);
         } else {
           rawVehicleList.add(Vehicle(
@@ -577,7 +687,10 @@ class SyncWorker {
             year: m['year'],
             color: m['color'],
             uuid: uuid,
-          )..bengkelId = currentBengkelId);
+          )
+            ..bengkelId = currentBengkelId
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
 
@@ -624,6 +737,8 @@ class SyncWorker {
               m['kategori'] ?? m['category'] ?? LogicConstants.catSparepart;
           existing.bengkelId = currentBengkelId;
           existing.updatedAt = SyncWorker._toDateTime(m['updatedAt']);
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawStokList.add(existing);
         } else {
           rawStokList.add(Stok(
@@ -639,7 +754,9 @@ class SyncWorker {
           )
             ..bengkelId = currentBengkelId
             ..createdAt = SyncWorker._toDateTime(m['createdAt'])
-            ..updatedAt = SyncWorker._toDateTime(m['updatedAt']));
+            ..updatedAt = SyncWorker._toDateTime(m['updatedAt'])
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
 
@@ -702,6 +819,7 @@ class SyncWorker {
         tx.createdAt = SyncWorker._toDateTime(m['createdAt']);
         tx.updatedAt = SyncWorker._toDateTime(m['updatedAt']);
         tx.syncStatus = 2; // Marked as synced
+        tx.lastSyncedAt = DateTime.now();
 
         // Set relations
         final custUuid = m['customerUuid'] as String?;
@@ -770,6 +888,8 @@ class SyncWorker {
           existing.type = m['type'] ?? LogicConstants.catAdjustment;
           existing.note = m['note'];
           existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawHistoryList.add(existing);
         } else {
           rawHistoryList.add(StokHistory(
@@ -781,7 +901,10 @@ class SyncWorker {
             note: m['note'],
             uuid: uuid,
             createdAt: SyncWorker._toDateTime(m['createdAt']),
-          )..bengkelId = currentBengkelId);
+          )
+            ..bengkelId = currentBengkelId
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
 
@@ -803,6 +926,8 @@ class SyncWorker {
           existing.basePrice = (m['basePrice'] ?? 0).toInt();
           existing.category = m['category'];
           existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawServiceList.add(existing);
         } else {
           rawServiceList.add(ServiceMaster(
@@ -812,7 +937,10 @@ class SyncWorker {
             uuid: uuid,
             createdAt: SyncWorker._toDateTime(m['createdAt']),
             updatedAt: SyncWorker._toDateTime(m['updatedAt']),
-          )..bengkelId = currentBengkelId);
+          )
+            ..bengkelId = currentBengkelId
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
       final serviceList = _deduplicateByUuid<ServiceMaster>(rawServiceList, (s) => s.uuid);
@@ -838,6 +966,8 @@ class SyncWorker {
           existing.transactionId = m['transactionId'];
           existing.trxNumber = m['trxNumber'] ?? '';
           existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
           rawSaleList.add(existing);
         } else {
           rawSaleList.add(Sale(
@@ -852,12 +982,88 @@ class SyncWorker {
             uuid: uuid,
             createdAt: SyncWorker._toDateTime(m['createdAt']),
             updatedAt: SyncWorker._toDateTime(m['updatedAt']),
-          )..bengkelId = currentBengkelId);
+          )
+            ..bengkelId = currentBengkelId
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
         }
       }
       final saleList = _deduplicateByUuid<Sale>(rawSaleList, (s) => s.uuid);
       saleBox.putMany(saleList);
+
+      // 9. Expenses with Upsert
+      final expenseBox = store.box<Expense>();
+      final List<Expense> rawExpenseList = [];
+      for (var m in (dataMap['expenses'] as List? ?? [])) {
+        final uuid = m['uuid'] as String;
+        final existing = expenseBox.query(Expense_.uuid.equals(uuid)).build().findFirst();
+        if (!forceOverwrite && _isLocalNewer(existing, m['updatedAt'])) continue;
+
+        if (existing != null) {
+          existing.amount = (m['amount'] ?? 0).toInt();
+          existing.category = m['category'] ?? '';
+          existing.description = m['description'] ?? '';
+          existing.date = SyncWorker._toDateTime(m['date']);
+          existing.photoPath = m['photoPath'];
+          existing.isDeleted = m['isDeleted'] ?? false;
+          existing.debtStatus = m['debtStatus'];
+          existing.supplierName = m['supplierName'];
+          existing.bengkelId = currentBengkelId;
+          existing.syncStatus = 2;
+          existing.lastSyncedAt = DateTime.now();
+          rawExpenseList.add(existing);
+        } else {
+          rawExpenseList.add(Expense(
+            amount: (m['amount'] ?? 0).toInt(),
+            category: m['category'] ?? '',
+            description: m['description'] ?? '',
+            date: SyncWorker._toDateTime(m['date']),
+            uuid: uuid,
+            bengkelId: currentBengkelId,
+          )
+            ..photoPath = m['photoPath']
+            ..isDeleted = m['isDeleted'] ?? false
+            ..debtStatus = m['debtStatus']
+            ..supplierName = m['supplierName']
+            ..createdAt = SyncWorker._toDateTime(m['createdAt'])
+            ..updatedAt = SyncWorker._toDateTime(m['updatedAt'])
+            ..syncStatus = 2
+            ..lastSyncedAt = DateTime.now());
+        }
+      }
+      final expenseList = _deduplicateByUuid<Expense>(rawExpenseList, (e) => e.uuid);
+      expenseBox.putMany(expenseList);
+
+      // 10. Link Expense relations (Parent-Child for debts/repayments)
+      for (var m in (dataMap['expenses'] as List? ?? [])) {
+        final parentUuid = m['parentExpenseUuid'] as String?;
+        if (parentUuid != null) {
+          final current = expenseBox.query(Expense_.uuid.equals(m['uuid'])).build().findFirst();
+          final parent = expenseBox.query(Expense_.uuid.equals(parentUuid)).build().findFirst();
+          if (current != null && parent != null) {
+            current.parentExpense.target = parent;
+            expenseBox.put(current);
+          }
+        }
+      }
+      
+      // FIX: Log hasil penyimpanan di dalam transaction
+      // Catatan: appLogger tidak bisa dipanggil dari isolate, jadi kita skip logging di sini
+      // dan rely on logging di luar transaction
     }, payload); // Fix: pass payload instead of sanitizedData
+    
+    // FIX: Log hasil akhir setelah transaction selesai
+    appLogger.info(
+      'syncDownAll completed. Local DB counts: '
+      'tx=${_db.transactionBox.count()}, '
+      'customers=${_db.pelangganBox.count()}, '
+      'stok=${_db.stokBox.count()}, '
+      'staff=${_db.staffBox.count()}, '
+      'vehicles=${_db.vehicleBox.count()}, '
+      'sales=${_db.saleBox.count()}, '
+      'expenses=${_db.expenseBox.count()}',
+      context: 'SyncWorker',
+    );
   }
 
   /// Recursively convert non-sendable types (like Timestamp) to sendable ones (like int).

@@ -11,15 +11,15 @@ class ExpenseCategoryChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) return const SizedBox.shrink();
 
+    final theme = Theme.of(context);
     final List<Color> colors = [
-      Colors.blue,
-      Colors.red,
-      Colors.green,
+      theme.colorScheme.primary,
+      theme.colorScheme.tertiary,
+      theme.colorScheme.secondary,
+      theme.colorScheme.error,
       Colors.orange,
-      Colors.purple,
       Colors.teal,
-      Colors.amber,
-      Colors.pink,
+      Colors.purple,
     ];
 
     final total = data.values.fold(0, (sum, val) => sum + val);
@@ -27,26 +27,20 @@ class ExpenseCategoryChart extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: 2,
+          flex: 4,
           child: PieChart(
             PieChartData(
               sectionsSpace: 4,
-              centerSpaceRadius: 40,
+              centerSpaceRadius: 35,
               sections: data.entries.toList().asMap().entries.map((entry) {
                 final idx = entry.key;
                 final val = entry.value;
-                final percentage = (val.value / total) * 100;
 
                 return PieChartSectionData(
                   color: colors[idx % colors.length],
                   value: val.value.toDouble(),
-                  title: '${percentage.toStringAsFixed(0)}%',
-                  radius: 50,
-                  titleStyle: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  title: '', // No title in the pie itself, using legend
+                  radius: 35,
                 );
               }).toList(),
             ),
@@ -54,7 +48,7 @@ class ExpenseCategoryChart extends StatelessWidget {
         ),
         const SizedBox(width: 24),
         Expanded(
-          flex: 3,
+          flex: 6,
           child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -62,13 +56,15 @@ class ExpenseCategoryChart extends StatelessWidget {
               children: data.entries.toList().asMap().entries.map((entry) {
                 final idx = entry.key;
                 final val = entry.value;
+                final percentage = (val.value / total) * 100;
+
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
                       Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: BoxDecoration(
                           color: colors[idx % colors.length],
                           shape: BoxShape.circle,
@@ -77,12 +73,22 @@ class ExpenseCategoryChart extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          val.key,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                          val.key.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            letterSpacing: 0.5,
                           ),
                           overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        '${percentage.toStringAsFixed(0)}%',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: colors[idx % colors.length],
                         ),
                       ),
                     ],

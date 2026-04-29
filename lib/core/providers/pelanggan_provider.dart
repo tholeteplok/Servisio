@@ -1,12 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'objectbox_provider.dart';
+import 'system_providers.dart';
 import 'sync_provider.dart';
+import '../services/session_manager.dart';
 import '../../domain/entities/pelanggan.dart';
 import '../../data/repositories/pelanggan_repository.dart';
+
 
 class PelangganListNotifier extends StateNotifier<List<Pelanggan>> {
   final Ref ref;
   PelangganListNotifier(this.ref) : super([]) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 
@@ -73,10 +86,10 @@ class PelangganListNotifier extends StateNotifier<List<Pelanggan>> {
 
 final pelangganRepositoryProvider = Provider<PelangganRepository>((ref) {
   final db = ref.watch(dbProvider);
-  return PelangganRepository(db.store.box<Pelanggan>());
+  final session = ref.watch(sessionManagerProvider);
+  return PelangganRepository(db.pelangganBox, session.activeWorkshopId);
 });
 
 final pelangganListProvider = StateNotifierProvider<PelangganListNotifier, List<Pelanggan>>((ref) {
   return PelangganListNotifier(ref);
 });
-

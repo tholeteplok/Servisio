@@ -3,18 +3,27 @@ import '../../objectbox.g.dart';
 
 class TransactionRepository {
   final Box<Transaction> _box;
-
-  TransactionRepository(this._box);
+  final String? workshopId;
+  TransactionRepository(this._box, [this.workshopId]);
 
   int save(Transaction transaction) {
     transaction.updatedAt = DateTime.now();
+    // Auto-set workshopId if not set
+    if (transaction.bengkelId.isEmpty && workshopId != null) {
+      transaction.bengkelId = workshopId!;
+    }
     return _box.put(transaction);
   }
 
   /// Get all transactions that are not soft-deleted
   List<Transaction> getAll({int limit = 0, int offset = 0}) {
+    Condition<Transaction> cond = Transaction_.isDeleted.equals(false);
+    if (workshopId != null) {
+      cond = cond.and(Transaction_.bengkelId.equals(workshopId!));
+    }
+
     final query = _box
-        .query(Transaction_.isDeleted.equals(false))
+        .query(cond)
         .order(Transaction_.createdAt, flags: Order.descending)
         .build();
 
@@ -51,12 +60,16 @@ class TransactionRepository {
   }
 
   List<Transaction> getByPelangganId(int pelangganId) {
+    Condition<Transaction> cond = Transaction_.isDeleted
+        .equals(false)
+        .and(Transaction_.pelanggan.equals(pelangganId));
+        
+    if (workshopId != null) {
+      cond = cond.and(Transaction_.bengkelId.equals(workshopId!));
+    }
+
     final query = _box
-        .query(
-          Transaction_.isDeleted
-              .equals(false)
-              .and(Transaction_.pelanggan.equals(pelangganId)),
-        )
+        .query(cond)
         .order(Transaction_.createdAt, flags: Order.descending)
         .build();
     final results = query.find();

@@ -290,7 +290,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () async {
-                                    final url = Uri.parse('https://servisio.id/terms');
+                                    final url = Uri.parse(AppStrings.legal.termsUrl);
                                     if (await canLaunchUrl(url)) {
                                       await launchUrl(url);
                                     }
@@ -306,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () async {
-                                    final url = Uri.parse('https://servisio.id/privacy');
+                                    final url = Uri.parse(AppStrings.legal.privacyUrl);
                                     if (await canLaunchUrl(url)) {
                                       await launchUrl(url);
                                     }

@@ -363,7 +363,7 @@ class _RingkasanTabState extends ConsumerState<RingkasanTab> {
           title: 'Hutang Supplier',
           value: stats.totalDebt,
           icon: SolarIconsOutline.hourglass,
-          color: Colors.orange,
+          color: AppColors.warning,
           theme: theme,
           isPrivate: widget.isPrivate,
           subtitle: 'Sisa kewajiban yang belum lunas',

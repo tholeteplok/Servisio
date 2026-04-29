@@ -93,13 +93,23 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // UI Statistik sekarang tersentralisasi dalam satu Scaffold agar transisi mulus.
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [
-          _buildHeader(theme),
-          _buildTabBar(theme),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildHeader(theme),
+              Positioned(
+                bottom: -28,
+                left: 0,
+                right: 0,
+                child: _buildTabBar(theme),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
           Expanded(
             child: Stack(
               children: [
@@ -131,7 +141,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
 
   Widget _buildSkeletonView(ThemeData theme) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
         children: [
           Row(
@@ -161,7 +171,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
 
   Widget _buildSecurityOverlay(ThemeData theme) {
     return Container(
-      color: theme.colorScheme.surface.withValues(alpha: 0.8), // Sedikit lebih opaque agar tidak distraktif
+      color: theme.colorScheme.surface.withValues(alpha: 0.8),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -172,7 +182,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             const SizedBox(height: 20),
             Text(
               'Menyiapkan Kunci Keamanan...',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
@@ -180,7 +190,7 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
             const SizedBox(height: 8),
             Text(
               'Pastikan koneksi internet stabil',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
@@ -194,10 +204,11 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
   Widget _buildHeader(ThemeData theme) {
     return AtelierHeaderSub(
       title: 'Analisis Bisnis',
-      subtitle: 'Laporan performa bengkel secara real-time',
       showBackButton: true,
       onBackPressed: () => Navigator.pop(context),
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+      showWorkshopSelector: false,
+      bottomPadding: 44,
       actions: [
         IconButton(
           onPressed: () => setState(() => _isPrivate = !_isPrivate),
@@ -208,16 +219,15 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
           tooltip: 'Visibilitas',
           style: IconButton.styleFrom(
             minimumSize: const Size(48, 48),
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
         const SizedBox(width: 8),
         IconButton(
           onPressed: () {
-            // Refresh logic - invalidating providers
             ref.invalidate(statsProvider);
           },
           icon: const Icon(
@@ -227,9 +237,9 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
           tooltip: 'Segarkan',
           style: IconButton.styleFrom(
             minimumSize: const Size(48, 48),
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
@@ -239,11 +249,19 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
 
   Widget _buildTabBar(ThemeData theme) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
       ),
       child: TabBar(
         controller: _tabController,
@@ -253,17 +271,24 @@ class _StatistikScreenState extends ConsumerState<StatistikScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           color: theme.colorScheme.primary,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         labelColor: theme.colorScheme.onPrimary,
         unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-        labelStyle: GoogleFonts.inter(
+        labelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
-        unselectedLabelStyle: GoogleFonts.inter(
+        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         tabs: const [
           Tab(text: 'Ringkasan'),

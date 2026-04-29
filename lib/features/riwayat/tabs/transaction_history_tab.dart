@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../../core/providers/history_provider.dart';
 import '../../../core/providers/transaction_providers.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/widgets/atelier_list_card.dart';
 import '../../home/transaction_detail_screen.dart';
 import '../../main/responsive_layout_builder.dart';
 
@@ -96,7 +95,7 @@ class _TransactionHistoryTabState
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              padding: const EdgeInsets.only(top: 0, bottom: 100),
               sliver: SliverList(
                 key: const ValueKey('history_list'),
                 delegate: SliverChildBuilderDelegate(
@@ -209,143 +208,183 @@ class _HistoryCard extends ConsumerWidget {
 
   const _HistoryCard({required this.item});
 
-  String _formatCurrency(int amount) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp',
-      decimalDigits: 0,
-    ).format(amount);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final isService = item.type == 'SERVICE';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: AtelierListGroup(
-        children: [
-          AtelierListTile(
-            icon: item.icon,
-            iconColor: isService
-                ? theme.colorScheme.primary
-                : theme.colorScheme.secondary,
-            customTitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: (isService
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.secondary)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        item.type == 'SERVICE'
-                            ? AppStrings.history.typeService
-                            : AppStrings.history.typeProduct,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          color: isService
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.secondary,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      DateFormat('dd MMM, HH:mm').format(item.date),
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item.trxNumber,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.title,
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            subtitle: item.subtitle,
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatCurrency(item.amount),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.status,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.green,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            onTap: isService
-                ? () {
-                    final container =
-                        ProviderScope.containerOf(context);
-                    final trxListAsync =
-                        container.read(transactionListProvider);
-                    final trxList = trxListAsync.value ?? [];
-                    try {
-                      final trx =
-                          trxList.firstWhere((t) => t.uuid == item.id);
-                      AdaptiveNavigator.push(
-                        context: context,
-                        ref: ref,
-                        detailContent:
-                            TransactionDetailScreen(transaction: trx),
-                        routeBuilder: () =>
-                            TransactionDetailScreen(transaction: trx),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              AppStrings.history.detailNotFound),
-                        ),
-                      );
-                    }
-                  }
-                : () {},
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: InkWell(
+        onTap: isService
+            ? () {
+                final container = ProviderScope.containerOf(context);
+                final trxListAsync = container.read(transactionListProvider);
+                final trxList = trxListAsync.value ?? [];
+                try {
+                  final trx = trxList.firstWhere((t) => t.uuid == item.id);
+                  AdaptiveNavigator.push(
+                    context: context,
+                    ref: ref,
+                    detailContent: TransactionDetailScreen(transaction: trx),
+                    routeBuilder: () => TransactionDetailScreen(transaction: trx),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppStrings.history.detailNotFound)),
+                  );
+                }
+              }
+            : null,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Header (ID & Status)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(SolarIconsOutline.hashtag, size: 12, color: Colors.grey[400]),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.trxNumber.split('-').last.toUpperCase(),
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.grey[500],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: (item.status.toUpperCase() == 'LUNAS' 
+                              ? const Color(0xFF10B981) 
+                              : const Color(0xFFF59E0B))
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      item.status,
+                      style: GoogleFonts.manrope(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: (item.status.toUpperCase() == 'LUNAS' 
+                            ? const Color(0xFF10B981) 
+                            : const Color(0xFFF59E0B)),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Body (Title & Price)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: GoogleFonts.manrope(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1E293B),
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(SolarIconsOutline.calendar, size: 13, color: Colors.grey[400]),
+                            const SizedBox(width: 6),
+                            Text(
+                              DateFormat('dd MMMM yyyy, HH:mm').format(item.date),
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    NumberFormat.currency(
+                      locale: 'id_ID',
+                      symbol: 'Rp',
+                      decimalDigits: 0,
+                    ).format(item.amount),
+                    style: GoogleFonts.manrope(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF6366F1), // Indigo accent
+                    ),
+                  ),
+                ],
+              ),
+              
+              // 3. Footer / Note section (if applicable)
+              if (item.subtitle.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isService ? SolarIconsOutline.notes : SolarIconsOutline.box,
+                        size: 14,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          item.subtitle,
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -537,4 +576,3 @@ class HistoryFilterBottomSheet extends ConsumerWidget {
     );
   }
 }
-

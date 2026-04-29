@@ -120,161 +120,203 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen>
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAtelierHeader(
-            title: AppStrings.catalog.inventoryTitle,
-            subtitle: AppStrings.catalog.inventorySubtitle,
-            showBackButton: false,
-            searchController: _searchController,
-            searchHint: _tabController.index == 0
-                ? AppStrings.catalog.searchBarang
-                : AppStrings.catalog.searchJasa,
-            onSearchChanged: (v) {
-              if (_tabController.index == 0) {
-                ref.read(stokListProvider.notifier).search(v);
-              }
-            },
-            actions: [
-              if (_tabController.index == 0) ...[
-                IconButton(
-                  onPressed: () => _openScanner(),
-                  icon: const Icon(SolarIconsOutline.scanner,
-                      color: Colors.white, size: 20),
-                  tooltip: AppStrings.catalog.tooltipScanner,
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              IconButton(
-                onPressed: () => _loadInitial(),
-                icon: const Icon(SolarIconsOutline.refresh,
-                    color: Colors.white, size: 20),
-                tooltip: AppStrings.common.refresh,
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+      body: Column(
+        children: [
+          // 1. Header & TabBar Section
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildHeader(theme),
+              Positioned(
+                bottom: -28,
+                left: 0,
+                right: 0,
+                child: _buildTabBar(theme, stokList, serviceListAsync),
               ),
-              const SizedBox(width: 8),
             ],
           ),
-          SliverAppBar(
-            pinned: true,
-            toolbarHeight: 0,
-            collapsedHeight: 0,
-            automaticallyImplyLeading: false,
-            backgroundColor: theme.colorScheme.surface,
-            bottom: TabBar(
-              controller: _tabController,
-              dividerColor: Colors.transparent,
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicatorWeight: 4,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(50),
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+
+          // 2. Content Spacer
+          const SizedBox(height: 32),
+
+          // 3. Main Content
+          Expanded(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                // 🛠️ FIX: Only trigger page navigation for HORIZONTAL overscroll.
+                if (notification is OverscrollNotification &&
+                    notification.metrics.axis == Axis.horizontal &&
+                    widget.mainPageController != null) {
+                  if (notification.overscroll < 0 && _tabController.index == 0) {
+                    // Swipe Right (drag right) -> Go to Home (index 0)
+                    widget.mainPageController!.animateToPage(
+                      0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  } else if (notification.overscroll > 0 &&
+                      _tabController.index == 1) {
+                    // Swipe Left (drag left) -> Go to Pelanggan (index 2)
+                    widget.mainPageController!.animateToPage(
+                      2,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                }
+                return false;
+              },
+              child: TabBarView(
+                controller: _tabController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  _buildBarangTab(stokList, theme),
+                  _buildJasaTab(serviceList, theme),
+                ],
               ),
-              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-              labelColor: theme.colorScheme.primary,
-              labelStyle: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-              ),
-              unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-              tabs: [
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(AppStrings.catalog.tabBarang),
-                      if (stokList.isEmpty) ...[
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(AppStrings.catalog.tabJasa),
-                      if (serviceListAsync.isLoading) ...[
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
         ],
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            // 🛠️ FIX: Only trigger page navigation for HORIZONTAL overscroll.
-            // This prevents vertical list overscroll (hitting top/bottom) from accidentally flipping screens.
-            if (notification is OverscrollNotification &&
-                notification.metrics.axis == Axis.horizontal &&
-                widget.mainPageController != null) {
-              if (notification.overscroll < 0 && _tabController.index == 0) {
-                // Swipe Right (drag right) -> Go to Home (index 0)
-                widget.mainPageController!.animateToPage(
-                  0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              } else if (notification.overscroll > 0 &&
-                  _tabController.index == 1) {
-                // Swipe Left (drag left) -> Go to Pelanggan (index 2)
-                widget.mainPageController!.animateToPage(
-                  2,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-            }
-            return false;
-          },
-          child: TabBarView(
-            controller: _tabController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              _buildBarangTab(stokList, theme),
-              _buildJasaTab(serviceList, theme),
-            ],
-          ),
-        ),
       ),
     );
   }
+
+  Widget _buildHeader(ThemeData theme) {
+    return AtelierHeader(
+      title: AppStrings.catalog.inventoryTitle,
+      subtitle: AppStrings.catalog.inventorySubtitle,
+      showBackButton: false,
+      searchController: _searchController,
+      searchHint: _tabController.index == 0
+          ? AppStrings.catalog.searchBarang
+          : AppStrings.catalog.searchJasa,
+      onSearchChanged: (v) {
+        if (_tabController.index == 0) {
+          ref.read(stokListProvider.notifier).search(v);
+        }
+      },
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+      bottomPadding: 48,
+      actions: [
+        if (_tabController.index == 0) ...[
+          IconButton(
+            onPressed: () => _openScanner(),
+            icon: const Icon(SolarIconsOutline.scanner, color: Colors.white, size: 20),
+            tooltip: AppStrings.catalog.tooltipScanner,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        IconButton(
+          onPressed: () => _loadInitial(),
+          icon: const Icon(SolarIconsOutline.refresh, color: Colors.white, size: 20),
+          tooltip: AppStrings.common.refresh,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildTabBar(ThemeData theme, List<Stok> stokList, AsyncValue serviceListAsync) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.05),
+        ),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: theme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        labelColor: theme.colorScheme.onPrimary,
+        unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(AppStrings.catalog.tabBarang),
+                if (stokList.isEmpty) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(AppStrings.catalog.tabJasa),
+                if (serviceListAsync.isLoading) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildBarangTab(List<Stok> stokList, ThemeData theme) {
     final sortedStok = ref.watch(sortedStokProvider);

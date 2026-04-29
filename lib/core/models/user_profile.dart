@@ -10,10 +10,11 @@ class UserProfile {
   final String role;
   final List<String> permissions;
   final String status;
+  final List<String> deviceTokens;
+  final List<AccessibleWorkshop> accessibleWorkshops;
   final DateTime joinedAt;
   final String? invitedBy;
   final DateTime? lastActive;
-  final List<String> deviceTokens;
 
   UserProfile({
     required this.uid,
@@ -27,6 +28,7 @@ class UserProfile {
     this.invitedBy,
     this.lastActive,
     this.deviceTokens = const [],
+    this.accessibleWorkshops = const [],
   });
 
   /// ✅ NEW: Empty/unauthenticated profile
@@ -69,6 +71,10 @@ class UserProfile {
       invitedBy: data['invitedBy'],
       lastActive: (data['lastActive'] as Timestamp?)?.toDate(),
       deviceTokens: List<String>.from(data['deviceTokens'] ?? []),
+      accessibleWorkshops: (data['accessibleWorkshops'] as List<dynamic>?)
+              ?.map((e) => AccessibleWorkshop.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -88,6 +94,10 @@ class UserProfile {
           ? DateTime.parse(json['lastActive'] as String)
           : null,
       deviceTokens: List<String>.from(json['deviceTokens'] ?? []),
+      accessibleWorkshops: (json['accessibleWorkshops'] as List<dynamic>?)
+              ?.map((e) => AccessibleWorkshop.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -105,6 +115,7 @@ class UserProfile {
       'invitedBy': invitedBy,
       'lastActive': lastActive != null ? Timestamp.fromDate(lastActive!) : null,
       'deviceTokens': deviceTokens,
+      'accessibleWorkshops': accessibleWorkshops.map((e) => e.toMap()).toList(),
     };
   }
 
@@ -122,6 +133,7 @@ class UserProfile {
       'invitedBy': invitedBy,
       'lastActive': lastActive?.toIso8601String(),
       'deviceTokens': deviceTokens,
+      'accessibleWorkshops': accessibleWorkshops.map((e) => e.toMap()).toList(),
     };
   }
 
@@ -138,6 +150,7 @@ class UserProfile {
     String? invitedBy,
     DateTime? lastActive,
     List<String>? deviceTokens,
+    List<AccessibleWorkshop>? accessibleWorkshops,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -151,6 +164,7 @@ class UserProfile {
       invitedBy: invitedBy ?? this.invitedBy,
       lastActive: lastActive ?? this.lastActive,
       deviceTokens: deviceTokens ?? this.deviceTokens,
+      accessibleWorkshops: accessibleWorkshops ?? this.accessibleWorkshops,
     );
   }
 
@@ -214,7 +228,39 @@ class UserProfile {
 
   @override
   String toString() =>
-      'UserProfile(uid: $uid, role: $role, bengkelId: $bengkelId)';
+      'UserProfile(uid: $uid, role: $role, accessibleWorkshops: ${accessibleWorkshops.length})';
+}
+
+class AccessibleWorkshop {
+  final String ownerId;
+  final String workshopId;
+  final String name;
+  final String role;
+
+  AccessibleWorkshop({
+    required this.ownerId,
+    required this.workshopId,
+    required this.name,
+    required this.role,
+  });
+
+  factory AccessibleWorkshop.fromMap(Map<String, dynamic> map) {
+    return AccessibleWorkshop(
+      ownerId: map['ownerId'] ?? '',
+      workshopId: map['workshopId'] ?? '',
+      name: map['name'] ?? '',
+      role: map['role'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'ownerId': ownerId,
+      'workshopId': workshopId,
+      'name': name,
+      'role': role,
+    };
+  }
 }
 
 /// Daftar permission yang tersedia.

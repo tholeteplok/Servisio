@@ -3,13 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/services/firestore_sync_service.dart';
+
 import '../../../core/services/sync_worker.dart';
 import '../../../core/services/migration_service.dart';
 import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/providers/system_providers.dart';
+import '../../../core/providers/pelanggan_provider.dart';
+import '../../../core/providers/stok_provider.dart';
+import '../../../core/providers/master_providers.dart';
+import '../../../core/providers/sale_providers.dart';
+import '../../../core/providers/transaction_providers.dart';
+import '../../../core/providers/sync_provider.dart';
+import '../../../core/providers/expense_provider.dart';
+import '../../../core/providers/stats_provider.dart';
 import '../../../core/constants/app_settings.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/widgets/pin_verify_dialog.dart';
 
 class SyncRestoreScreen extends ConsumerStatefulWidget {
   final String bengkelId;
@@ -26,17 +35,17 @@ class SyncRestoreScreen extends ConsumerStatefulWidget {
 }
 
 class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
+  bool _isStarted = false;
   String _statusText = 'Menyiapkan pemulihan data...';
-  double _progress = 0.1;
+  double _progress = 0.0;
   bool _isError = false;
   String _errorDetail = '';
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startRestore();
-    });
+    // 🎯 TAHAP 4.1: Jangan panggil _startRestore otomatis.
+    // Tunggu input user dari tombol "Mulai Pemulihan".
   }
 
   Future<void> _runPostRestoreMigrations() async {
@@ -85,8 +94,9 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
   }
 
   Future<void> _startRestore() async {
-    // Reset state agar UI kembali ke loading saat "Coba Lagi" ditekan
+    // Reset state agar UI kembali ke loading
     setState(() {
+      _isStarted = true;
       _isError = false;
       _errorDetail = '';
       _statusText = 'Menyiapkan pemulihan data...';
@@ -94,40 +104,108 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
     });
 
     try {
-      final syncService = FirestoreSyncService(
-        firestore: ref.read(firestoreProvider),
-        encryption: ref.read(encryptionServiceProvider),
-      );
+      final syncService = ref.read(firestoreSyncServiceProvider);
       final encryption = ref.read(encryptionServiceProvider);
       final db = ref.read(dbProvider);
+      final sessionManager = ref.read(sessionManagerProvider);
 
-      // Guard: Pastikan EncryptionService sudah siap sebelum menarik data
-      // terenkripsi dari Firestore. Coba init ulang dulu sebelum throw.
+      // Guard: Pastikan EncryptionService sudah siap
       if (!encryption.isInitialized) {
         setState(() {
           _statusText = 'Mempersiapkan kunci enkripsi...';
           _progress = 0.15;
         });
+        
         await encryption.init();
-        if (!encryption.isInitialized) {
-          appLogger.warning('Encryption not ready during restore, attempting init...', context: 'SyncRestoreScreen');
-          await encryption.init();
-        }
         
         if (!encryption.isInitialized) {
-          throw Exception(
-            'Kunci enkripsi tidak tersedia (Session Expired). Silakan logout dan login kembali untuk memulihkan kunci.',
-          );
+          appLogger.info('Encryption key missing after reinstall, attempting recovery from Cloud...', 
+              context: 'SyncRestoreScreen');
+          
+          final bengkelService = ref.read(bengkelServiceProvider);
+          final wrappedKey = await bengkelService.getWrappedMasterKey(widget.bengkelId);
+          
+          if (wrappedKey == null) {
+            throw Exception('Bengkel ID tidak valid atau tidak memiliki Master Key di Cloud.');
+          }
+
+          if (mounted) {
+            final pin = await showDialog<String>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => PinVerifyDialog(
+                bengkelId: widget.bengkelId,
+                onVerified: (pin) => Navigator.pop(context, pin),
+                title: 'Pemulihan Kunci',
+                subtitle: 'Masukkan PIN Workshop untuk memulihkan akses data.',
+              ),
+            );
+
+            if (pin == null) {
+              setState(() => _isStarted = false); // Kembali ke awal
+              return;
+            }
+
+            if (!encryption.isInitialized) {
+              throw Exception('Gagal menginisialisasi kunci enkripsi setelah verifikasi PIN.');
+            }
+          }
         }
       }
       
+      // FIX: Log untuk memverifikasi enkripsi siap
+      appLogger.info('Encryption initialized: ${encryption.isInitialized}', 
+          context: 'SyncRestoreScreen');
+      
+      setState(() {
+        _statusText = 'Menghubungkan ke workshop...';
+        _progress = 0.2;
+      });
+      
+      await sessionManager.loadWorkshops();
+      
+      // FIX: Log untuk debugging
+      appLogger.info(
+        'After loadWorkshops: activeWorkshopId=${sessionManager.activeWorkshopId}, '
+        'ownerId=${sessionManager.activeWorkshopOwnerId}',
+        context: 'SyncRestoreScreen',
+      );
+      
+      if (sessionManager.activeWorkshopOwnerId == null) {
+        appLogger.info('ownerId is null, calling resolveAndSelectWorkshop...', 
+            context: 'SyncRestoreScreen');
+        await sessionManager.resolveAndSelectWorkshop(widget.bengkelId);
+        
+        appLogger.info(
+          'After resolve: activeWorkshopId=${sessionManager.activeWorkshopId}, '
+          'ownerId=${sessionManager.activeWorkshopOwnerId}',
+          context: 'SyncRestoreScreen',
+        );
+      }
+
       setState(() {
         _statusText = 'Mengunduh data dari Cloud...';
         _progress = 0.3;
       });
 
       // 1. Pull everything
+      appLogger.info('Starting pullAllData for bengkelId: ${widget.bengkelId}', 
+          context: 'SyncRestoreScreen');
+      
       final allData = await syncService.pullAllData(widget.bengkelId);
+      
+      // FIX: Log hasil pull
+      appLogger.info(
+        'pullAllData result: '
+        'transactions=${allData['transactions']?.length ?? 0}, '
+        'customers=${allData['customers']?.length ?? 0}, '
+        'inventory=${allData['inventory']?.length ?? 0}, '
+        'staff=${allData['staff']?.length ?? 0}, '
+        'vehicles=${allData['vehicles']?.length ?? 0}, '
+        'sales=${allData['sales']?.length ?? 0}, '
+        'expenses=${allData['expenses']?.length ?? 0}',
+        context: 'SyncRestoreScreen',
+      );
       
       setState(() {
         _statusText = 'Membangun ulang database lokal...';
@@ -142,10 +220,32 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         bengkelId: widget.bengkelId,
       );
 
-      await worker.syncDownAll(allData, forceOverwrite: true); // ← pake forceOverwrite
+      await worker.syncDownAll(allData, forceOverwrite: true);
       
-      // FIX: Jalankan post-restore migration
+      // FIX: Log hasil sync
+      appLogger.info(
+        'syncDownAll completed. Local counts: '
+        'tx=${db.transactionBox.count()}, '
+        'customers=${db.pelangganBox.count()}, '
+        'stok=${db.stokBox.count()}, '
+        'staff=${db.staffBox.count()}',
+        context: 'SyncRestoreScreen',
+      );
+      
+      // Post-restore migration
       await _runPostRestoreMigrations();
+
+      // Invalidate providers
+      ref.invalidate(pelangganListProvider);
+      ref.invalidate(stokListProvider);
+      ref.invalidate(serviceMasterListProvider);
+      ref.invalidate(staffListProvider);
+      ref.invalidate(vehicleListProvider);
+      ref.invalidate(saleListProvider);
+      ref.invalidate(transactionListProvider);
+      ref.invalidate(syncQueueSummaryProvider);
+      ref.invalidate(expenseListProvider(widget.bengkelId));
+      ref.invalidate(statsProvider);
 
       if (mounted) {
         setState(() {
@@ -172,6 +272,9 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -179,10 +282,9 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-              Theme.of(context).colorScheme.surface,
-            ],
+            colors: isDark 
+                ? [const Color(0xFF0D0B14), const Color(0xFF1A1528)]
+                : [const Color(0xFFF3EEFF), const Color(0xFFE8DEFF)],
           ),
         ),
         child: SafeArea(
@@ -191,81 +293,145 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icon or Animation
-                _isError 
-                  ? Icon(Icons.error_outline, size: 80, color: Theme.of(context).colorScheme.error)
-                  : SizedBox(
-                      height: 200,
-                      child: Lottie.network(
-                        'https://assets10.lottiefiles.com/packages/lf20_at6mdfbe.json', // Cloud Sync Animation
-                        errorBuilder: (context, error, stack) => Icon(
-                          Icons.cloud_download_rounded, 
-                          size: 80, 
-                          color: Theme.of(context).colorScheme.primary
+                if (!_isStarted) ...[
+                  // 🏁 Initial State: Prompt Restore
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_download_outlined,
+                      size: 64,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Satu Langkah Lagi',
+                    style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF1A1528),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Kami menemukan data Anda di Cloud. Ingin memulihkan riwayat transaksi, stok, dan pelanggan sekarang?',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _startRestore,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'Mulai Pemulihan',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                const SizedBox(height: 40),
-                Text(
-                  'Pemulihan Data',
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _statusText,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.grey[600],
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: widget.onFinish,
+                    child: Text(
+                      'Lewati untuk Sekarang',
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
-                ),
-                if (_isError && _errorDetail.isNotEmpty) ...[
+                ] else if (_isError) ...[
+                  // ❌ Error State
+                  Lottie.asset(
+                    'assets/lottie/error.json',
+                    width: 200,
+                    repeat: false,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Ups! Ada Masalah',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     _errorDetail,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      color: Colors.redAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                    style: GoogleFonts.inter(color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 40),
+                  ElevatedButton(
+                    onPressed: _startRestore,
+                    child: const Text('Coba Lagi'),
+                  ),
+                ] else ...[
+                  // ⏳ Progress State
+                  SizedBox(
+                    width: 240,
+                    height: 240,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Lottie.asset(
+                          'assets/lottie/sync_loading.json',
+                          width: 240,
+                        ),
+                        CircularProgressIndicator(
+                          value: _progress,
+                          strokeWidth: 4,
+                          backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 40),
-                if (!_isError) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: _progress,
-                      minHeight: 10,
-                      backgroundColor: Colors.grey[200],
+                  const SizedBox(height: 40),
+                  Text(
+                    _statusText,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     '${(_progress * 100).toInt()}%',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
                     ),
                   ),
-                ],
-                if (_isError) ...[
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _startRestore,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Coba Lagi'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Mohon jangan tutup aplikasi...',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: isDark ? Colors.white38 : Colors.black38,
                     ),
-                  ),
-                  TextButton(
-                    onPressed: widget.onFinish,
-                    child: const Text('Lewati (Mulai dengan data kosong)'),
                   ),
                 ],
               ],

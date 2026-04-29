@@ -29,6 +29,7 @@ class AppStrings {
   static const ProfileStrings profile = ProfileStrings();
   static const SecurityStrings security = SecurityStrings();
   static const DataCenterStrings dataCenter = DataCenterStrings();
+  static const LegalStrings legal = LegalStrings();
   static const DatePatterns date = DatePatterns();
   static const WhatsAppTemplates whatsapp = WhatsAppTemplates();
 }
@@ -816,5 +817,20 @@ class StatsStrings {
   final today = 'Hari Ini';
   final week = '7 Hari';
   final month = 'Bulan Ini';
+}
+
+class LegalStrings {
+  const LegalStrings();
+  final privacyPolicy = 'Kebijakan Privasi';
+  final termsOfService = 'Syarat & Ketentuan';
+  final faq = 'Bantuan & FAQ';
+  final rating = 'Beri Rating Aplikasi';
+  final support = 'Dukungan & Email';
+  
+  final privacyUrl = 'https://servisio.web.app/privacy';
+  final termsUrl = 'https://servisio.web.app/terms';
+  final faqUrl = 'https://servisio.web.app/faq';
+  final playStoreUrl = 'https://play.google.com/store/apps/details?id=com.tholeteplok.servisio';
+  final supportEmail = 'mailto:support.servisioapps@gmail.com';
 }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -91,7 +92,7 @@ enum CriticalActionType {
 }
 
 // 🛠️ Session Manager Class
-class SessionManager {
+class SessionManager with ChangeNotifier {
   final FlutterSecureStorage _secureStorage;
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -120,6 +121,224 @@ class SessionManager {
         _deviceSessionService = deviceSessionService ?? DeviceSessionService(),
         _httpClient = httpClient ?? http.Client(),
         _connectivity = connectivity ?? Connectivity();
+
+  // ─────────────────────────────────────────────────────────────
+  // WORKSHOP MANAGEMENT
+  // ─────────────────────────────────────────────────────────────
+
+  String? _activeWorkshopId;
+  List<WorkshopInfo> _availableWorkshops = [];
+
+  String? get activeWorkshopId => _activeWorkshopId;
+  List<WorkshopInfo> get availableWorkshops => _availableWorkshops;
+
+  /// Load workshop list dari Firestore (users/{userId}/accessibleWorkshops)
+  Future<void> loadWorkshops() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists) return;
+
+      final data = doc.data();
+      final List<dynamic> list = data?['accessibleWorkshops'] ?? [];
+
+      _availableWorkshops = list.map((e) {
+        final m = e as Map<String, dynamic>;
+        return WorkshopInfo(
+          id: m['workshopId'] as String? ?? '',
+          name: m['name'] as String? ?? 'Bengkel',
+          ownerId: m['ownerId'] as String? ?? user.uid,
+          role: m['role'] as String? ?? 'teknisi',
+        );
+      }).toList();
+
+      // ✅ FIX: Jika list kosong tapi ada bengkel_id di storage (karena baru login/pernah login)
+      // Coba resolve agar _availableWorkshops tidak kosong.
+      if (_availableWorkshops.isEmpty) {
+        final savedId = await _secureStorage.read(key: 'active_workshop_id') 
+            ?? await _secureStorage.read(key: 'bengkel_id');
+        
+        if (savedId != null && savedId.isNotEmpty) {
+          appLogger.info('Workshops field missing, attempting to resolve from ID: $savedId', 
+              context: 'SessionManager');
+          await resolveAndSelectWorkshop(savedId);
+          return; // resolveAndSelectWorkshop sudah memanggil notifyListeners
+        }
+      }
+
+      // Auto-select jika hanya 1 workshop
+      if (_availableWorkshops.length == 1) {
+        await selectWorkshop(_availableWorkshops.first.id);
+      } else {
+        // Cek apakah ada workshop tersimpan sebelumnya di secure storage
+        final savedId = await _secureStorage.read(key: 'active_workshop_id');
+        if (savedId != null &&
+            _availableWorkshops.any((w) => w.id == savedId)) {
+          _activeWorkshopId = savedId;
+        }
+      }
+
+      notifyListeners();
+      appLogger.info('Workshops loaded: ${_availableWorkshops.length} items', context: 'SessionManager');
+    } catch (e) {
+      appLogger.error('Gagal load workshops', context: 'SessionManager', error: e);
+    }
+  }
+
+  /// Pilih workshop aktif
+  Future<void> selectWorkshop(String workshopId) async {
+    _activeWorkshopId = workshopId;
+    await _secureStorage.write(key: 'active_workshop_id', value: workshopId);
+    // Juga update legacy bengkel_id untuk kompatibilitas sementara
+    await _secureStorage.write(key: 'bengkel_id', value: workshopId);
+    notifyListeners();
+    appLogger.info('Workshop selected: $workshopId', context: 'SessionManager');
+  }
+
+  /// Resolve ownerId dari Firestore registry lalu inject ke _availableWorkshops.
+  /// Dipakai saat fresh install dimana accessibleWorkshops belum terisi.
+  Future<void> resolveAndSelectWorkshop(String workshopId) async {
+    // Sudah ada → cukup activate
+    if (_availableWorkshops.any((w) => w.id == workshopId)) {
+      await selectWorkshop(workshopId);
+      return;
+    }
+
+    try {
+      // Baca ownerUid dari registry /bengkel/{workshopId}
+      final registryDoc = await _firestore
+          .collection('bengkel')
+          .doc(workshopId)
+          .get();
+
+      final data = registryDoc.data();
+      final ownerUid = data?['ownerUid'] as String?
+          ?? _auth.currentUser?.uid
+          ?? '';
+
+      final name = data?['namaUsaha'] as String? ?? 'Bengkel';
+
+      // Inject entry ke _availableWorkshops agar activeWorkshopOwnerId bisa resolve
+      _availableWorkshops = [
+        WorkshopInfo(id: workshopId, name: name, ownerId: ownerUid, role: 'owner'),
+        ..._availableWorkshops.where((w) => w.id != workshopId),
+      ];
+
+      _activeWorkshopId = workshopId;
+      await _secureStorage.write(key: 'active_workshop_id', value: workshopId);
+      await _secureStorage.write(key: 'bengkel_id', value: workshopId);
+      notifyListeners();
+
+      appLogger.info(
+        'Workshop resolved from registry: $workshopId (owner: $ownerUid)',
+        context: 'SessionManager',
+      );
+    } catch (e) {
+      appLogger.error('Gagal resolve workshop dari registry', 
+          context: 'SessionManager', error: e);
+      // Fallback: tetap coba set ID walaupun ownerId mungkin null
+      await selectWorkshop(workshopId);
+    }
+  }
+
+  /// Dapatkan ownerId dari workshop yang sedang aktif
+  String? get activeWorkshopOwnerId {
+    if (_activeWorkshopId == null) return null;
+    try {
+      return _availableWorkshops
+          .firstWhere((w) => w.id == _activeWorkshopId)
+          .ownerId;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// FIX: Pastikan workshop ter-resolve dengan ownerId yang valid
+  /// Dipanggil sebelum operasi sync untuk memastikan path Firestore benar
+  Future<void> ensureWorkshopResolved() async {
+    // Jika sudah ada ownerId, tidak perlu melakukan apa-apa
+    if (activeWorkshopOwnerId != null && _activeWorkshopId != null) {
+      return;
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    // Jika activeWorkshopId ada tapi ownerId tidak, coba resolve
+    if (_activeWorkshopId != null && activeWorkshopOwnerId == null) {
+      appLogger.info(
+        'Resolving ownerId for workshop: $_activeWorkshopId',
+        context: 'SessionManager',
+      );
+      await resolveAndSelectWorkshop(_activeWorkshopId!);
+      return;
+    }
+
+    // Jika tidak ada sama sekali, coba load dari Firestore
+    await loadWorkshops();
+    
+    // Jika setelah load masih belum ada, coba ambil dari bengkelId di secure storage
+    if (_activeWorkshopId == null) {
+      final savedBengkelId = await _secureStorage.read(key: 'bengkel_id');
+      if (savedBengkelId != null && savedBengkelId.isNotEmpty) {
+        await resolveAndSelectWorkshop(savedBengkelId);
+      }
+    }
+  }
+
+  /// Buat workshop baru (TAHAP 3.1)
+  Future<String> createWorkshop(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User belum login');
+
+    final docRef = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('workshops')
+        .add({
+      'name': name,
+      'createdAt': FieldValue.serverTimestamp(),
+      'ownerId': user.uid,
+    });
+
+    final workshopId = docRef.id;
+
+    // Buat member entry untuk owner
+    await docRef.collection('members').doc(user.uid).set({
+      'userId': user.uid,
+      'role': 'owner',
+      'permissions': {'all': true},
+      'joinedAt': FieldValue.serverTimestamp(),
+      'status': 'active',
+    });
+
+    // Buat settings default
+    await docRef.collection('settings').doc('default').set({
+      'currency': 'IDR',
+      'taxRate': 0.11,
+      'invoicePrefix': 'INV',
+      'lowStockAlert': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // Tambahkan ke accessibleWorkshops user tersebut
+    await _firestore.collection('users').doc(user.uid).update({
+      'accessibleWorkshops': FieldValue.arrayUnion([{
+        'workshopId': workshopId,
+        'ownerId': user.uid,
+        'name': name,
+        'role': 'owner',
+      }])
+    });
+
+    // Refresh list dan pilih yang baru
+    await loadWorkshops();
+    await selectWorkshop(workshopId);
+
+    return workshopId;
+  }
 
   // ─────────────────────────────────────────────────────────────
   // CONFIGURATION
@@ -268,11 +487,16 @@ class SessionManager {
     await _secureStorage.delete(key: 'user_id');
     await _secureStorage.delete(key: 'user_role');
     await _secureStorage.delete(key: 'bengkel_id');
+    await _secureStorage.delete(key: 'active_workshop_id');
     await _secureStorage.delete(key: 'token_expiry');
     await _secureStorage.delete(key: 'last_auth_timestamp');
     await _secureStorage.delete(key: 'handshake_cache');
     
+    _activeWorkshopId = null;
+    _availableWorkshops = [];
+    
     await _auth.signOut();
+    notifyListeners();
     appLogger.info('Session cleared & Signed out', context: 'SessionManager');
   }
 
@@ -669,4 +893,19 @@ class SessionManager {
   }
 }
 
+// ────────────────────────────────────────────
+// WORKSHOP INFO MODEL
+// ────────────────────────────────────────────
 
+class WorkshopInfo {
+  final String id;
+  final String name;
+  final String ownerId;
+  final String role;
+  const WorkshopInfo({
+    required this.id,
+    required this.name,
+    required this.ownerId,
+    this.role = 'teknisi',
+  });
+}

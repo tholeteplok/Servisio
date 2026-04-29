@@ -5,6 +5,7 @@ import '../../domain/entities/expense_category.dart';
 import '../../data/repositories/expense_repository.dart';
 import '../../data/repositories/expense_category_repository.dart';
 import 'objectbox_provider.dart';
+import 'system_providers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Providers: Repository
@@ -12,7 +13,8 @@ import 'objectbox_provider.dart';
 
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
   final db = ref.watch(dbProvider);
-  return ExpenseRepository(db.expenseBox);
+  final session = ref.watch(sessionManagerProvider);
+  return ExpenseRepository(db.expenseBox, session.activeWorkshopId);
 });
 
 final expenseCategoryRepositoryProvider =

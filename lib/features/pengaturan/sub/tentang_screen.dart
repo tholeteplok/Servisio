@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/atelier_header.dart';
+import '../../../core/constants/app_strings.dart';
 
 class TentangScreen extends StatefulWidget {
   const TentangScreen({super.key});
@@ -119,33 +120,28 @@ class _TentangScreenState extends State<TentangScreen>
                 children: [
                   _LinkTile(
                     icon: SolarIconsOutline.fileText,
-                    title: 'Syarat & Ketentuan',
-                    onTap: () =>
-                        _launchUrl('https://servisio.web.app/terms.html'),
+                    title: AppStrings.legal.termsOfService,
+                    onTap: () => _launchUrl(AppStrings.legal.termsUrl),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.questionCircle,
-                    title: 'Bantuan & FAQ',
-                    onTap: () =>
-                        _launchUrl('https://servisio.web.app/faq.html'),
+                    title: AppStrings.legal.faq,
+                    onTap: () => _launchUrl(AppStrings.legal.faqUrl),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.shieldCheck,
-                    title: 'Kebijakan Privasi',
-                    onTap: () =>
-                        _launchUrl('https://servisio.web.app/privacy.html'),
+                    title: AppStrings.legal.privacyPolicy,
+                    onTap: () => _launchUrl(AppStrings.legal.privacyUrl),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.star,
-                    title: 'Beri Rating APLIKASI',
-                    onTap: () => _launchUrl(
-                      'https://play.google.com/store/apps/details?id=com.tholeteplok.servisio',
-                    ),
+                    title: AppStrings.legal.rating,
+                    onTap: () => _launchUrl(AppStrings.legal.playStoreUrl),
                   ),
                   _LinkTile(
                     icon: SolarIconsOutline.letter,
-                    title: 'Dukungan & Email',
-                    onTap: () => _launchUrl('mailto:support.servisioapps@gmail.com'),
+                    title: AppStrings.legal.support,
+                    onTap: () => _launchUrl(AppStrings.legal.supportEmail),
                   ),
 
                   const SizedBox(height: 60),

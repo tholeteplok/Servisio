@@ -83,13 +83,13 @@ class AppColors {
       );
     }
     return RadialGradient(
-      center: const Alignment(-1.1, -1.1),
-      radius: 2,
-      colors: [
-        precisionViolet, 
-        lightSkyBlue.withValues(alpha: 0.5),
-      ],
-      stops: const [0.6, 1.0],
+        center: const Alignment(-1.1, -1.1),
+        radius: 1.5,
+        colors: [
+          precisionViolet,
+          mintMajesty.withValues(alpha: 0.5),
+        ],
+        stops: const [0.6, 1.0],
     );
   }
 

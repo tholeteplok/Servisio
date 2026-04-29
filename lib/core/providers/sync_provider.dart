@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'objectbox_provider.dart';
 import 'system_providers.dart';
 import 'pengaturan_provider.dart';
+import '../utils/app_logger.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📡 Sync State Models
@@ -77,10 +78,34 @@ final syncQueueSummaryProvider = Provider<Map<String, int>>((ref) {
   return worker.getQueueSummary();
 });
 
+/// Provider untuk memastikan workshop ter-resolve sebelum sync
+/// Dipanggil oleh syncWorkerProvider untuk memastikan ownerId tersedia
+final workshopResolvedProvider = FutureProvider<void>((ref) async {
+  final sessionManager = ref.watch(sessionManagerProvider);
+  await sessionManager.ensureWorkshopResolved();
+});
 
 final syncWorkerProvider = Provider<SyncWorker?>((ref) {
   final profile = ref.watch(currentProfileProvider);
   if (profile == null || profile.bengkelId.isEmpty) return null;
+
+  // Watch workshop resolution state
+  final resolutionState = ref.watch(workshopResolvedProvider);
+  
+  // Jika resolusi masih loading atau error, return null sementara
+  if (resolutionState.isLoading) {
+    appLogger.info('Waiting for workshop resolution...', context: 'SyncProvider');
+    return null;
+  }
+  
+  if (resolutionState.hasError) {
+    appLogger.error(
+      'Failed to resolve workshop',
+      context: 'SyncProvider',
+      error: resolutionState.error,
+    );
+    // Tetap lanjutkan dengan fallback ke legacy path
+  }
 
   final db = ref.watch(dbProvider);
   final syncService = ref.watch(firestoreSyncServiceProvider);
@@ -90,12 +115,22 @@ final syncWorkerProvider = Provider<SyncWorker?>((ref) {
   // Read settings once; the worker will be recreated if profile changes
   final settings = ref.read(settingsProvider);
 
+  // FIX: Pastikan workshop ID dan owner ID tersedia sebelum sync
+  final bengkelId = sessionManager.activeWorkshopId ?? profile.bengkelId;
+  final ownerId = sessionManager.activeWorkshopOwnerId;
+  
+  // Log untuk debugging
+  appLogger.info(
+    'SyncWorker initializing: bengkelId=$bengkelId, ownerId=$ownerId',
+    context: 'SyncProvider',
+  );
+
   final worker = SyncWorker(
     db: db,
     syncService: syncService,
     deviceService: deviceService,
     sessionManager: sessionManager,
-    bengkelId: profile.bengkelId,
+    bengkelId: bengkelId,
     userId: FirebaseAuth.instance.currentUser?.uid,
     syncWifiOnly: settings.syncWifiOnly,
     onStateChanged: (state) {

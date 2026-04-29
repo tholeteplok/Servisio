@@ -4,8 +4,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:solar_icons/solar_icons.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/stats_provider.dart';
+import '../../../core/providers/transaction_providers.dart';
+import '../../../core/providers/sale_providers.dart';
+import '../../../core/providers/expense_provider.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/utils/financial_export_helper.dart';
+import '../../../core/services/session_manager.dart';
 import '../widgets/expense_category_chart.dart';
 
 enum ExpenseRange { today, week, month }
@@ -27,19 +35,21 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
     final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildRangeSelector(isDark, theme),
           const SizedBox(height: 20),
+          _buildDateRangeSelector(theme),
+          const SizedBox(height: 24),
           _buildSummaryCards(stats, isDark, theme),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildCategoryChart(stats, isDark, theme),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildTrendChart(stats, isDark, theme),
-          const SizedBox(height: 20),
-          _buildCategoryList(stats, isDark, theme),
+          const SizedBox(height: 24),
+          _buildDownloadButton(theme),
           const SizedBox(height: 48),
         ],
       ),
@@ -81,6 +91,81 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
     );
   }
 
+  Widget _buildDateRangeSelector(ThemeData theme) {
+    // Current date range based on selected range
+    String dateRange = '';
+    final now = DateTime.now();
+    final format = DateFormat('d MMM yyyy', 'id_ID');
+    
+    if (_selectedRange == ExpenseRange.today) {
+      dateRange = format.format(now);
+    } else if (_selectedRange == ExpenseRange.week) {
+      final start = now.subtract(const Duration(days: 7));
+      dateRange = '${format.format(start)} - ${format.format(now)}';
+    } else {
+      final start = DateTime(now.year, now.month, 1);
+      dateRange = '${format.format(start)} - ${format.format(now)}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(LucideIcons.calendar, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Text(
+                dateRange,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // Future: Show Date Range Picker
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Ubah',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.expand_more, size: 18, color: theme.colorScheme.primary),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSummaryCards(TransactionStats stats, bool isDark, ThemeData theme) {
     int total = _selectedRange == ExpenseRange.today
         ? stats.todayExpense
@@ -88,7 +173,6 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
             ? stats.weeklyExpense
             : stats.monthlyExpense);
 
-    String secondaryTitle = AppStrings.stats.dailyAvgExpense;
     double avg = 0;
     if (_selectedRange == ExpenseRange.month) {
       final days = DateTime.now().day;
@@ -96,7 +180,7 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
     } else if (_selectedRange == ExpenseRange.week) {
       avg = total / 7;
     } else {
-      secondaryTitle = AppStrings.stats.yesterdayExpense;
+      'Analisis Pengeluaran';
       avg = 0; 
     }
 
@@ -104,20 +188,20 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
       children: [
         Expanded(
           child: _StatCard(
-            title: AppStrings.stats.totalExpense,
+            title: 'TOTAL PENGELUARAN',
             value: total.toDouble(),
             icon: LucideIcons.trendingDown,
-            color: Colors.redAccent,
+            color: AppColors.error,
             theme: theme,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _StatCard(
-            title: secondaryTitle,
+            title: 'RATA-RATA HARIAN',
             value: avg,
             icon: LucideIcons.calculator,
-            color: Colors.orangeAccent,
+            color: AppColors.error,
             theme: theme,
             isCurrency: true,
           ),
@@ -140,23 +224,37 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.06),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.stats.expenseAllocation,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSurface,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Alokasi Pengeluaran',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              Icon(LucideIcons.info, size: 18, color: theme.colorScheme.onSurfaceVariant),
+            ],
           ),
           const SizedBox(height: 24),
           SizedBox(
-            height: 200,
+            height: 180,
             child: ExpenseCategoryChart(data: data),
           ),
         ],
@@ -172,19 +270,47 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.06),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.stats.expenseTrend,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSurface,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tren Pengeluaran',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '+12%', // Simulated or calculated trend
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -193,7 +319,18 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 maxY: _calculateMaxY(trendData),
-                barTouchData: BarTouchData(enabled: true),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => theme.colorScheme.onSurface,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        NumberFormat.compactCurrency(symbol: 'Rp', locale: 'id_ID').format(rod.toY),
+                        GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                      );
+                    },
+                  ),
+                ),
                 titlesData: FlTitlesData(
                   show: true,
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -207,8 +344,12 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
-                              trendData[value.toInt()].label,
-                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                              trendData[value.toInt()].label.toUpperCase(),
+                              style: GoogleFonts.inter(
+                                fontSize: 9, 
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           );
                         }
@@ -220,14 +361,22 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 barGroups: trendData.asMap().entries.map((e) {
+                  final isToday = e.key == trendData.length - 1; // Assuming last item is today
                   return BarChartGroupData(
                     x: e.key,
                     barRods: [
                       BarChartRodData(
                         toY: e.value.revenue.toDouble(),
-                        color: Colors.redAccent.withValues(alpha: 0.7),
-                        width: 16,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        color: isToday 
+                            ? AppColors.error 
+                            : AppColors.error.withValues(alpha: 0.3),
+                        width: 18,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: _calculateMaxY(trendData),
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+                        ),
                       ),
                     ],
                   );
@@ -235,42 +384,73 @@ class _PengeluaranTabState extends ConsumerState<PengeluaranTab> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('1 MAR', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: theme.colorScheme.onSurfaceVariant)),
+              Text('12 MAR', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: theme.colorScheme.onSurfaceVariant)),
+              Text('26 MAR', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: theme.colorScheme.onSurfaceVariant)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryList(TransactionStats stats, bool isDark, ThemeData theme) {
-    final data = _selectedRange == ExpenseRange.today
-        ? stats.expenseByCategoryToday
-        : (_selectedRange == ExpenseRange.week
-            ? stats.expenseByCategory7D
-            : stats.expenseByCategory30D);
-
-    if (data.isEmpty) return const SizedBox.shrink();
-
-    final sortedEntries = data.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppStrings.stats.expenseDetailPerCategory,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: theme.colorScheme.onSurface,
-          ),
+  Widget _buildDownloadButton(ThemeData theme) {
+    return Center(
+      child: TextButton.icon(
+        onPressed: () => _handleExport(context, ref),
+        icon: const Icon(SolarIconsOutline.download, size: 18),
+        label: const Text('Unduh Laporan'),
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        const SizedBox(height: 12),
-        ...sortedEntries.map((e) => _CategoryItem(
-              label: e.key,
-              amount: e.value,
-              theme: theme,
-            )),
-      ],
+      ),
     );
+  }
+
+  Future<void> _handleExport(BuildContext context, WidgetRef ref) async {
+    final transactionsAsync = ref.read(transactionListProvider);
+    final salesAsync = ref.read(saleListProvider);
+    final bengkelId = ref.read(bengkelIdProvider);
+    
+    if (bengkelId == null) return;
+    
+    final expensesAsync = ref.read(expenseListProvider(bengkelId));
+    final sessionManager = ref.read(sessionManagerProvider);
+
+    // Ensure all data is loaded
+    if (transactionsAsync is! AsyncData || 
+        salesAsync is! AsyncData || 
+        expensesAsync is! AsyncData) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon tunggu, data sedang dimuat...')),
+      );
+      return;
+    }
+
+    try {
+      final workshop = sessionManager.availableWorkshops.firstWhere(
+        (w) => w.id == bengkelId,
+        orElse: () => const WorkshopInfo(id: '', name: 'Bengkel', ownerId: ''),
+      );
+
+      await FinancialExportHelper.generateFinancialReport(
+        transactions: transactionsAsync.value ?? [],
+        sales: salesAsync.value ?? [],
+        expenses: expensesAsync.value ?? [],
+        bengkelName: workshop.name,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengekspor: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildEmptyState(ThemeData theme, String message) {
@@ -329,27 +509,36 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.06),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, size: 16, color: color),
+            child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(height: 16),
           Text(
             title,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 4),
@@ -360,59 +549,11 @@ class _StatCard extends StatelessWidget {
                 locale: 'id_ID',
                 decimalDigits: 0,
               ).format(value),
-              style: GoogleFonts.manrope(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
                 color: theme.colorScheme.onSurface,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryItem extends StatelessWidget {
-  final String label;
-  final int amount;
-  final ThemeData theme;
-
-  const _CategoryItem({
-    required this.label,
-    required this.amount,
-    required this.theme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-          Text(
-            NumberFormat.currency(
-              symbol: 'Rp',
-              locale: 'id_ID',
-              decimalDigits: 0,
-            ).format(amount),
-            style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.onSurface,
             ),
           ),
         ],
@@ -443,17 +584,24 @@ class _RangeItem extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? theme.colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              )
+            ] : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
               color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black45),
             ),
           ),

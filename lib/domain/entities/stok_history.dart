@@ -26,6 +26,11 @@ class StokHistory {
   @Index()
   DateTime createdAt;
 
+  DateTime? updatedAt;
+
+  int? syncStatus;
+  DateTime? lastSyncedAt;
+
   String bengkelId = "";
 
   StokHistory({

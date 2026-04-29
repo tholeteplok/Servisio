@@ -4,7 +4,9 @@ import '../../domain/entities/transaction.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../domain/entities/stok_history.dart';
 import '../../domain/entities/sync_queue_item.dart';
+import '../services/session_manager.dart';
 import 'objectbox_provider.dart';
+import 'system_providers.dart';
 import 'sync_provider.dart';
 import '../services/transaction_number_service.dart';
 import '../../domain/services/unit_of_work.dart';
@@ -21,6 +23,16 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
   Transaction? get lastDeleted => _lastDeleted;
 
   TransactionListNotifier(this.ref) : super(const AsyncLoading()) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 
@@ -252,6 +264,16 @@ class PaginatedTransactionListNotifier extends StateNotifier<PaginatedTransactio
   int? _lastDeletedId;
 
   PaginatedTransactionListNotifier(this.ref) : super(const PaginatedTransactionState()) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        Future.microtask(() => refresh());
+      }
+    });
     Future.microtask(() => refresh());
   }
 
@@ -314,7 +336,8 @@ class PaginatedTransactionListNotifier extends StateNotifier<PaginatedTransactio
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   final db = ref.watch(dbProvider);
-  return TransactionRepository(db.transactionBox);
+  final session = ref.watch(sessionManagerProvider);
+  return TransactionRepository(db.transactionBox, session.activeWorkshopId);
 });
 
 final transactionListProvider = StateNotifierProvider<TransactionListNotifier, AsyncValue<List<Transaction>>>((ref) {

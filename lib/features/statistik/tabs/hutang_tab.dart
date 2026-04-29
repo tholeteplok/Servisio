@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/expense_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../domain/entities/expense.dart';
@@ -16,6 +17,7 @@ class HutangTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final bengkelId = ref.watch(bengkelIdProvider);
+    final isDark = theme.brightness == Brightness.dark;
     
     if (bengkelId == null) return const SizedBox.shrink();
 
@@ -26,24 +28,31 @@ class HutangTab extends ConsumerWidget {
       decimalDigits: 0,
     );
 
-    return Column(
-      children: [
-        _buildTotalHeader(activeDebts, currencyFormat, theme),
-        Expanded(
-          child: activeDebts.isEmpty
-              ? _buildEmptyState(theme)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: activeDebts.length,
-                  itemBuilder: (context, index) {
-                    final debt = activeDebts[index];
-                    return _DebtCard(
-                      debt: debt,
-                      currencyFormat: currencyFormat,
-                    );
-                  },
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _buildTotalHeader(activeDebts, currencyFormat, theme, isDark),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          sliver: activeDebts.isEmpty
+              ? SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState(theme))
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final debt = activeDebts[index];
+                      return _DebtCard(
+                        debt: debt,
+                        currencyFormat: currencyFormat,
+                        isDark: isDark,
+                      );
+                    },
+                    childCount: activeDebts.length,
+                  ),
                 ),
         ),
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }
@@ -52,18 +61,19 @@ class HutangTab extends ConsumerWidget {
     List<Expense> debts,
     NumberFormat currencyFormat,
     ThemeData theme,
+    bool isDark,
   ) {
     final totalDebt = debts.fold<double>(0, (sum, item) => sum + (item.debtBalance ?? 0));
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.error,
-            theme.colorScheme.error.withValues(alpha: 0.8),
+            AppColors.warning,
+            AppColors.warning.withValues(alpha: 0.5),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -71,7 +81,7 @@ class HutangTab extends ConsumerWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.error.withValues(alpha: 0.3),
+            color: AppColors.warning.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -82,41 +92,50 @@ class HutangTab extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(SolarIconsBold.walletMoney, color: theme.colorScheme.onError, size: 20),
+              const Icon(SolarIconsBold.walletMoney, color: Color(0xFF1A1528), size: 18),
               const SizedBox(width: 8),
               Text(
                 'Total Hutang Aktif',
                 style: GoogleFonts.plusJakartaSans(
-                  color: theme.colorScheme.onError.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  color: const Color(0xFF1A1528).withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             currencyFormat.format(totalDebt),
             style: GoogleFonts.plusJakartaSans(
-              color: theme.colorScheme.onError,
+              color: const Color(0xFF1A1528),
               fontWeight: FontWeight.w900,
-              fontSize: 28,
+              fontSize: 32,
+              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(100),
             ),
-            child: Text(
-              '${debts.length} Transaksi Belum Lunas',
-              style: GoogleFonts.plusJakartaSans(
-                color: theme.colorScheme.onError,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(SolarIconsBold.infoCircle, size: 14, color: Color(0xFF1A1528)),
+                const SizedBox(width: 6),
+                Text(
+                  '${debts.length} Tagihan Menunggu Pelunasan',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF1A1528),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -131,23 +150,24 @@ class HutangTab extends ConsumerWidget {
         children: [
           Icon(
             SolarIconsOutline.checkCircle,
-            size: 80,
-            color: theme.colorScheme.tertiary.withValues(alpha: 0.5),
+            size: 64,
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'Semua Hutang Lunas!',
             style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Tidak ada tagihan supplier yang aktif',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -159,10 +179,12 @@ class HutangTab extends ConsumerWidget {
 class _DebtCard extends ConsumerWidget {
   final Expense debt;
   final NumberFormat currencyFormat;
+  final bool isDark;
 
   const _DebtCard({
     required this.debt,
     required this.currencyFormat,
+    required this.isDark,
   });
 
   @override
@@ -175,11 +197,18 @@ class _DebtCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
+        boxShadow: !isDark ? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ] : [],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,58 +224,49 @@ class _DebtCard extends ConsumerWidget {
                       debt.supplierName ?? 'Supplier Tidak Dikenal',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
-                        fontSize: 16,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       debt.description ?? 'Pembelian Stok',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: (debt.debtStatus == 'PARTIAL' ? Colors.orange : Colors.red)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  debt.debtStatus ?? 'HUTANG',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: debt.debtStatus == 'PARTIAL' ? Colors.orange : Colors.red,
-                  ),
-                ),
-              ),
+              _buildStatusBadge(debt.debtStatus ?? 'HUTANG', theme),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sisa Hutang',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    'Sisa Tagihan',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      letterSpacing: 0.5,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     currencyFormat.format(remaining),
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: theme.colorScheme.error,
+                      fontSize: 20,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -255,17 +275,19 @@ class _DebtCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Total Awal',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    'Pagu Awal',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                   ),
                   Text(
                     currencyFormat.format(debt.amount),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -273,20 +295,37 @@ class _DebtCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(100),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress > 0.5 ? theme.colorScheme.tertiary : Colors.orange,
+          // Progress with label
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: ElevatedButton.icon(
               onPressed: () {
                 AppHaptic.light();
@@ -296,19 +335,45 @@ class _DebtCard extends ConsumerWidget {
                 );
               },
               icon: const Icon(SolarIconsOutline.cardTransfer, size: 18),
-              label: const Text('Bayar Cicilan / Lunas'),
+              label: Text(
+                'PELUNASAN TAGIHAN',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 elevation: 0,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status, ThemeData theme) {
+    final color = status == 'PARTIAL' ? Colors.orange : theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        status,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: color,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

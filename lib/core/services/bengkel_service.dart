@@ -40,7 +40,9 @@ class BengkelService {
     required String bengkelName,
     required String pin,
   }) async {
-    final ref = _firestore.collection('bengkel').doc(bengkelId);
+    final registryRef = _firestore.collection('bengkel').doc(bengkelId);
+    final userRef = _firestore.collection('users').doc(ownerUid);
+    final nestedWorkshopRef = userRef.collection('workshops').doc(bengkelId);
 
     // 1. Wrap the local master key with the provided password
     final wrappedKey = await _encryption.wrapMasterKey(
@@ -52,13 +54,22 @@ class BengkelService {
     }
 
     return await _firestore.runTransaction((transaction) async {
-      final doc = await transaction.get(ref);
+      final doc = await transaction.get(registryRef);
       if (doc.exists) {
         throw Exception('Bengkel ID "$bengkelId" sudah digunakan.');
       }
 
-      // 1. Set bengkel metadata (no sensitive keys here)
-      transaction.set(ref, {
+      // 1. Set Registry Metadata (Top-level)
+      transaction.set(registryRef, {
+        'ownerUid': ownerUid,
+        'name': bengkelName,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'active',
+        'isRegistry': true,
+      });
+
+      // 2. Set Main Workshop Metadata (Nested under User)
+      transaction.set(nestedWorkshopRef, {
         'ownerUid': ownerUid,
         'name': bengkelName,
         'createdAt': FieldValue.serverTimestamp(),
@@ -70,16 +81,46 @@ class BengkelService {
         },
       });
 
-      // 2. Set masterKey in protected 'secrets' sub-collection
-      final secretRef = ref.collection('secrets').doc('masterKey');
+      // 3. Set Owner as the first member (Nested)
+      final memberRef = nestedWorkshopRef.collection('members').doc(ownerUid);
+      transaction.set(memberRef, {
+        'userId': ownerUid,
+        'role': 'owner',
+        'permissions': {'all': true},
+        'joinedAt': FieldValue.serverTimestamp(),
+        'status': 'active',
+      });
+
+      // 4. Set masterKey in protected 'secrets' sub-collection (Nested)
+      final secretRef = nestedWorkshopRef.collection('secrets').doc('masterKey');
       transaction.set(secretRef, {
         'value': wrappedKey,
         'updatedAt': FieldValue.serverTimestamp(),
         'version': 'v1',
       });
 
-      // 3. Record security audit event (Audit K-3)
-      // Get device ID asynchronously
+      // 5. Update user profile to include this workshop in accessible list
+      // Menggunakan set(merge: true) agar tidak error jika dokumen user belum ada.
+      transaction.set(
+        userRef,
+        {
+          'accessibleWorkshops': FieldValue.arrayUnion([
+            {
+              'workshopId': bengkelId,
+              'ownerId': ownerUid,
+              'name': bengkelName,
+              'role': 'owner',
+            }
+          ]),
+          'bengkelId': bengkelId,
+          'role': 'owner',
+          'uid': ownerUid, // Pastikan UID ada jika baru dibuat
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      // 6. Record security audit event
       final deviceId = await _getDeviceId();
       SyncTelemetry().securityEvent(
         'bengkel_claimed',
@@ -110,23 +151,40 @@ class BengkelService {
     return await _firestore.collection('bengkel').doc(bengkelId).get();
   }
 
-  /// Recover the Master Key (Check new sub-collection first, then fallback to root)
+  /// Recover the Master Key (Check nested structure first, then fallback to registry root)
   Future<String?> getWrappedMasterKey(String bengkelId) async {
-    final bengkelRef = _firestore.collection('bengkel').doc(bengkelId);
-    
-    // 1. Check new sub-collection (protected)
-    final secretDoc = await bengkelRef.collection('secrets').doc('masterKey').get();
-    if (secretDoc.exists) {
-      return secretDoc.data()?['value'] as String?;
+    final registryRef = _firestore.collection('bengkel').doc(bengkelId);
+    final registryDoc = await registryRef.get();
+
+    if (!registryDoc.exists) return null;
+
+    final ownerUid = registryDoc.data()?['ownerUid'] as String?;
+
+    // 1. Try new nested path first (if ownerUid is known)
+    if (ownerUid != null) {
+      final nestedSecretDoc = await _firestore
+          .collection('users')
+          .doc(ownerUid)
+          .collection('workshops')
+          .doc(bengkelId)
+          .collection('secrets')
+          .doc('masterKey')
+          .get();
+
+      if (nestedSecretDoc.exists) {
+        return nestedSecretDoc.data()?['value'] as String?;
+      }
     }
 
-    // 2. Fallback to legacy root storage
-    final bengkelDoc = await bengkelRef.get();
-    if (bengkelDoc.exists) {
-      return bengkelDoc.data()?['masterKey'] as String?;
+    // 2. Fallback to registry-based 'secrets' sub-collection (Phase 1 structure)
+    final registrySecretDoc =
+        await registryRef.collection('secrets').doc('masterKey').get();
+    if (registrySecretDoc.exists) {
+      return registrySecretDoc.data()?['value'] as String?;
     }
 
-    return null;
+    // 3. Fallback to legacy root storage (Old structure)
+    return registryDoc.data()?['masterKey'] as String?;
   }
 
   /// Join existing bengkel (untuk staff).
@@ -172,7 +230,27 @@ class BengkelService {
       extra: {'bengkelId': bengkelId},
     );
 
-    // 2. Register user in bengkel
+    // 2. Register member in nested workshop structure
+    final ownerUid = bengkelDoc.data()?['ownerUid'] as String;
+    final nestedMemberRef = _firestore
+        .collection('users')
+        .doc(ownerUid)
+        .collection('workshops')
+        .doc(bengkelId)
+        .collection('members')
+        .doc(uid);
+
+    await nestedMemberRef.set({
+      'userId': uid,
+      'name': name,
+      'email': email,
+      'role': role,
+      'permissions': _getDefaultPermissions(role),
+      'joinedAt': FieldValue.serverTimestamp(),
+      'status': 'active',
+    });
+
+    // 3. Update staff user profile
     final userRef = _firestore.collection('users').doc(uid);
     await userRef.set({
       'uid': uid,
@@ -180,7 +258,14 @@ class BengkelService {
       'email': email,
       'bengkelId': bengkelId,
       'role': role,
-      'permissions': _getDefaultPermissions(role),
+      'accessibleWorkshops': FieldValue.arrayUnion([
+        {
+          'workshopId': bengkelId,
+          'ownerId': ownerUid,
+          'name': bengkelDoc.data()?['name'] ?? 'Bengkel',
+          'role': role,
+        }
+      ]),
       'joinedAt': FieldValue.serverTimestamp(),
       'status': 'active',
       'deviceTokens': [],

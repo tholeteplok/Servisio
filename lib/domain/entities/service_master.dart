@@ -23,6 +23,9 @@ class ServiceMaster {
   @Property(type: PropertyType.date)
   late DateTime updatedAt;
 
+  int? syncStatus;
+  DateTime? lastSyncedAt;
+
   ServiceMaster({
     this.id = 0,
     String? uuid,

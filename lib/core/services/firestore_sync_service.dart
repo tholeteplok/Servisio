@@ -43,38 +43,83 @@ import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/stok_history.dart';
 import '../../domain/entities/service_master.dart';
 import '../../domain/entities/sale.dart';
+import '../../domain/entities/expense.dart';
 import '../sync/sync_telemetry.dart';
+import '../utils/app_logger.dart';
 import 'encryption_service.dart';
 
-import '../utils/app_logger.dart';
+import 'session_manager.dart';
 
 /// Full-featured Firestore sync service for CRUD operations with collision handling.
 class FirestoreSyncService {
   final FirebaseFirestore _firestore;
   final EncryptionService _encryption;
+  final SessionManager? _sessionManager;
 
   FirestoreSyncService({
     FirebaseFirestore? firestore,
     EncryptionService? encryption,
+    SessionManager? sessionManager,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _encryption = encryption!;
+        _encryption = encryption!,
+        _sessionManager = sessionManager;
+
+  // ===== PATH HELPERS (TAHAP 3.2) =====
+
+  /// Reference ke dokumen workshop aktif
+  /// Prioritas: Nested path (users/{ownerId}/workshops/{workshopId})
+  /// Fallback: Legacy path (bengkel/{workshopId}) jika ownerId tidak tersedia
+  DocumentReference<Map<String, dynamic>> _workshopDoc({String? workshopId}) {
+    final ownerId = _sessionManager?.activeWorkshopOwnerId;
+    final effectiveWorkshopId = workshopId ?? _sessionManager?.activeWorkshopId;
+
+    // Jika ownerId tidak tersedia, gunakan legacy path
+    if (ownerId == null || ownerId.isEmpty) {
+      if (effectiveWorkshopId == null || effectiveWorkshopId.isEmpty) {
+        throw StateError('FirestoreSyncService: workshopId belum tersedia');
+      }
+      appLogger.info(
+        'Using legacy path for workshop: $effectiveWorkshopId (ownerId not available)',
+        context: 'FirestoreSyncService',
+      );
+      return _legacyWorkshopDoc(effectiveWorkshopId);
+    }
+
+    if (effectiveWorkshopId == null) {
+      throw StateError('FirestoreSyncService: workshopId belum tersedia');
+    }
+
+    return _firestore
+        .collection('users')
+        .doc(ownerId)
+        .collection('workshops')
+        .doc(effectiveWorkshopId);
+  }
+
+  /// Reference ke koleksi dalam workshop aktif
+  CollectionReference<Map<String, dynamic>> _workshopCollection(String name, {String? workshopId}) {
+    return _workshopDoc(workshopId: workshopId).collection(name);
+  }
+
+  /// Reference ke dokumen workshop lama (Phase 2) - untuk discovery & fallback
+  DocumentReference<Map<String, dynamic>> _legacyWorkshopDoc(String workshopId) {
+    return _firestore.collection('bengkel').doc(workshopId);
+  }
 
   // ===== IDEMPOTENCY HELPERS =====
 
   /// Generate a unique key for the entity version.
   String _getIdempotencyKey(dynamic entity) {
     // some entities might not have updatedAt yet or it's null
-    final ts = entity.updatedAt?.millisecondsSinceEpoch ?? 0;
+    final ts = entity.updatedAt?.millisecondsSinceEpoch ?? 
+               entity.createdAt?.millisecondsSinceEpoch ?? 0;
     return "${entity.uuid}_$ts";
   }
 
   /// Check if an operation is already completed in Firestore.
-  Future<bool> _isAlreadyCompleted(String bengkelId, String key) async {
+  Future<bool> _isAlreadyCompleted(String workshopId, String key) async {
     try {
-      final doc = await _firestore
-          .collection('bengkel')
-          .doc(bengkelId)
-          .collection('_operations')
+      final doc = await _workshopCollection('_operations', workshopId: workshopId)
           .doc(key)
           .get();
       return doc.exists && doc.data()?['status'] == 'completed';
@@ -84,12 +129,8 @@ class FirestoreSyncService {
   }
 
   /// Mark the operation as completed in the given batch.
-  void _markCompleted(WriteBatch batch, String bengkelId, String key) {
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('_operations')
-        .doc(key);
+  void _markCompleted(WriteBatch batch, String workshopId, String key) {
+    final ref = _workshopCollection('_operations', workshopId: workshopId).doc(key);
     batch.set(ref, {
       'status': 'completed',
       'updatedAt': FieldValue.serverTimestamp(),
@@ -106,11 +147,7 @@ class FirestoreSyncService {
 
     final batch = _firestore.batch();
     
-    final txRef = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('transactions')
-        .doc(tx.uuid);
+    final txRef = _workshopCollection('transactions', workshopId: bengkelId).doc(tx.uuid);
 
     batch.set(txRef, {
       'uuid': tx.uuid,
@@ -184,11 +221,8 @@ class FirestoreSyncService {
 
   /// Pull a single Transaction from Firestore.
   Future<Map<String, dynamic>?> pullTransaction(
-      String bengkelId, String uuid) async {
-    final doc = await _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('transactions')
+      String workshopId, String uuid) async {
+    final doc = await _workshopCollection('transactions', workshopId: workshopId)
         .doc(uuid)
         .get();
 
@@ -197,11 +231,8 @@ class FirestoreSyncService {
   }
 
   /// Listen to real-time transaction changes for a bengkel.
-  Stream<List<Map<String, dynamic>>> listenTransactions(String bengkelId) {
-    return _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('transactions')
+  Stream<List<Map<String, dynamic>>> listenTransactions(String workshopId) {
+    return _workshopCollection('transactions', workshopId: workshopId)
         .where('isDeleted', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -217,15 +248,11 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('customers')
-        .doc(p.uuid);
+    final ref = _workshopCollection('customers', workshopId: bengkelId).doc(p.uuid);
 
     batch.set(ref, {
       'uuid': p.uuid,
-      'bengkelId': bengkelId, // Add this
+      'bengkelId': bengkelId, 
       'name': _encryption.encryptText(p.nama),
       'phone': _encryption.encryptText(p.telepon),
       'address': _encryption.encryptText(p.alamat),
@@ -245,15 +272,11 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('inventory')
-        .doc(s.uuid);
+    final ref = _workshopCollection('inventory', workshopId: bengkelId).doc(s.uuid);
 
     batch.set(ref, {
       'uuid': s.uuid,
-      'bengkelId': bengkelId, // Add this
+      'bengkelId': bengkelId, 
       'nama': s.nama,
       'kategori': s.kategori,
       'hargaBeli': s.hargaBeli,
@@ -277,15 +300,11 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('staff')
-        .doc(s.uuid);
+    final ref = _workshopCollection('staff', workshopId: bengkelId).doc(s.uuid);
 
     batch.set(ref, {
       'uuid': s.uuid,
-      'bengkelId': bengkelId, // Add this
+      'bengkelId': bengkelId, 
       'name': _encryption.encryptText(s.name),
       'phone': _encryption.encryptText(s.phoneNumber ?? ''),
       'role': s.role,
@@ -305,19 +324,14 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('vehicles')
-        .doc(v.uuid);
+    final ref = _workshopCollection('vehicles', workshopId: bengkelId).doc(v.uuid);
 
     batch.set(ref, {
       'uuid': v.uuid,
-      'bengkelId': bengkelId, // Add this
+      'bengkelId': bengkelId, 
       'model': v.model,
       'type': v.type,
       'plate': v.plate,
-      'color': v.color,
       'year': v.year,
       'vin': _encryption.encryptText(v.vin ?? ''),
       'ownerUuid': v.owner.target?.uuid,
@@ -330,7 +344,7 @@ class FirestoreSyncService {
     await batch.commit();
   }
 
-  // ===== STOCK HISTORY =====
+  // ===== STOK HISTORY =====
 
   /// Push a StokHistory record to Firestore.
   Future<void> pushStokHistory(String bengkelId, StokHistory sh) async {
@@ -338,11 +352,7 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('inventory_history')
-        .doc(sh.uuid);
+    final ref = _workshopCollection('inventory_history', workshopId: bengkelId).doc(sh.uuid);
 
     batch.set(ref, {
       'uuid': sh.uuid,
@@ -352,7 +362,6 @@ class FirestoreSyncService {
       'quantityChange': sh.quantityChange,
       'previousQuantity': sh.previousQuantity,
       'newQuantity': sh.newQuantity,
-      'note': sh.note,
       'createdAt': Timestamp.fromDate(sh.createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -368,19 +377,14 @@ class FirestoreSyncService {
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('service_master')
-        .doc(sm.uuid);
+    final ref = _workshopCollection('service_master', workshopId: bengkelId).doc(sm.uuid);
 
     batch.set(ref, {
       'uuid': sm.uuid,
-      'name': _encryption.encryptText(sm.name), // ← FIX: enkripsi name
+      'name': _encryption.encryptText(sm.name),
       'basePrice': sm.basePrice,
       'category': sm.category,
-      'createdAt': Timestamp.fromDate(sm.createdAt), // ← FIX: pake Timestamp
-      'updatedAt': Timestamp.fromDate(sm.updatedAt), // ← FIX: pake Timestamp
+      'createdAt': Timestamp.fromDate(sm.createdAt),
       'isDeleted': sm.isDeleted,
       'bengkelId': bengkelId,
     }, SetOptions(merge: true));
@@ -389,35 +393,60 @@ class FirestoreSyncService {
     await batch.commit();
   }
 
-  // ===== SALE =====
+  // ===== SALES =====
 
   Future<void> pushSale(String bengkelId, Sale s) async {
     final key = _getIdempotencyKey(s);
     if (await _isAlreadyCompleted(bengkelId, key)) return;
 
     final batch = _firestore.batch();
-    final ref = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection('sales')
-        .doc(s.uuid);
+    final ref = _workshopCollection('sales', workshopId: bengkelId).doc(s.uuid);
 
     batch.set(ref, {
       'uuid': s.uuid,
-      'trxNumber': s.trxNumber,
       'itemName': s.itemName,
       'quantity': s.quantity,
       'totalPrice': s.totalPrice,
       'costPrice': s.costPrice,
       'totalProfit': s.totalProfit,
-      'paymentMethod': s.paymentMethod,
-      'customerName': _encryption.encryptText(s.customerName ?? ''),
       'stokUuid': s.stokUuid,
+      'customerName': s.customerName,
+      'paymentMethod': s.paymentMethod,
       'transactionId': s.transactionId,
-      'createdAt': Timestamp.fromDate(s.createdAt), // ← FIX: Timestamp
-      'updatedAt': Timestamp.fromDate(s.updatedAt ?? s.createdAt), // ← FIX
+      'trxNumber': s.trxNumber,
+      'createdAt': Timestamp.fromDate(s.createdAt),
+      'updatedAt': Timestamp.fromDate(s.updatedAt ?? s.createdAt),
       'isDeleted': s.isDeleted,
       'bengkelId': bengkelId,
+    }, SetOptions(merge: true));
+
+    _markCompleted(batch, bengkelId, key);
+    await batch.commit();
+  }
+
+  // ===== EXPENSES =====
+
+  Future<void> pushExpense(String bengkelId, Expense e) async {
+    final key = _getIdempotencyKey(e);
+    if (await _isAlreadyCompleted(bengkelId, key)) return;
+
+    final batch = _firestore.batch();
+    final ref = _workshopCollection('expenses', workshopId: bengkelId).doc(e.uuid);
+
+    batch.set(ref, {
+      'uuid': e.uuid,
+      'bengkelId': bengkelId,
+      'amount': e.amount,
+      'category': e.category,
+      'description': e.description,
+      'date': Timestamp.fromDate(e.date),
+      'photoPath': e.photoPath,
+      'isDeleted': e.isDeleted,
+      'debtStatus': e.debtStatus,
+      'supplierName': e.supplierName,
+      'parentExpenseUuid': e.parentExpense.target?.uuid,
+      'createdAt': Timestamp.fromDate(e.createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     _markCompleted(batch, bengkelId, key);
@@ -448,25 +477,30 @@ class FirestoreSyncService {
   static const int _batchSize = 200;
 
   Future<List<Map<String, dynamic>>> _pullCollectionWithPagination(
-    String bengkelId,
+    CollectionReference queryRoot,
     String collectionName,
     Map<String, dynamic> Function(Map<String, dynamic>) mapper, {
     int limit = _batchSize,
     bool decryptItems = false,
   }) async {
     final List<Map<String, dynamic>> allData = [];
-    Query query = _firestore
-        .collection('bengkel')
-        .doc(bengkelId)
-        .collection(collectionName);
+    Query query = queryRoot;
 
+    // FIX: Hanya filter isDeleted jika collection memang mendukungnya
+    // dan jangan filter untuk collection yang mungkin belum memiliki field ini
     if (collectionName == 'transactions') {
+      // Gunakan filter yang lebih longgar - hanya filter jika field ada
       query = query.where('isDeleted', isEqualTo: false);
     }
 
     query = query.limit(limit);
     DocumentSnapshot? lastDocument;
     bool hasMore = true;
+
+    appLogger.info(
+      'Pulling collection: $collectionName from path: ${queryRoot.path}',
+      context: 'FirestoreSyncService',
+    );
 
     while (hasMore) {
       Query currentQuery = query;
@@ -475,6 +509,12 @@ class FirestoreSyncService {
       }
 
       final snapshot = await currentQuery.get();
+      
+      appLogger.info(
+        'Collection $collectionName: fetched ${snapshot.docs.length} documents',
+        context: 'FirestoreSyncService',
+      );
+      
       if (snapshot.docs.isEmpty) {
         hasMore = false;
         break;
@@ -540,21 +580,108 @@ class FirestoreSyncService {
   // ===== BULK OPERATIONS =====
 
   /// Initial sync — pull all data for a bengkel with pagination and chunking (used after first login).
+  /// FIX: Mendukung fallback ke legacy path jika ownerId tidak tersedia
   Future<Map<String, List<Map<String, dynamic>>>> pullAllData(
       String bengkelId) async {
+    final activeWsId = _sessionManager?.activeWorkshopId ?? bengkelId;
+    final ownerId = _sessionManager?.activeWorkshopOwnerId;
+    
+    // FIX: Jika ownerId null, gunakan legacy path sebagai fallback
+    final useLegacyPath = ownerId == null || ownerId.isEmpty;
+    
+    if (activeWsId.isEmpty) {
+      throw StateError(
+        'pullAllData: workshopId belum tersedia. '
+        'Pastikan bengkelId valid atau SessionManager sudah diinisialisasi.',
+      );
+    }
+
+    // Log warning jika menggunakan legacy path
+    if (useLegacyPath) {
+      appLogger.warning(
+        'pullAllData: ownerId tidak tersedia, menggunakan legacy path: bengkel/$activeWsId',
+        context: 'FirestoreSyncService',
+      );
+    } else {
+      appLogger.info('Pulling all data for path: users/$ownerId/workshops/$activeWsId', context: 'FirestoreSyncService');
+    }
+    
     try {
       final results = <String, List<Map<String, dynamic>>>{};
 
-      // 1. Process each collection sequentially or concurrently
+      // 1. Discovery: Check primary nested location first (hanya jika ownerId tersedia)
+      bool useLegacyFallback = useLegacyPath;
+      DocumentReference<Map<String, dynamic>>? primaryRoot;
+      DocumentReference<Map<String, dynamic>> legacyRoot = _legacyWorkshopDoc(activeWsId);
+      
+      if (!useLegacyPath) {
+        try {
+          primaryRoot = _workshopDoc();
+          final doc = await primaryRoot.get();
+          if (!doc.exists) {
+            appLogger.info('Primary workshop doc missing, checking legacy path...', context: 'FirestoreSyncService');
+            final legacyDoc = await legacyRoot.get();
+            if (legacyDoc.exists) {
+              useLegacyFallback = true;
+              appLogger.info('Legacy workshop data detected for ID: $activeWsId', context: 'FirestoreSyncService');
+            }
+          } else {
+            // FIX: Cek apakah ada data di sub-koleksi nested path
+            // Jika tidak ada, coba cek legacy path
+            final transactionsSnapshot = await primaryRoot.collection('transactions').limit(1).get();
+            if (transactionsSnapshot.docs.isEmpty) {
+              appLogger.info('Primary path empty, checking legacy path for data...', context: 'FirestoreSyncService');
+              final legacyTransactionsSnapshot = await legacyRoot.collection('transactions').limit(1).get();
+              if (legacyTransactionsSnapshot.docs.isNotEmpty) {
+                useLegacyFallback = true;
+                appLogger.info('Data found in legacy path, using legacy for restore', context: 'FirestoreSyncService');
+              }
+            }
+          }
+        } catch (e) {
+          appLogger.warning('Discovery phase error, defaulting to legacy path', error: e);
+          useLegacyFallback = true;
+        }
+      }
+
+      // Gunakan legacy root jika ownerId null atau discovery menemukan data legacy
+      final effectiveRoot = useLegacyFallback ? legacyRoot : (primaryRoot ?? _workshopDoc());
+      
+      appLogger.info(
+        'Using path for restore: ${effectiveRoot.path}',
+        context: 'FirestoreSyncService',
+      );
+
+      // 2. Process each collection sequentially or concurrently
+      // If using legacy fallback, we pull from the old top-level collection path
       final futures = [
-        _pullCollectionWithPagination(bengkelId, 'transactions', decryptTransaction, decryptItems: true),
-        _pullCollectionWithPagination(bengkelId, 'customers', decryptCustomer),
-        _pullCollectionWithPagination(bengkelId, 'inventory', (d) => d), // Maps to 'Stok'
-        _pullCollectionWithPagination(bengkelId, 'staff', decryptStaff),
-        _pullCollectionWithPagination(bengkelId, 'vehicles', decryptVehicle),
-        _pullCollectionWithPagination(bengkelId, 'inventory_history', (d) => d), // Maps to 'StokHistory'
-        _pullCollectionWithPagination(bengkelId, 'service_master', decryptServiceMaster),
-        _pullCollectionWithPagination(bengkelId, 'sales', decryptSale),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('transactions'), 
+            'transactions', decryptTransaction, decryptItems: true),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('customers'), 
+            'customers', decryptCustomer),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('inventory'), 
+            'inventory', (d) => d),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('staff'), 
+            'staff', decryptStaff),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('vehicles'), 
+            'vehicles', decryptVehicle),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('inventory_history'), 
+            'inventory_history', (d) => d),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('service_master'), 
+            'service_master', decryptServiceMaster),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('sales'), 
+            'sales', decryptSale),
+        _pullCollectionWithPagination(
+            effectiveRoot.collection('expenses'), 
+            'expenses', (d) => d),
       ];
 
       final fetchedResults = await Future.wait(futures);
@@ -567,6 +694,7 @@ class FirestoreSyncService {
       results['stok_history'] = fetchedResults[5];
       results['service_master'] = fetchedResults[6];
       results['sales'] = fetchedResults[7];
+      results['expenses'] = fetchedResults[8];
 
       return results;
     } catch (e) {
@@ -578,8 +706,8 @@ class FirestoreSyncService {
   // ===== MASTER KEY SYNC =====
 
   /// Store the wrapped master key in Firestore for other devices to sync.
-  Future<void> uploadMasterKey(String bengkelId, String wrappedKey) async {
-    final secretRef = _firestore.collection('bengkel').doc(bengkelId).collection('secrets').doc('masterKey');
+  Future<void> uploadMasterKey(String workshopId, String wrappedKey) async {
+    final secretRef = _workshopCollection('secrets', workshopId: workshopId).doc('masterKey');
     
     await secretRef.set({
       'value': wrappedKey,
@@ -590,43 +718,53 @@ class FirestoreSyncService {
     // Record audit event
     SyncTelemetry().log(SyncEvent(
       type: 'security_key_uploaded',
-      metadata: {'bengkelId': bengkelId},
+      metadata: {'workshopId': _sessionManager?.activeWorkshopId},
       level: TelemetryLevel.warning,
       timestamp: DateTime.now(),
     ));
   }
 
   /// Download the wrapped master key from Firestore.
-  Future<String?> downloadMasterKey(String bengkelId) async {
-    final bengkelRef = _firestore.collection('bengkel').doc(bengkelId);
+  Future<String?> downloadMasterKey(String workshopId) async {
+    final bengkelRef = _workshopDoc(workshopId: workshopId);
     
     // 1. Try new location first
-    final secretDoc = await bengkelRef.collection('secrets').doc('masterKey').get();
+    final secretDoc = await _workshopCollection('secrets', workshopId: workshopId).doc('masterKey').get();
     if (secretDoc.exists) {
       // Record audit event for access
       SyncTelemetry().log(SyncEvent(
         type: 'security_key_downloaded',
-        metadata: {'bengkelId': bengkelId, 'source': 'secrets_sub'},
+        metadata: {'workshopId': _sessionManager?.activeWorkshopId, 'source': 'secrets_sub'},
         level: TelemetryLevel.info,
         timestamp: DateTime.now(),
       ));
       return secretDoc.data()?['value'] as String?;
     }
 
-    // 2. Fallback to legacy root location
+    // 2. Fallback to nested root (if key moved but doc moved too)
     final doc = await bengkelRef.get();
-    if (!doc.exists) return null;
-    
-    final legacyKey = doc.data()?['masterKey'] as String?;
-    if (legacyKey != null) {
-      SyncTelemetry().log(SyncEvent(
-        type: 'security_key_downloaded',
-        metadata: {'bengkelId': bengkelId, 'source': 'legacy_root'},
-        level: TelemetryLevel.warning,
-        timestamp: DateTime.now(),
-      ));
+    if (doc.exists) {
+      final nestedLegacyKey = doc.data()?['masterKey'] as String?;
+      if (nestedLegacyKey != null) return nestedLegacyKey;
     }
-    return legacyKey;
+    
+    // 3. Final Fallback: Check top-level registry doc (Legacy Phase 2)
+    final legacyDoc = await _legacyWorkshopDoc(_sessionManager?.activeWorkshopId ?? '').get();
+    if (legacyDoc.exists) {
+      final legacyKey = legacyDoc.data()?['masterKey'] as String? 
+          ?? legacyDoc.data()?['master_key'] as String?; // check both formats
+      if (legacyKey != null) {
+        SyncTelemetry().log(SyncEvent(
+          type: 'security_key_downloaded',
+          metadata: {'workshopId': _sessionManager?.activeWorkshopId, 'source': 'legacy_registry'},
+          level: TelemetryLevel.info,
+          timestamp: DateTime.now(),
+        ));
+        return legacyKey;
+      }
+    }
+
+    return null;
   }
 
   // ===== DECRYPTION HELPERS =====

@@ -34,6 +34,9 @@ class Sale {
   @Property(type: PropertyType.date)
   DateTime? updatedAt;
 
+  int? syncStatus;
+  DateTime? lastSyncedAt;
+
   @Index()
   String trxNumber; // Generated: SLS-20260401-001
 

@@ -3,6 +3,7 @@ import 'package:objectbox/objectbox.dart';
 import '../../domain/entities/sale.dart';
 import '../../data/repositories/sale_repository.dart';
 import '../../domain/entities/stok_history.dart';
+import 'system_providers.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
 import '../../domain/entities/sync_queue_item.dart';
@@ -225,7 +226,8 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
 
 final saleRepositoryProvider = Provider<SaleRepository>((ref) {
   final db = ref.watch(dbProvider);
-  return SaleRepository(db.saleBox);
+  final session = ref.watch(sessionManagerProvider);
+  return SaleRepository(db.saleBox, session.activeWorkshopId);
 });
 
 final saleListProvider = StateNotifierProvider<SaleListNotifier, AsyncValue<List<Sale>>>((ref) {

@@ -3,7 +3,9 @@ import '../../domain/entities/stok.dart';
 import '../../domain/entities/stok_history.dart';
 import '../../data/repositories/stok_repository.dart';
 import '../../data/repositories/stok_history_repository.dart';
+import '../services/session_manager.dart';
 import 'objectbox_provider.dart';
+import 'system_providers.dart';
 import 'sync_provider.dart';
 import 'transaction_providers.dart';
 import 'supplier_provider.dart';
@@ -15,6 +17,16 @@ import 'supplier_provider.dart';
 class StokListNotifier extends StateNotifier<List<Stok>> {
   final Ref ref;
   StokListNotifier(this.ref) : super([]) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 
@@ -142,7 +154,8 @@ class StokSortNotifier extends StateNotifier<StokSort> {
 
 final stokRepositoryProvider = Provider<StokRepository>((ref) {
   final db = ref.watch(dbProvider);
-  return StokRepository(db.stokBox);
+  final session = ref.watch(sessionManagerProvider);
+  return StokRepository(db.stokBox, session.activeWorkshopId);
 });
 
 final stokHistoryRepositoryProvider = Provider<StokHistoryRepository>((ref) {

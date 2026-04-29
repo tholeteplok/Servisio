@@ -51,9 +51,18 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   }
 
   Future<void> _handleSuccessfulUnlock() async {
-    // 🎯 FIX: Reset session duration on successful local auth
     final sessionManager = ref.read(sessionManagerProvider);
     await sessionManager.forceRefreshAuthTimestamp();
+
+    // 🎯 TAHAP 3.2: Pastikan workshop aktif ter-set di SessionManager.
+    // Sangat krusial untuk Fresh Install di mana SessionManager masih kosong.
+    if (sessionManager.activeWorkshopId == null) {
+      await sessionManager.loadWorkshops();
+      // Jika setelah load tetap null (misal: first time ever), set manual dari widget
+      if (sessionManager.activeWorkshopId == null) {
+        await sessionManager.selectWorkshop(widget.bengkelId);
+      }
+    }
 
     // LGK-04 USER FIX: Clear handshake cache to force fresh validation
     // and remove any potential rate-limit blocks.
@@ -76,6 +85,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
 
     final hasAnyMasterData = pelangganCount > 0 || stokCount > 0;
     final isLikelyNewDevice = txCount == 0 && !hasAnyMasterData;
+
+    appLogger.info('Restore Check: tx=$txCount, customers=$pelangganCount, stok=$stokCount. isNew=$isLikelyNewDevice', 
+        context: 'UnlockScreen');
 
     if (isLikelyNewDevice) {
       // Tampilkan pilihan restore hanya jika benar-benar device baru/kosong

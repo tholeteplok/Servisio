@@ -15,6 +15,7 @@ import '../../../core/services/sync_worker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/widgets/atelier_header.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/widgets/pin_verify_dialog.dart';
 
 class SecurityDataCenterScreen extends ConsumerWidget {
   const SecurityDataCenterScreen({super.key});
@@ -110,6 +111,33 @@ class ShieldSection extends ConsumerWidget {
                 value: settings.autoLock30m,
                 icon: LucideIcons.timer,
                 onChanged: (v) => ref.read(settingsProvider.notifier).setAutoLock30m(v),
+              ),
+              const Divider(height: 16),
+              SettingToggle(
+                title: AppStrings.settings.biometricSecurity,
+                subtitle: 'Gunakan Sidik Jari untuk akses cepat.',
+                value: settings.isBiometricEnabled,
+                icon: LucideIcons.fingerprint,
+                onChanged: (v) async {
+                  if (v) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => PinVerifyDialog(
+                        title: 'Aktifkan Biometrik',
+                        subtitle: 'Konfirmasi PIN Anda untuk menautkan Sidik Jari.',
+                        onVerified: (pin) async {
+                          final encryption = ref.read(encryptionServiceProvider);
+                          await encryption.saveDerivedKeyForBiometric(pin, settings.bengkelId);
+                          await ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+                        },
+                      ),
+                    );
+                  } else {
+                    final encryption = ref.read(encryptionServiceProvider);
+                    await encryption.clearSavedDerivedKey(settings.bengkelId);
+                    await ref.read(settingsProvider.notifier).setBiometricEnabled(false);
+                  }
+                },
               ),
               const Divider(height: 32),
               const ActiveDeviceTile(),

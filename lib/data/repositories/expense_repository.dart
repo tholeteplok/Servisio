@@ -3,12 +3,16 @@ import '../../domain/entities/expense.dart';
 
 class ExpenseRepository {
   final Box<Expense> _box;
+  final String? workshopId;
 
-  ExpenseRepository(this._box);
+  ExpenseRepository(this._box, [this.workshopId]);
 
   /// Simpan atau update pengeluaran. Returns ObjectBox ID.
   int save(Expense expense) {
     expense.updatedAt = DateTime.now();
+    if (expense.bengkelId.isEmpty && workshopId != null) {
+      expense.bengkelId = workshopId!;
+    }
     return _box.put(expense);
   }
 

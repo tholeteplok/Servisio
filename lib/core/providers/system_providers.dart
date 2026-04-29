@@ -12,12 +12,15 @@ import '../services/encryption_service.dart';
 import '../services/bengkel_service.dart';
 import '../services/biometric_service.dart';
 import '../services/device_session_service.dart';
-import '../services/transaction_number_service.dart';
+// import '../services/transaction_number_service.dart';
 import '../services/backup_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/firestore_sync_service.dart';
 import '../services/session_manager.dart';
 import '../services/auth_service.dart';
+import '../../data/datasources/remote/inventory_remote_datasource.dart';
+import '../../data/datasources/remote/customer_remote_datasource.dart';
+import '../../data/datasources/remote/transaction_remote_datasource.dart';
 import '../models/user_profile.dart';
 import '../constants/app_settings.dart';
 import 'objectbox_provider.dart';
@@ -92,10 +95,11 @@ final firestoreSyncServiceProvider = Provider<FirestoreSyncService>((ref) {
   return FirestoreSyncService(
     firestore: ref.watch(firestoreProvider),
     encryption: ref.watch(encryptionServiceProvider),
+    sessionManager: ref.watch(sessionManagerProvider),
   );
 });
 
-final sessionManagerProvider = Provider<SessionManager>((ref) {
+final sessionManagerProvider = ChangeNotifierProvider<SessionManager>((ref) {
   return SessionManager(
     secureStorage: ref.watch(secureStorageProvider),
     auth: ref.watch(firebaseAuthProvider),
@@ -108,13 +112,38 @@ final sessionManagerProvider = Provider<SessionManager>((ref) {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 🌐 Remote Datasources
+// ─────────────────────────────────────────────────────────────────────────────
+
+final inventoryRemoteDatasourceProvider = Provider<InventoryRemoteDatasource>((ref) {
+  final session = ref.watch(sessionManagerProvider);
+  final ds = InventoryRemoteDatasource(firestore: ref.watch(firestoreProvider));
+  ds.ownerId = session.activeWorkshopOwnerId;
+  ds.activeWorkshopId = session.activeWorkshopId;
+  return ds;
+});
+
+final customerRemoteDatasourceProvider = Provider<CustomerRemoteDatasource>((ref) {
+  final session = ref.watch(sessionManagerProvider);
+  final ds = CustomerRemoteDatasource(firestore: ref.watch(firestoreProvider));
+  ds.ownerId = session.activeWorkshopOwnerId;
+  ds.activeWorkshopId = session.activeWorkshopId;
+  return ds;
+});
+
+final transactionRemoteDatasourceProvider = Provider<TransactionRemoteDatasource>((ref) {
+  final session = ref.watch(sessionManagerProvider);
+  final ds = TransactionRemoteDatasource(firestore: ref.watch(firestoreProvider));
+  ds.ownerId = session.activeWorkshopOwnerId;
+  ds.activeWorkshopId = session.activeWorkshopId;
+  return ds;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 🛠️ Local Feature Services
 // ─────────────────────────────────────────────────────────────────────────────
 
-final trxNumberServiceProvider = Provider<TrxNumberService>((ref) {
-  final db = ref.watch(dbProvider);
-  return TrxNumberService(db);
-});
+// trxNumberServiceProvider moved to transaction_number_service.dart
 
 final backupServiceProvider = Provider<BackupService>((ref) {
   final db = ref.watch(dbProvider);

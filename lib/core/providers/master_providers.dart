@@ -4,8 +4,10 @@ import '../../domain/entities/staff.dart';
 import '../../domain/entities/service_master.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../data/repositories/master_repositories.dart';
+import '../services/session_manager.dart';
 import 'objectbox_provider.dart';
 import 'sync_provider.dart';
+import 'system_providers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Staff Providers
@@ -14,6 +16,16 @@ import 'sync_provider.dart';
 class StaffListNotifier extends StateNotifier<AsyncValue<List<Staff>>> {
   final Ref ref;
   StaffListNotifier(this.ref) : super(const AsyncLoading()) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 
@@ -67,6 +79,16 @@ class StaffListNotifier extends StateNotifier<AsyncValue<List<Staff>>> {
 class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMaster>>> {
   final Ref ref;
   ServiceMasterListNotifier(this.ref) : super(const AsyncLoading()) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 
@@ -81,7 +103,9 @@ class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMas
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(serviceMasterRepositoryProvider);
+      final syncWorker = ref.read(syncWorkerProvider);
       repository.save(item);
+      syncWorker?.enqueue(entityType: 'service_master', entityUuid: item.uuid);
       return repository.getAll();
     });
   }
@@ -90,7 +114,9 @@ class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMas
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(serviceMasterRepositoryProvider);
+      final syncWorker = ref.read(syncWorkerProvider);
       repository.save(item);
+      syncWorker?.enqueue(entityType: 'service_master', entityUuid: item.uuid);
       return repository.getAll();
     });
   }
@@ -100,7 +126,10 @@ class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMas
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(serviceMasterRepositoryProvider);
-      if (repository.softDelete(id)) {
+      final syncWorker = ref.read(syncWorkerProvider);
+      final item = repository.getById(id);
+      if (item != null && repository.softDelete(id)) {
+        syncWorker?.enqueue(entityType: 'service_master', entityUuid: item.uuid);
         return repository.getAll();
       }
       return stateBefore;
@@ -115,6 +144,16 @@ class ServiceMasterListNotifier extends StateNotifier<AsyncValue<List<ServiceMas
 class VehicleListNotifier extends StateNotifier<AsyncValue<List<Vehicle>>> {
   final Ref ref;
   VehicleListNotifier(this.ref) : super(const AsyncLoading()) {
+    // Listen to session changes so data reloads when workshopId becomes
+    // available after async authentication on app restart.
+    ref.listen<SessionManager>(sessionManagerProvider, (prev, next) {
+      final prevId = prev?.activeWorkshopId;
+      final nextId = next.activeWorkshopId;
+      if ((prevId == null || prevId.isEmpty) &&
+          (nextId != null && nextId.isNotEmpty)) {
+        _init();
+      }
+    });
     _init();
   }
 

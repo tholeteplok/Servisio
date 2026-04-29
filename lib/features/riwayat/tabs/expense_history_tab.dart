@@ -112,7 +112,7 @@ class _ExpenseHistoryTabState extends ConsumerState<ExpenseHistoryTab> {
                 ..sort((a, b) => b.compareTo(a));
 
               return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                padding: const EdgeInsets.only(top: 0, bottom: 100),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, i) {
@@ -123,7 +123,7 @@ class _ExpenseHistoryTabState extends ConsumerState<ExpenseHistoryTab> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(
-                                top: 20, bottom: 8),
+                                top: 20, bottom: 12, left: 24),
                             child: Text(
                               date,
                               style: GoogleFonts.manrope(
@@ -136,18 +136,14 @@ class _ExpenseHistoryTabState extends ConsumerState<ExpenseHistoryTab> {
                             ),
                           ),
                           ...items.map(
-                            (exp) => Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: 8),
-                              child: _ExpenseCardWrapper(
-                                expense: exp,
-                                categories: categories,
-                                bengkelId: bengkelId,
-                                onRefresh: () => ref
-                                    .invalidate(
-                                      expenseListProvider(bengkelId),
-                                    ),
-                              ),
+                            (exp) => _ExpenseCardWrapper(
+                              expense: exp,
+                              categories: categories,
+                              bengkelId: bengkelId,
+                              onRefresh: () => ref
+                                  .invalidate(
+                                    expenseListProvider(bengkelId),
+                                  ),
                             ),
                           ),
                         ],
@@ -288,26 +284,7 @@ class _ExpenseCardWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outline
-              .withValues(alpha: 0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ExpenseCard(
+    return ExpenseCard(
         expense: expense,
         categories: List.from(categories),
         onTap: () async {
@@ -348,7 +325,6 @@ class _ExpenseCardWrapper extends ConsumerWidget {
             onRefresh();
           }
         },
-      ),
     );
   }
 }

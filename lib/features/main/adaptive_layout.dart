@@ -39,6 +39,7 @@ import '../../core/services/drive_backup_service.dart';
 import '../../core/services/device_session_service.dart';
 import '../../core/widgets/standard_dialog.dart';
 import '../../core/utils/app_logger.dart';
+import '../../core/widgets/pin_verify_dialog.dart';
 import '../home/home_screen.dart';
 import '../pelanggan/pelanggan_screen.dart';
 import '../katalog/katalog_screen.dart';
@@ -51,7 +52,6 @@ import '../riwayat/history_screen.dart';
 import '../auth/screens/session_displaced_screen.dart';
 import '../auth/screens/access_revoked_screen.dart';
 import '../pengaturan/sub/restore_screen.dart';
-import '../pengaturan/sub/security_data_center_screen.dart';
 import '../riwayat/expense/create_expense_screen.dart';
 import '../riwayat/expense/scan_expense_screen.dart';
 // ─────────────────────────────────────────────────────────────
@@ -148,16 +148,19 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       final biometricService = ref.read(biometricServiceProvider);
       
       // 1. Check if device supports biometrics
-      final isAvailable = await biometricService.canCheckBiometrics();
+      final isAvailable = await biometricService.isAvailable();
       if (!isAvailable) return;
 
       // 2. Check if PIN is already set (fingerprint enabled)
       final isSet = await biometricService.isPinSet();
       if (isSet) return;
 
-      // 3. Show prompt to enable fingerprint
+      // 3. Check if user has already dismissed this prompt before
+      final settings = ref.read(settingsProvider);
+      if (settings.hasDismissedBiometricPrompt) return;
+
+      // 4. Show prompt to enable fingerprint
       if (!mounted) return;
-      
       
       showDialog(
         context: context,
@@ -170,12 +173,39 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           secondaryActionLabel: 'Nanti',
           onPrimaryAction: () {
             Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SecurityDataCenterScreen()),
+            // 🛡️ SEC-FIX: Langsung verifikasi PIN untuk link Biometrik
+            showDialog(
+              context: context,
+              builder: (context) => PinVerifyDialog(
+                title: 'Konfirmasi PIN',
+                subtitle: 'Masukkan PIN Anda untuk mengaktifkan Sidik Jari.',
+                onVerified: (pin) async {
+                  final settings = ref.read(settingsProvider);
+                  final encryption = ref.read(encryptionServiceProvider);
+                  
+                  // 1. Link key
+                  await encryption.saveDerivedKeyForBiometric(pin, settings.bengkelId);
+                  
+                  // 2. Enable in settings
+                  await ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+                  
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Keamanan Biometrik Berhasil Diaktifkan!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                },
+              ),
             );
           },
-          onSecondaryAction: () => Navigator.pop(context),
+          onSecondaryAction: () {
+            Navigator.pop(context);
+            // Simpan status agar tidak muncul lagi
+            ref.read(settingsProvider.notifier).setHasDismissedBiometricPrompt(true);
+          },
         ),
       );
     });

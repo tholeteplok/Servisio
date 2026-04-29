@@ -3,13 +3,18 @@ import '../../objectbox.g.dart';
 
 class StokRepository {
   final Box<Stok> _box;
-
-  StokRepository(this._box);
+  final String? workshopId;
+  StokRepository(this._box, [this.workshopId]);
 
   int save(Stok stok) {
     // 🛡️ Business Rule: Negative stock validation
     if (stok.jumlah < 0) {
       throw Exception("Jumlah stok tidak boleh negatif.");
+    }
+
+    // Auto-set workshopId if not set
+    if (stok.bengkelId.isEmpty && workshopId != null) {
+      stok.bengkelId = workshopId!;
     }
 
     // 🛡️ Business Rule: Price Integrity
@@ -51,7 +56,11 @@ class StokRepository {
 
   /// Get all stock items that are not soft-deleted
   List<Stok> getAll() {
-    final query = _box.query(Stok_.isDeleted.equals(false)).build();
+    Condition<Stok> cond = Stok_.isDeleted.equals(false);
+    if (workshopId != null) {
+      cond = cond.and(Stok_.bengkelId.equals(workshopId!));
+    }
+    final query = _box.query(cond).build();
     final results = query.find();
     query.close();
     return results;
@@ -80,7 +89,11 @@ class StokRepository {
   }
 
   List<Stok> getLowStockItems() {
-    final query = _box.query(Stok_.isDeleted.equals(false)).build();
+    Condition<Stok> cond = Stok_.isDeleted.equals(false);
+    if (workshopId != null) {
+      cond = cond.and(Stok_.bengkelId.equals(workshopId!));
+    }
+    final query = _box.query(cond).build();
     final results = query
         .find()
         .where((item) => item.jumlah <= item.minStok)
@@ -90,14 +103,16 @@ class StokRepository {
   }
 
   List<Stok> search(String query) {
-    final searchBox = _box
-        .query(
-          (Stok_.nama
-                  .contains(query, caseSensitive: false)
-                  .or(Stok_.sku.contains(query, caseSensitive: false)))
-              .and(Stok_.isDeleted.equals(false)),
-        )
-        .build();
+    Condition<Stok> cond = (Stok_.nama
+                .contains(query, caseSensitive: false)
+                .or(Stok_.sku.contains(query, caseSensitive: false)))
+            .and(Stok_.isDeleted.equals(false));
+            
+    if (workshopId != null) {
+      cond = cond.and(Stok_.bengkelId.equals(workshopId!));
+    }
+
+    final searchBox = _box.query(cond).build();
     final results = searchBox.find();
     searchBox.close();
     return results;

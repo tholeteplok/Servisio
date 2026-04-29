@@ -57,6 +57,9 @@ class Expense {
   @Property(type: PropertyType.date)
   late DateTime updatedAt;
 
+  int? syncStatus;
+  DateTime? lastSyncedAt;
+
   /// Status hutang: 'HUTANG', 'PARTIAL', 'LUNAS'.
   /// null jika bukan transaksi hutang.
   @Index()

@@ -42,7 +42,7 @@ class MigrationService {
     FirebaseFirestore? firestore,
     EncryptionService? encryption,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _encryption = encryption!;
+        _encryption = encryption ?? EncryptionService();
 
   /// Jalankan migrasi enkripsi untuk satu bengkel secara atomik dan resumable.
   /// Menggunakan checkpoint system sehingga migrasi yang terputus bisa dilanjutkan.

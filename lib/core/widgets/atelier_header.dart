@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import '../constants/app_colors.dart';
 import 'standard_search_bar.dart';
+import 'workshop_selector.dart';
 
 /// ── ATELIER HEADER (MAIN) ──
 /// Digunakan untuk Home, Katalog, Pelanggan, dan Riwayat.
@@ -21,6 +22,7 @@ class AtelierHeader extends StatelessWidget {
   final BorderRadius? borderRadius;
   final double bottomPadding;
   final bool hideTopRow;
+  final bool showWorkshopSelector;
 
   const AtelierHeader({
     super.key,
@@ -37,6 +39,7 @@ class AtelierHeader extends StatelessWidget {
     this.borderRadius,
     this.bottomPadding = 12,
     this.hideTopRow = false,
+    this.showWorkshopSelector = true,
   });
 
   @override
@@ -92,6 +95,11 @@ class AtelierHeader extends StatelessWidget {
                       ),
                     ),
                   leading ?? const SizedBox.shrink(),
+                  if (showWorkshopSelector) 
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: WorkshopSelector(isDark: true),
+                    ),
                   const Spacer(),
 
                   ...?actions,
@@ -159,6 +167,8 @@ class AtelierHeaderSub extends StatelessWidget {
   final VoidCallback? onBackPressed;
   final bool hideTopRow;
   final BorderRadius? borderRadius;
+  final bool showWorkshopSelector;
+  final double bottomPadding;
 
   const AtelierHeaderSub({
     super.key,
@@ -170,6 +180,8 @@ class AtelierHeaderSub extends StatelessWidget {
     this.onBackPressed,
     this.hideTopRow = false,
     this.borderRadius,
+    this.showWorkshopSelector = false, // Default false for sub-headers
+    this.bottomPadding = 16,
   });
 
   @override
@@ -181,7 +193,7 @@ class AtelierHeaderSub extends StatelessWidget {
         24,
         MediaQuery.of(context).padding.top + 12,
         24,
-        16,
+        bottomPadding,
       ),
        decoration: BoxDecoration(
          gradient: AppColors.headerGradient(context),
@@ -225,6 +237,11 @@ class AtelierHeaderSub extends StatelessWidget {
                       ),
                     ),
                   leading ?? const SizedBox.shrink(),
+                  if (showWorkshopSelector) 
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: WorkshopSelector(isDark: true),
+                    ),
                   const Spacer(),
                   ...?actions,
                 ],
@@ -276,6 +293,7 @@ class SliverAtelierHeader extends StatelessWidget {
   final String? searchHint;
   final ValueChanged<String>? onSearchChanged;
   final PreferredSizeWidget? bottom;
+  final bool showWorkshopSelector;
 
   const SliverAtelierHeader({
     super.key,
@@ -291,6 +309,7 @@ class SliverAtelierHeader extends StatelessWidget {
     this.searchHint,
     this.onSearchChanged,
     this.bottom,
+    this.showWorkshopSelector = true,
   });
 
   Widget _buildBackButton(BuildContext context) {
@@ -394,6 +413,7 @@ class SliverAtelierHeader extends StatelessWidget {
                 searchHint: searchHint,
                 onSearchChanged: onSearchChanged,
                 hideTopRow: true,
+                showWorkshopSelector: showWorkshopSelector,
                 bottomPadding: 24,
                 borderRadius:
                     const BorderRadius.vertical(bottom: Radius.circular(32)),

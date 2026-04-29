@@ -40,6 +40,7 @@ class SettingsState {
   final bool hasSeenSwipeHint;
   final bool hasSeenOverscrollHint;
   final String? workshopLogoPath;
+  final bool hasDismissedBiometricPrompt;
 
   SettingsState({
     required this.workshopName,
@@ -72,6 +73,7 @@ class SettingsState {
     this.hasSeenSwipeHint = false,
     this.hasSeenOverscrollHint = false,
     this.workshopLogoPath,
+    this.hasDismissedBiometricPrompt = false,
   });
 
   SettingsState copyWith({
@@ -105,6 +107,7 @@ class SettingsState {
     bool? hasSeenSwipeHint,
     bool? hasSeenOverscrollHint,
     String? workshopLogoPath,
+    bool? hasDismissedBiometricPrompt,
   }) {
     return SettingsState(
       workshopName: workshopName ?? this.workshopName,
@@ -137,6 +140,7 @@ class SettingsState {
       hasSeenSwipeHint: hasSeenSwipeHint ?? this.hasSeenSwipeHint,
       hasSeenOverscrollHint: hasSeenOverscrollHint ?? this.hasSeenOverscrollHint,
       workshopLogoPath: workshopLogoPath ?? this.workshopLogoPath,
+      hasDismissedBiometricPrompt: hasDismissedBiometricPrompt ?? this.hasDismissedBiometricPrompt,
     );
   }
 }
@@ -152,7 +156,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   static SettingsState _initialState(Ref ref) {
     final prefs = ref.read(sharedPreferencesProvider);
     return SettingsState(
-      workshopName: prefs.getString(AppSettings.workshopName) ?? 'ServisLog+',
+      workshopName: prefs.getString(AppSettings.workshopName) ?? 'ServisI/O',
       workshopAddress: prefs.getString(AppSettings.workshopAddress) ?? '',
       workshopWhatsapp: prefs.getString(AppSettings.workshopWhatsapp) ?? '',
       ownerName: prefs.getString(AppSettings.ownerName) ?? 'Owner',
@@ -182,6 +186,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       hasSeenSwipeHint: prefs.getBool(AppSettings.hasSeenSwipeHint) ?? false,
       hasSeenOverscrollHint: prefs.getBool(AppSettings.hasSeenOverscrollHint) ?? false,
       workshopLogoPath: prefs.getString(AppSettings.workshopLogoPath),
+      hasDismissedBiometricPrompt: prefs.getBool(AppSettings.hasDismissedBiometricPrompt) ?? false,
     );
   }
 
@@ -339,6 +344,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setHasSeenOverscrollHint(bool value) async {
     await _prefs.setBool(AppSettings.hasSeenOverscrollHint, value);
     state = state.copyWith(hasSeenOverscrollHint: value);
+  }
+
+  Future<void> setHasDismissedBiometricPrompt(bool value) async {
+    await _prefs.setBool(AppSettings.hasDismissedBiometricPrompt, value);
+    state = state.copyWith(hasDismissedBiometricPrompt: value);
   }
 }
 
