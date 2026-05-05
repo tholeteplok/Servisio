@@ -92,6 +92,9 @@ class AppSettings {
 
   /// Flag indicating if the user has dismissed the biometric setup prompt.
   static const String hasDismissedBiometricPrompt = 'has_dismissed_biometric_prompt';
+
+  /// Flag indicating if the cloud restoration process has been completed successfully.
+  static const String isRestoreCompleted = 'is_restore_completed';
 }
 
 

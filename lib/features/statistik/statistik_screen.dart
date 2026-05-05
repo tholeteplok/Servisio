@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import '../../core/widgets/atelier_header.dart';
-import 'package:servisio_core/core/providers/stats_provider.dart';
+import '../../core/providers/stats_provider.dart';
 import '../../core/widgets/atelier_skeleton.dart';
 import '../../core/widgets/critical_action_guard.dart';
 import '../../core/services/session_manager.dart';

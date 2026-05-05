@@ -1,4 +1,4 @@
-import 'package:servisio_core/domain/entities/transaction.dart';
+import '../../domain/entities/transaction.dart';
 import '../../objectbox.g.dart';
 
 class TransactionRepository {

@@ -35,7 +35,9 @@ class PelangganListNotifier extends StateNotifier<List<Pelanggan>> {
 
   void add(Pelanggan pelanggan) {
     final repository = ref.read(pelangganRepositoryProvider);
+    final syncWorker = ref.read(syncWorkerProvider);
     repository.save(pelanggan);
+    syncWorker?.enqueue(entityType: 'pelanggan', entityUuid: pelanggan.uuid);
     load();
   }
 
@@ -61,7 +63,9 @@ class PelangganListNotifier extends StateNotifier<List<Pelanggan>> {
 
   void updateItem(Pelanggan p) {
     final repository = ref.read(pelangganRepositoryProvider);
+    final syncWorker = ref.read(syncWorkerProvider);
     repository.save(p);
+    syncWorker?.enqueue(entityType: 'pelanggan', entityUuid: p.uuid);
     load();
   }
 

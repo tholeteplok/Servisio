@@ -31,5 +31,5 @@ class AppIcons {
   static const IconData motorcycle = LucideIcons.bike;
   static const IconData car = LucideIcons.car;
   static const IconData service = LucideIcons.wrench;
+  static const IconData syncRestore = SolarIconsOutline.cloudDownload;
 }
-

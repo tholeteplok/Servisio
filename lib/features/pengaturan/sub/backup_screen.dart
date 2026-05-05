@@ -167,7 +167,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           final navigator = Navigator.of(context);
           final scaffoldMessenger = ScaffoldMessenger.of(context);
           try {
-            await _driveService.deleteAllBackups();
+            await _driveService.deleteAllBackups(keepLatest: false);
             navigator.pop();
             scaffoldMessenger.showSnackBar(
               const SnackBar(

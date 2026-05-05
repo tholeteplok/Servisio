@@ -1,5 +1,74 @@
 # Changelog Servisio
 
+## [Unreleased] - 2026-05-05
+
+### Fixed
+- **Data Synchronization Pipeline (Critical Fix)**:
+  - **Pelanggan Sync**: Menambahkan pemanggilan `syncWorker.enqueue()` pada provider Pelanggan untuk memastikan data pelanggan baru atau yang diperbarui segera terkirim ke Firestore.
+  - **Transaction Cascade Sync**: Memperbaiki logika `addTransaction` agar secara otomatis meng-enqueue entitas `Pelanggan` dan `Vehicle` yang terkait. Sebelumnya, hanya transaksi yang ter-enqueue, menyebabkan data pelanggan/kendaraan "hilang" di cloud meskipun ada di lokal.
+  - **Expense Sync Integration**: Melakukan integrasi penuh `SyncWorker` ke dalam provider Pengeluaran (Expense). Sekarang semua operasi CRUD (tambah, ubah, hapus) serta pembayaran hutang otomatis masuk ke antrian sinkronisasi.
+  - **UI Refresh State**: Memperbaiki masalah di mana pelanggan dan kendaraan baru yang dibuat saat transaksi tidak langsung muncul di daftar. Menambahkan pemicu reload otomatis untuk provider Pelanggan, Kendaraan, dan Stok setelah transaksi atau penjualan disimpan.
+  - **Stability**: Memastikan tidak ada regresi melalui verifikasi `flutter analyze`.
+  - **File Terdampak**: `pelanggan_provider.dart`, `transaction_providers.dart`, `expense_provider.dart`, `sale_providers.dart`.
+
+## [Unreleased] - 2026-05-03
+
+### Added
+- **Automatic Data Restore After Reinstall (Critical Enhancement)**:
+  - Implemented automatic data restoration after app reinstall, eliminating the need for users to manually click "Mulai Pemulihan".
+  - **Automatic Restore Trigger**: Added `_restoreDataFromCloud()` function in `UnlockScreen` that automatically pulls and restores data when `isLikelyNewDevice` is detected.
+  - **Circuit Breaker Reset**: Added global circuit breaker reset in `main.dart` after Firebase initialization to prevent sync blocking from previous sessions.
+  - **Android Protection**: Enhanced `AndroidManifest.xml` with `android:hasFragileUserData="true"` and HyperOS background work permissions to prevent automatic data deletion.
+  - **Robust Fallback**: If automatic restore fails, gracefully falls back to the existing manual restore screen.
+  - **Comprehensive Logging**: Added detailed logging throughout the restore process for debugging (start/completion, data counts, session state, Firestore pull results).
+  - **Database Integrity**: Fixed database wiping to properly clear all ObjectBox boxes individually and improved foreign data detection using correct `bengkelId` field.
+  - **File Terdampak**: `main.dart`, `AndroidManifest.xml`, `unlock_screen.dart`.
+
+## [Unreleased] - 2026-05-02
+
+### Fixed
+- **Restore Data Tidak Muncul Setelah Install Ulang — LGK-06 (Critical)**:
+  - Data tidak ter-restore setelah uninstall → reinstall meskipun data ada di Firestore.
+  - **Root Cause 1 — Android Auto Backup**: `AndroidManifest.xml` tidak memiliki `android:allowBackup="false"`, sehingga Android secara silent mengembalikan file ObjectBox database lama saat reinstall. Namun encryption key (di Android Keystore via `FlutterSecureStorage`) **tidak ikut di-restore**, menyebabkan "ghost data" yang tidak bisa dibaca dan membuat `isLikelyNewDevice` salah mendeteksi sebagai perangkat lama.
+  - **Root Cause 2 — Discovery Phase Lemah**: `pullAllData()` hanya memeriksa koleksi `transactions` untuk menentukan primary vs legacy Firestore path. Jika bengkel hanya punya master data (pelanggan, staff, stok) tanpa transaksi, discovery gagal menemukan data.
+  - **Root Cause 3 — Tidak Ada Integrity Guard**: Tidak ada mekanisme untuk mendeteksi bahwa data di ObjectBox adalah "ghost data" dari auto-backup yang sudah kehilangan encryption key.
+  - **Root Cause 4 — Isolate Data Corruption (Sanitization)**: `SyncWorker._sanitizeForIsolate` mencoba melakukan auto-parse pada setiap string yang terlihat seperti tanggal (`DateTime.tryParse`) dan mengubahnya menjadi integer (milliseconds). Ini menyebabkan string non-tanggal (seperti nama pelanggan yang berisi angka/format tertentu) berubah menjadi `int` saat dikirim ke Isolate, memicu error tipe data (`Expected String, got int`) saat disimpan ke ObjectBox.
+  - **Root Cause 5 — Asymmetric Encryption (Sales)**: `FirestoreSyncService.pushSale` menyimpan `customerName` dalam plain text, namun `decryptSale` mencoba melakukan dekripsi saat data diambil kembali. Hal ini menyebabkan error dekripsi atau data sampah saat restore.
+  - **Fix**:
+    - `AndroidManifest.xml`: Menambahkan `android:allowBackup="false"` dan `android:fullBackupContent="false"` untuk mencegah auto-restore database lama.
+    - `unlock_screen.dart`: Menambahkan integrity guard menggunakan query `Staff_.lastSyncedAt.notNull()` dan `Pelanggan_.lastSyncedAt.notNull()`. Jika ada data master tapi tidak ada record dengan `lastSyncedAt` valid, data dianggap ghost data dan `isLikelyNewDevice` tetap `true`.
+    - `firestore_sync_service.dart`: 
+      - Discovery phase sekarang memeriksa 4 koleksi (`transactions`, `customers`, `staff`, `inventory`).
+      - Menambahkan enkripsi pada `customerName` di `pushSale` agar simetris dengan logika dekripsi.
+    - `sync_worker.dart`: Menghapus parsing string-to-date otomatis di `_sanitizeForIsolate`. String sekarang dilewatkan apa adanya untuk menjaga integritas tipe data.
+    - Migrasi semua `print()` diagnostik di `unlock_screen.dart` ke `appLogger` untuk konsistensi.
+  - **File Terdampak**: `AndroidManifest.xml`, `unlock_screen.dart`, `firestore_sync_service.dart`, `sync_worker.dart`.
+
+- **Granular Sync Restoration & Structural Stability (Major)**:
+  - **UI Responsiveness**: Mengimplementasikan restorasi data secara bertahap (granular) per koleksi menggunakan `runInTransactionAsync` dan `Future.delayed(Duration.zero)`. Menghilangkan *freeze* UI saat memulihkan ribuan data dari Firestore.
+  - **Progress Tracking**: Menambahkan granular progress callback ke `syncDownAll` yang memberikan umpan balik real-time per tahap (misal: "Memulihkan Data Transaksi...").
+  - **Relationship Integrity**: Memisahkan tahap restorasi entitas utama dengan tahap relinking (`_handleRelink`). Relasi antar entitas (Pelanggan, Kendaraan, Mekanik) baru dibangun setelah semua data dasar selesai di-restore untuk menghindari *null reference*.
+  - **Structural Repair**: Memperbaiki duplikasi blok kode dan kesalahan penempatan kurung kurawal pada `SyncWorker.dart` yang sempat menyebabkan 30+ error sintaksis.
+  - **Isolate Compatibility**: Menstandarisasi semua handler restorasi sebagai `static` methods untuk memastikan kompatibilitas penuh dengan isolate ObjectBox.
+  - **File Terdampak**: `AndroidManifest.xml`, `unlock_screen.dart`, `firestore_sync_service.dart`, `sync_worker.dart`, `sync_restore_screen.dart`.
+
+---
+
+## [Unreleased] - 2026-04-29
+
+### Fixed
+- **Restore Data Gagal Setelah Clear Data (Critical)** - Lanjutan:
+  - **FIX**: Mengubah `SingleTickerProviderStateMixin` ke `TickerProviderStateMixin` di `SplashScreen` karena widget menggunakan 2 `AnimationController` (`_controller` dan `_floatController`). Error `SingleTickerProviderStateMixin` menyebabkan widget tree rebuild dan `UnlockScreen` di-dispose sebelum restore check selesai.
+  - Menambahkan logging yang lebih detail di seluruh flow restore untuk debugging:
+    - `UnlockScreen._handleSuccessfulUnlock()`: Log workshop resolution, data counts, dan keputusan show restore.
+    - `SyncRestoreScreen._startRestore()`: Log setiap langkah restore (encryption, workshops, pullAllData, syncDownAll).
+    - `FirestoreSyncService.pullAllData()`: Log discovery phase, path selection, dan hasil pull per collection.
+    - `FirestoreSyncService._pullCollectionWithPagination()`: Log path, document count, dan errors.
+  - Memperbaiki Firestore rules untuk legacy path:
+    - Mengizinkan read untuk semua signed-in user di sub-koleksi legacy path.
+    - Mengizinkan create/update untuk collection yang dikenal tanpa memerlukan `bengkelId` di document data.
+  - Menambahkan pengecekan `staffCount` dan `vehicleCount` di `isLikelyNewDevice` check untuk deteksi device baru yang lebih akurat.
+
 ## [Unreleased] - 2026-04-28
 
 ### Fixed

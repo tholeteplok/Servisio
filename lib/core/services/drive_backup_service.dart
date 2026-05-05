@@ -64,7 +64,7 @@ class DriveBackupService {
 
       // List files in appDataFolder, ordered by createdTime descending
       final fileList = await drive.files.list(
-        q: "name contains 'servislog_backup_v1' and trashed = false",
+        q: "name contains 'servislog_backup' and trashed = false",
         spaces: 'appDataFolder',
         orderBy: 'createdTime desc',
         pageSize: 1,
@@ -102,7 +102,7 @@ class DriveBackupService {
       final drive = drive_api.DriveApi(client);
 
       final fileList = await drive.files.list(
-        q: "name contains 'servislog_backup_v1' and trashed = false",
+        q: "name contains 'servislog_backup' and trashed = false",
         spaces: 'appDataFolder',
         pageSize: 1,
       );
@@ -113,31 +113,41 @@ class DriveBackupService {
 
   /// Deletes backup files from Drive appDataFolder with retry.
   /// If [keepLatest] is true, the most recent backup file is preserved.
-  Future<void> deleteAllBackups({bool keepLatest = true}) async {
+  Future<void> deleteAllBackups({bool keepLatest = false}) async {
     await _retry(() async {
       final client = await _authService.getAuthenticatedClient();
       final drive = drive_api.DriveApi(client);
 
-      // List all backup files, ordered by creation time descending
-      final fileList = await drive.files.list(
-        q: "name contains 'servislog_backup_v1' and trashed = false",
-        spaces: 'appDataFolder',
-        orderBy: 'createdTime desc',
-      );
+      String? pageToken;
+      bool isFirstPage = true;
 
-      if (fileList.files == null || fileList.files!.isEmpty) return;
+      do {
+        // List all backup files, ordered by creation time descending
+        // Use a broader query to catch legacy files if any
+        final fileList = await drive.files.list(
+          q: "name contains 'servislog_backup' and trashed = false",
+          spaces: 'appDataFolder',
+          orderBy: 'createdTime desc',
+          pageToken: pageToken,
+        );
 
-      var filesToDelete = fileList.files!;
-      if (keepLatest && filesToDelete.isNotEmpty) {
-        filesToDelete = filesToDelete.sublist(1); // Preserve the latest one
-      }
+        if (fileList.files == null || fileList.files!.isEmpty) break;
 
-      for (var file in filesToDelete) {
-        if (file.id != null) {
-          await drive.files.delete(file.id!);
-          appLogger.info('Deleted Drive backup: ${file.name}', context: 'DriveBackupService');
+        var filesToDelete = fileList.files!;
+        if (keepLatest && isFirstPage && filesToDelete.isNotEmpty) {
+          filesToDelete = filesToDelete.sublist(1); // Preserve the latest one
         }
-      }
+
+        for (var file in filesToDelete) {
+          if (file.id != null) {
+            await drive.files.delete(file.id!);
+            appLogger.info('Deleted Drive backup: ${file.name}', context: 'DriveBackupService');
+          }
+        }
+
+        pageToken = fileList.nextPageToken;
+        isFirstPage = false;
+      } while (pageToken != null);
     });
   }
 }

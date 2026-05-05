@@ -23,7 +23,7 @@ import '../../core/providers/home_provider.dart';
 import '../../domain/entities/transaction.dart';
 import '../statistik/statistik_screen.dart';
 import 'transaction_detail_screen.dart';
-import 'package:servisio_core/core/providers/stats_provider.dart';
+import '../../core/providers/stats_provider.dart';
 import '../pengaturan/pengaturan_screen.dart';
 import '../pengaturan/sub/fitur_screen.dart';
 import '../../core/providers/pengaturan_provider.dart';

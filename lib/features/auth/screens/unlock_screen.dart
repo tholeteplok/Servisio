@@ -3,11 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_icons/solar_icons.dart';
 import '../../../core/providers/system_providers.dart';
-import '../../../core/providers/objectbox_provider.dart';
 import '../../../core/providers/pengaturan_provider.dart';
 import '../../../core/constants/app_strings.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'sync_restore_screen.dart';
 import '../../../core/utils/app_logger.dart';
 
 class UnlockScreen extends ConsumerStatefulWidget {
@@ -28,13 +25,20 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   final _pinController = TextEditingController();
   bool _isUnwrapping = false;
   bool _hasBiometric = false;
-  bool _showRestore = false;
   String _errorText = '';
 
   @override
   void initState() {
     super.initState();
+    appLogger.info('UnlockScreen initState', context: 'UnlockScreen');
     _checkBiometric();
+  }
+
+  @override
+  void dispose() {
+    appLogger.info('UnlockScreen dispose', context: 'UnlockScreen');
+    _pinController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkBiometric() async {
@@ -50,52 +54,27 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     }
   }
 
+
   Future<void> _handleSuccessfulUnlock() async {
+    appLogger.info('=== _handleSuccessfulUnlock STARTED ===', context: 'UnlockScreen');
+    
     final sessionManager = ref.read(sessionManagerProvider);
     await sessionManager.forceRefreshAuthTimestamp();
 
-    // 🎯 TAHAP 3.2: Pastikan workshop aktif ter-set di SessionManager.
+    // Pastikan workshop aktif ter-set di SessionManager.
     // Sangat krusial untuk Fresh Install di mana SessionManager masih kosong.
-    if (sessionManager.activeWorkshopId == null) {
-      await sessionManager.loadWorkshops();
-      // Jika setelah load tetap null (misal: first time ever), set manual dari widget
-      if (sessionManager.activeWorkshopId == null) {
-        await sessionManager.selectWorkshop(widget.bengkelId);
-      }
-    }
+    await sessionManager.ensureWorkshopResolved();
+    
+    appLogger.info(
+      'Workshop resolved: id=${sessionManager.activeWorkshopId}, ownerId=${sessionManager.activeWorkshopOwnerId}',
+      context: 'UnlockScreen',
+    );
 
-    // LGK-04 USER FIX: Clear handshake cache to force fresh validation
-    // and remove any potential rate-limit blocks.
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: 'handshake_cache');
-    await storage.delete(key: 'rate_limit_until');
-
-    final db = ref.read(dbProvider);
-
-    // UX-04 FIX: txCount == 0 saja tidak cukup — bengkel baru yang baru
-    // daftar memang belum punya transaksi, tapi juga belum punya pelanggan
-    // atau stok. Hanya device baru yang "pinjam" data dari device lama yang
-    // perlu ditawari restore.
-    //
-    // Strategi: cek apakah ada SALAH SATU data master (pelanggan ATAU stok).
-    // Jika ada, ini bukan device baru → langsung masuk app.
-    final txCount = db.transactionBox.count();
-    final pelangganCount = db.pelangganBox.count();
-    final stokCount = db.stokBox.count();
-
-    final hasAnyMasterData = pelangganCount > 0 || stokCount > 0;
-    final isLikelyNewDevice = txCount == 0 && !hasAnyMasterData;
-
-    appLogger.info('Restore Check: tx=$txCount, customers=$pelangganCount, stok=$stokCount. isNew=$isLikelyNewDevice', 
-        context: 'UnlockScreen');
-
-    if (isLikelyNewDevice) {
-      // Tampilkan pilihan restore hanya jika benar-benar device baru/kosong
-      setState(() => _showRestore = true);
-    } else {
-      widget.onUnlocked();
-    }
+    appLogger.info('Unlock successful, calling onUnlocked', context: 'UnlockScreen');
+    widget.onUnlocked();
   }
+
+
 
   Future<void> _tryBiometricUnlock() async {
     final encryption = ref.read(encryptionServiceProvider);
@@ -119,15 +98,18 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
             await biometric.resetFailures();
             
             await encryption.init(); // LGK-07: Ensure in-memory encrypter is ready
+            
+            // Call handleSuccessfulUnlock and wait for it to complete
             await _handleSuccessfulUnlock();
             return;
           }
         }
-        setState(() => _errorText = AppStrings.error.keyRecoveryFailed);
+        if (mounted) setState(() => _errorText = AppStrings.error.keyRecoveryFailed);
       } catch (e) {
-        setState(() => _errorText = AppStrings.error.specific(e.toString()));
+        appLogger.error('Biometric unlock error', context: 'UnlockScreen', error: e);
+        if (mounted) setState(() => _errorText = AppStrings.error.specific(e.toString()));
       } finally {
-        setState(() => _isUnwrapping = false);
+        if (mounted) setState(() => _isUnwrapping = false);
       }
     }
   }
@@ -191,26 +173,19 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
         await encryption.init(); // LGK-07: Ensure in-memory encrypter is ready
         await _handleSuccessfulUnlock();
       } else {
-        setState(() => _errorText = AppStrings.auth.pinIncorrect);
+        if (mounted) setState(() => _errorText = AppStrings.auth.pinIncorrect);
         _pinController.clear();
       }
     } catch (e) {
-      setState(() => _errorText = AppStrings.error.specific(e.toString().replaceAll('Exception: ', '')));
+      if (mounted) setState(() => _errorText = AppStrings.error.specific(e.toString().replaceAll('Exception: ', '')));
     } finally {
-      setState(() => _isUnwrapping = false);
+      if (mounted) setState(() => _isUnwrapping = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (_showRestore) {
-      return SyncRestoreScreen(
-        bengkelId: widget.bengkelId,
-        onFinish: widget.onUnlocked,
-      );
-    }
 
     return Scaffold(
       body: Container(

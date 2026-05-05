@@ -46,11 +46,14 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
 
     try {
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // 1. Close current database connection to release file locks
       final dbAsync = ref.read(dbInstanceProvider);
-      dbAsync.whenData((db) => db.dispose());
-      
+      dbAsync.whenData((db) {
+        debugPrint('Restoration: Closing database');
+        db.dispose();
+      });
+
       // Invalidate provider so it doesn't keep stale reference
       ref.invalidate(dbInstanceProvider);
 
@@ -59,17 +62,13 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         _progress = 0.4;
       });
 
-      // 2. Extract and overwrite database files
+      // 2. Extract and overwrite database files (now in background isolate)
       await ZipUtility.extractRestoreZip(widget.backupFile);
 
       setState(() {
-        _status = 'Membuka Database Baru...';
-        _progress = 0.8;
+        _status = 'Penyelesaian...';
+        _progress = 0.9;
       });
-
-      // 3. Re-initialize database with decrypted/restored files
-      final newDb = await ObjectBoxProvider.create();
-      ref.read(dbInstanceProvider.notifier).setInstance(newDb);
 
       setState(() {
         _progress = 1.0;
@@ -78,18 +77,12 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
 
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
-        // Redraw UI from scratch
+        // SEC-REBIRTH: Phoenix is now at the top of ProviderScope in main.dart
+        // This will completely destroy all state and re-init from scratch.
         Phoenix.rebirth(context);
       }
     } catch (e) {
-      // Emergency recovery: Try to re-open DB if extraction fails
-      if (ref.read(dbInstanceProvider).hasError || ref.read(dbInstanceProvider).isLoading) {
-        try {
-          final recoveryDb = await ObjectBoxProvider.create();
-          ref.read(dbInstanceProvider.notifier).setInstance(recoveryDb);
-        } catch (_) {}
-      }
-
+      debugPrint('Restoration Error: $e');
       setState(() {
         _isRestoring = false;
         _status = 'Gagal mengembalikan data: $e';

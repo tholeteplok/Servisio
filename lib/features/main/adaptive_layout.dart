@@ -21,6 +21,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/providers/sync_provider.dart';
 import '../../core/providers/objectbox_provider.dart';
+import '../../objectbox.g.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_icons.dart';
@@ -51,6 +52,7 @@ import '../katalog/create_sale_screen.dart';
 import '../riwayat/history_screen.dart';
 import '../auth/screens/session_displaced_screen.dart';
 import '../auth/screens/access_revoked_screen.dart';
+import '../auth/screens/sync_restore_screen.dart';
 import '../pengaturan/sub/restore_screen.dart';
 import '../riwayat/expense/create_expense_screen.dart';
 import '../riwayat/expense/scan_expense_screen.dart';
@@ -140,6 +142,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     _watchDeviceSession();
     _startStatusPolling();
     _checkBiometricSetup();
+    _checkSyncRestoreStatus();
   }
 
   Future<void> _checkBiometricSetup() async {
@@ -188,6 +191,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   
                   // 2. Enable in settings
                   await ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+                  // LGK-01 FIX: Actually save the PIN since the user verified it successfully
+                  await biometricService.savePin(pin, settings.bengkelId);
+                  appLogger.info('Biometric: PIN saved successfully from verification', context: 'AdaptiveLayout');
                   
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -208,6 +214,105 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           },
         ),
       );
+    });
+  }
+
+  Future<void> _checkSyncRestoreStatus() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final db = ref.read(dbProvider);
+      final settings = ref.read(settingsProvider);
+
+      // If lastSyncAt is NOT null or restore was already completed, it means this device has already synced successfully.
+      if (settings.lastSyncAt != null || settings.isRestoreCompleted) return;
+
+      appLogger.info('=== MainScreen RESTORE CHECK START ===', context: 'AdaptiveLayout');
+
+      int txCount = 0;
+      int pelangganCount = 0;
+      int stokCount = 0;
+      int saleCount = 0;
+      int staffCount = 0;
+
+      try {
+        txCount = db.transactionBox.count();
+        pelangganCount = db.pelangganBox.count();
+        stokCount = db.stokBox.count();
+        saleCount = db.saleBox.count();
+        staffCount = db.staffBox.count();
+
+        appLogger.info(
+          'RESTORE DIAGNOSTIC — TX:$txCount CUST:$pelangganCount STK:$stokCount SALE:$saleCount STAFF:$staffCount',
+          context: 'AdaptiveLayout',
+        );
+      } catch (e) {
+        appLogger.error('Failed to read box counts', context: 'AdaptiveLayout', error: e);
+        return;
+      }
+
+      // Detection logic: No actual business data OR integrity issue
+      final hasUserGeneratedData = txCount > 0 || pelangganCount > 0 || stokCount > 0 || saleCount > 0;
+
+      // Integrity check for ghost data (data exists but none is marked as synced)
+      bool hasIntegrityIssue = false;
+      if (hasUserGeneratedData || staffCount > 0) {
+        try {
+          final syncedStaffCount = db.staffBox.query(Staff_.lastSyncedAt.notNull()).build().count();
+          final syncedCustomerCount = db.pelangganBox.query(Pelanggan_.lastSyncedAt.notNull()).build().count();
+          final syncedTxCount = db.transactionBox.query(Transaction_.lastSyncedAt.notNull()).build().count();
+
+          hasIntegrityIssue = (hasUserGeneratedData || staffCount > 0) &&
+              (syncedStaffCount == 0 && syncedCustomerCount == 0 && syncedTxCount == 0);
+
+          appLogger.info('Integrity check result: $hasIntegrityIssue', context: 'AdaptiveLayout');
+        } catch (e) {
+          appLogger.warning('Integrity check failed', context: 'AdaptiveLayout', error: e);
+        }
+      }
+
+      final needsRestore = !hasUserGeneratedData || hasIntegrityIssue;
+
+      if (needsRestore && mounted) {
+        appLogger.info('>>> RESTORE RECOMMENDED — Prompting user <<<', context: 'AdaptiveLayout');
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => StandardDialog(
+            title: AppStrings.auth.restoreChoice,
+            message: AppStrings.auth.restoreChoiceDesc,
+            icon: const Icon(AppIcons.syncRestore, color: AppColors.precisionViolet),
+            primaryActionLabel: AppStrings.sync.restoreNow,
+            secondaryActionLabel: AppStrings.common.cancel,
+            onPrimaryAction: () {
+              Navigator.pop(context);
+              // Before pushing restore screen, wipe local data if "ghost data" exists
+              if (hasUserGeneratedData || staffCount > 0) {
+                appLogger.warning('Wiping ghost data before restoration', context: 'AdaptiveLayout');
+                db.store.runInTransaction(TxMode.write, () {
+                  db.transactionBox.removeAll();
+                  db.pelangganBox.removeAll();
+                  db.stokBox.removeAll();
+                  db.saleBox.removeAll();
+                  db.staffBox.removeAll();
+                  db.vehicleBox.removeAll();
+                  db.serviceMasterBox.removeAll();
+                });
+              }
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SyncRestoreScreen(
+                    bengkelId: settings.bengkelId,
+                    onFinish: () => Navigator.pop(context),
+                  ),
+                ),
+              );
+            },
+            onSecondaryAction: () => Navigator.pop(context),
+          ),
+        );
+      }
     });
   }
 

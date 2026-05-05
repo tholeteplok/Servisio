@@ -6,6 +6,7 @@ import '../../data/repositories/expense_repository.dart';
 import '../../data/repositories/expense_category_repository.dart';
 import 'objectbox_provider.dart';
 import 'system_providers.dart';
+import 'sync_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Providers: Repository
@@ -43,8 +44,9 @@ final expenseCategoryListProvider =
 class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
   final ExpenseRepository _repo;
   final String bengkelId;
+  final Ref ref;
 
-  ExpenseListNotifier(this._repo, this.bengkelId)
+  ExpenseListNotifier(this._repo, this.bengkelId, this.ref)
       : super(const AsyncValue.loading()) {
     _load();
   }
@@ -59,18 +61,35 @@ class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
   }
 
   Future<void> addExpense(Expense expense) async {
+    final syncWorker = ref.read(syncWorkerProvider);
     _repo.save(expense);
+    syncWorker?.enqueue(entityType: 'expense', entityUuid: expense.uuid);
     _load();
   }
 
   Future<void> updateExpense(Expense expense) async {
+    final syncWorker = ref.read(syncWorkerProvider);
     _repo.save(expense);
+    syncWorker?.enqueue(entityType: 'expense', entityUuid: expense.uuid);
     _load();
   }
 
   Future<bool> deleteExpense(int id) async {
+    final syncWorker = ref.read(syncWorkerProvider);
+    final expenses = _repo.getAll(bengkelId);
+    final expense = expenses.firstWhere(
+      (e) => e.id == id,
+      orElse: () => Expense(
+          amount: 0, category: '', bengkelId: '', date: DateTime.now()),
+    );
+
     final result = _repo.softDelete(id);
-    if (result) _load();
+    if (result) {
+      if (expense.uuid.isNotEmpty) {
+        syncWorker?.enqueue(entityType: 'expense', entityUuid: expense.uuid);
+      }
+      _load();
+    }
     return result;
   }
 
@@ -82,12 +101,15 @@ class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
   }) async {
     // 1. Update status parent record jika lunas
     final remaining = debt.debtBalance ?? 0;
+    final syncWorker = ref.read(syncWorkerProvider);
+
     if (amountPaid >= remaining) {
       debt.debtStatus = 'LUNAS';
     } else {
       debt.debtStatus = 'PARTIAL';
     }
     _repo.save(debt);
+    syncWorker?.enqueue(entityType: 'expense', entityUuid: debt.uuid);
 
     // 2. Buat record Expense baru sebagai bukti pembayaran kas keluar
     final paymentRecord = Expense(
@@ -104,6 +126,7 @@ class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
       isVerified: true,
     );
     _repo.save(paymentRecord);
+    syncWorker?.enqueue(entityType: 'expense', entityUuid: paymentRecord.uuid);
 
     _load();
   }
@@ -114,7 +137,7 @@ class ExpenseListNotifier extends StateNotifier<AsyncValue<List<Expense>>> {
 final expenseListProvider = StateNotifierProvider.family<ExpenseListNotifier,
     AsyncValue<List<Expense>>, String>((ref, bengkelId) {
   final repo = ref.watch(expenseRepositoryProvider);
-  return ExpenseListNotifier(repo, bengkelId);
+  return ExpenseListNotifier(repo, bengkelId, ref);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

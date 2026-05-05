@@ -698,6 +698,31 @@ class SyncStrings {
   final success = 'Sinkronisasi berhasil';
   final error = 'Terjadi kesalahan sinkronisasi';
 
+  // Restoration
+  final restoreStarting = 'Menyiapkan pemulihan data...';
+  final restoreDownloading = 'Mengunduh data dari cloud...';
+  final restoreSaving = 'Menyimpan data ke database...';
+  final restoreSuccess = 'Pemulihan data berhasil!';
+  final restoreFailed = 'Gagal memulihkan data';
+  final dontCloseApp = 'Mohon jangan tutup aplikasi...';
+  final tryAgain = 'Coba Lagi';
+  final restoreNow = 'Pulihkan Sekarang';
+
+  final restoringStaff = 'Memulihkan Data Staff...';
+  final restoringCustomers = 'Memulihkan Data Pelanggan...';
+  final restoringVehicles = 'Memulihkan Data Kendaraan...';
+  final restoringInventory = 'Memulihkan Data Stok...';
+  final restoringServiceMaster = 'Memulihkan Data Layanan...';
+  final restoringTransactions = 'Memulihkan Data Transaksi...';
+  final restoringInventoryHistory = 'Memulihkan Riwayat Stok...';
+  final restoringSales = 'Memulihkan Data Penjualan...';
+  final restoringExpenses = 'Memulihkan Data Pengeluaran...';
+  final connectingRelations = 'Menghubungkan Relasi Data...';
+  final syncComplete = 'Sinkronisasi Selesai...';
+  final preparingEncryption = 'Mempersiapkan kunci enkripsi...';
+  final recoveryFailedTitle = 'Kunci Enkripsi Tidak Ditemukan';
+  final recoveryFailedDesc = 'Pastikan PIN yang dimasukkan benar atau hubungi dukungan.';
+
   // State labels for UI
   String statusLabel(String state) => switch (state.toLowerCase()) {
         'pending' => pending,

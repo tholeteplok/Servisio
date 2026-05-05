@@ -8,6 +8,7 @@ import 'objectbox_provider.dart';
 import 'sync_provider.dart';
 import '../../domain/entities/sync_queue_item.dart';
 import '../services/transaction_number_service.dart';
+import 'stok_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Notifiers
@@ -125,6 +126,9 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
         priority: SyncPriority.normal,
       );
 
+      // Refresh stok list to reflect changes in quantity
+      ref.read(stokListProvider.notifier).loadStok();
+
       return repository.getAll();
     });
   }
@@ -201,6 +205,9 @@ class SaleListNotifier extends StateNotifier<AsyncValue<List<Sale>>> {
           priority: SyncPriority.normal,
         );
       }
+      
+      // Refresh stok list to reflect changes in quantity
+      ref.read(stokListProvider.notifier).loadStok();
 
       return repository.getAll();
     });

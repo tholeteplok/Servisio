@@ -20,6 +20,7 @@ import 'features/auth/screens/splash_screen.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'core/sync/sync_telemetry.dart';
+import 'core/sync/circuit_breaker.dart';
 import 'core/utils/app_logger.dart';
 import 'dart:io';
 
@@ -43,6 +44,9 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
 
+  // Reset Circuit Breaker to clear any previous error state
+  HierarchicalCircuitBreaker().resetAll();
+
   // Initialize Sync Telemetry
   final deviceId = await _getDeviceId();
   SyncTelemetry().initialize(
@@ -57,11 +61,11 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
-      child: Phoenix(
+    Phoenix(
+      child: ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
         child: const MainApp(),
       ),
     ),

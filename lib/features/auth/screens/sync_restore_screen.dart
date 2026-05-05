@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lottie/lottie.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/sync_worker.dart';
@@ -16,9 +16,12 @@ import '../../../core/providers/transaction_providers.dart';
 import '../../../core/providers/sync_provider.dart';
 import '../../../core/providers/expense_provider.dart';
 import '../../../core/providers/stats_provider.dart';
-import '../../../core/constants/app_settings.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/providers/pengaturan_provider.dart';
+import '../../../core/constants/app_settings.dart';
 import '../../../core/widgets/pin_verify_dialog.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../../core/constants/app_icons.dart';
 
 class SyncRestoreScreen extends ConsumerStatefulWidget {
   final String bengkelId;
@@ -36,7 +39,7 @@ class SyncRestoreScreen extends ConsumerStatefulWidget {
 
 class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
   bool _isStarted = false;
-  String _statusText = 'Menyiapkan pemulihan data...';
+  String _statusText = '';
   double _progress = 0.0;
   bool _isError = false;
   String _errorDetail = '';
@@ -44,6 +47,8 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
   @override
   void initState() {
     super.initState();
+    appLogger.info('=== SyncRestoreScreen INIT ===', context: 'SyncRestoreScreen');
+    appLogger.info('bengkelId: ${widget.bengkelId}', context: 'SyncRestoreScreen');
     // 🎯 TAHAP 4.1: Jangan panggil _startRestore otomatis.
     // Tunggu input user dari tombol "Mulai Pemulihan".
   }
@@ -93,15 +98,36 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
     }
   }
 
+  String _getCollectionLabel(String collection) {
+    switch (collection) {
+      case 'staff': return AppStrings.sync.restoringStaff;
+      case 'customers': return AppStrings.sync.restoringCustomers;
+      case 'vehicles': return AppStrings.sync.restoringVehicles;
+      case 'inventory': return AppStrings.sync.restoringInventory;
+      case 'service_master': return AppStrings.sync.restoringServiceMaster;
+      case 'transactions': return AppStrings.sync.restoringTransactions;
+      case 'inventory_history': return AppStrings.sync.restoringInventoryHistory;
+      case 'sales': return AppStrings.sync.restoringSales;
+      case 'expenses': return AppStrings.sync.restoringExpenses;
+      case 'relinking': return AppStrings.sync.connectingRelations;
+      case 'complete': return AppStrings.sync.syncComplete;
+      default: return AppStrings.sync.restoreDownloading;
+    }
+  }
+
   Future<void> _startRestore() async {
+    appLogger.info('=== _startRestore CALLED ===', context: 'SyncRestoreScreen');
+    
     // Reset state agar UI kembali ke loading
     setState(() {
       _isStarted = true;
       _isError = false;
       _errorDetail = '';
-      _statusText = 'Menyiapkan pemulihan data...';
-      _progress = 0.1;
+      _statusText = AppStrings.sync.restoreStarting;
+      _progress = 0.05;
     });
+
+    bool dataDownloaded = false;
 
     try {
       final syncService = ref.read(firestoreSyncServiceProvider);
@@ -109,11 +135,13 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
       final db = ref.read(dbProvider);
       final sessionManager = ref.read(sessionManagerProvider);
 
+      appLogger.info('Step 1: Checking encryption...', context: 'SyncRestoreScreen');
       // Guard: Pastikan EncryptionService sudah siap
       if (!encryption.isInitialized) {
+        appLogger.info('Encryption not initialized, initializing...', context: 'SyncRestoreScreen');
         setState(() {
-          _statusText = 'Mempersiapkan kunci enkripsi...';
-          _progress = 0.15;
+          _statusText = AppStrings.sync.preparingEncryption;
+          _progress = 0.1;
         });
         
         await encryption.init();
@@ -153,66 +181,41 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         }
       }
       
-      // FIX: Log untuk memverifikasi enkripsi siap
       appLogger.info('Encryption initialized: ${encryption.isInitialized}', 
           context: 'SyncRestoreScreen');
       
       setState(() {
         _statusText = 'Menghubungkan ke workshop...';
-        _progress = 0.2;
+        _progress = 0.15;
       });
       
+      appLogger.info('Step 2: Loading workshops...', context: 'SyncRestoreScreen');
       await sessionManager.loadWorkshops();
       
-      // FIX: Log untuk debugging
-      appLogger.info(
-        'After loadWorkshops: activeWorkshopId=${sessionManager.activeWorkshopId}, '
-        'ownerId=${sessionManager.activeWorkshopOwnerId}',
-        context: 'SyncRestoreScreen',
-      );
-      
       if (sessionManager.activeWorkshopOwnerId == null) {
-        appLogger.info('ownerId is null, calling resolveAndSelectWorkshop...', 
-            context: 'SyncRestoreScreen');
         await sessionManager.resolveAndSelectWorkshop(widget.bengkelId);
-        
-        appLogger.info(
-          'After resolve: activeWorkshopId=${sessionManager.activeWorkshopId}, '
-          'ownerId=${sessionManager.activeWorkshopOwnerId}',
-          context: 'SyncRestoreScreen',
-        );
       }
 
       setState(() {
         _statusText = 'Mengunduh data dari Cloud...';
-        _progress = 0.3;
+        _progress = 0.2;
       });
 
       // 1. Pull everything
-      appLogger.info('Starting pullAllData for bengkelId: ${widget.bengkelId}', 
+      appLogger.info('=== Step 3: Starting pullAllData for bengkelId: ${widget.bengkelId} ===', 
           context: 'SyncRestoreScreen');
       
       final allData = await syncService.pullAllData(widget.bengkelId);
-      
-      // FIX: Log hasil pull
-      appLogger.info(
-        'pullAllData result: '
-        'transactions=${allData['transactions']?.length ?? 0}, '
-        'customers=${allData['customers']?.length ?? 0}, '
-        'inventory=${allData['inventory']?.length ?? 0}, '
-        'staff=${allData['staff']?.length ?? 0}, '
-        'vehicles=${allData['vehicles']?.length ?? 0}, '
-        'sales=${allData['sales']?.length ?? 0}, '
-        'expenses=${allData['expenses']?.length ?? 0}',
-        context: 'SyncRestoreScreen',
-      );
+      dataDownloaded = true;
       
       setState(() {
         _statusText = 'Membangun ulang database lokal...';
-        _progress = 0.7;
+        _progress = 0.3;
       });
 
-      // 2. Perform reconstruction
+      // 2. Perform granular reconstruction
+      appLogger.info('Step 4: Calling granular syncDownAll...', context: 'SyncRestoreScreen');
+      
       final worker = SyncWorker(
         db: db,
         syncService: syncService,
@@ -220,20 +223,34 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
         bengkelId: widget.bengkelId,
       );
 
-      await worker.syncDownAll(allData, forceOverwrite: true);
-      
-      // FIX: Log hasil sync
-      appLogger.info(
-        'syncDownAll completed. Local counts: '
-        'tx=${db.transactionBox.count()}, '
-        'customers=${db.pelangganBox.count()}, '
-        'stok=${db.stokBox.count()}, '
-        'staff=${db.staffBox.count()}',
-        context: 'SyncRestoreScreen',
+      await worker.syncDownAll(
+        allData, 
+        forceOverwrite: true,
+        onProgress: (collection, subProgress) {
+          if (mounted) {
+            setState(() {
+              _statusText = _getCollectionLabel(collection);
+              // Scale worker progress (0.0 - 1.0) to range (0.3 - 0.9)
+              _progress = 0.3 + (subProgress * 0.6);
+            });
+          }
+        },
       );
       
       // Post-restore migration
+      appLogger.info('Step 5: Running post-restore migrations...', context: 'SyncRestoreScreen');
+      setState(() {
+        _statusText = 'Memigrasi data layanan...';
+        _progress = 0.92;
+      });
       await _runPostRestoreMigrations();
+
+      // Finalizing & Invalidation
+      appLogger.info('Step 6: Finalizing & Invalidation...', context: 'SyncRestoreScreen');
+      setState(() {
+        _statusText = 'Menyiapkan dashboard...';
+        _progress = 0.95;
+      });
 
       // Invalidate providers
       ref.invalidate(pelangganListProvider);
@@ -249,23 +266,45 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
 
       if (mounted) {
         setState(() {
-          _statusText = 'Pemulihan selesai! Sedang menyiapkan dashboard...';
+          _statusText = 'Pemulihan selesai!';
           _progress = 1.0;
         });
       }
 
-      await Future.delayed(const Duration(seconds: 1));
+      appLogger.info('=== RESTORE COMPLETE — Updating lastSyncTime ===', context: 'SyncRestoreScreen');
+      await ref.read(settingsProvider.notifier).updateLastSyncTime();
+      await ref.read(settingsProvider.notifier).setRestoreCompleted(true);
+      
+      await Future.delayed(const Duration(milliseconds: 800));
       if (mounted) {
         widget.onFinish();
       }
-    } catch (e) {
-      appLogger.error('Restore Error', context: 'SyncRestoreScreen', error: e);
+    } catch (e, stack) {
+      appLogger.error('=== RESTORE ERROR ===', context: 'SyncRestoreScreen', error: e);
+      appLogger.error('Stack trace: $stack', context: 'SyncRestoreScreen');
       if (mounted) {
         setState(() {
           _isError = true;
           _statusText = 'Gagal memulihkan data.';
           _errorDetail = e.toString().replaceAll('Exception: ', '');
         });
+      }
+    } finally {
+      // SAFETY NET: Jika data sudah berhasil diunduh dari cloud,
+      // tandai restorasi selesai agar user tidak terjebak loop dialog.
+      // Data mungkin tidak sempurna, tapi loop lebih berbahaya.
+      if (dataDownloaded) {
+        try {
+          final notifier = ref.read(settingsProvider.notifier);
+          await notifier.setRestoreCompleted(true);
+          await notifier.updateLastSyncTime();
+          appLogger.info(
+            'SAFETY NET: isRestoreCompleted set to true (dataDownloaded=$dataDownloaded)',
+            context: 'SyncRestoreScreen',
+          );
+        } catch (_) {
+          // Last resort — jangan biarkan error di sini menghancurkan flow
+        }
       }
     }
   }
@@ -302,7 +341,7 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.cloud_download_outlined,
+                      AppIcons.syncRestore,
                       size: 64,
                       color: colorScheme.primary,
                     ),
@@ -351,7 +390,10 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: widget.onFinish,
+                    onPressed: () async {
+                      await ref.read(settingsProvider.notifier).setRestoreCompleted(true);
+                      widget.onFinish();
+                    },
                     child: Text(
                       'Lewati untuk Sekarang',
                       style: GoogleFonts.inter(
@@ -362,11 +404,10 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                   ),
                 ] else if (_isError) ...[
                   // ❌ Error State
-                  Lottie.asset(
-                    'assets/lottie/error.json',
-                    width: 200,
-                    repeat: false,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 80,
+                    color: Colors.redAccent,
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -385,7 +426,7 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                   const SizedBox(height: 40),
                   ElevatedButton(
                     onPressed: _startRestore,
-                    child: const Text('Coba Lagi'),
+                    child: Text(AppStrings.sync.tryAgain),
                   ),
                 ] else ...[
                   // ⏳ Progress State
@@ -395,9 +436,10 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Lottie.asset(
-                          'assets/lottie/sync_loading.json',
-                          width: 240,
+                        Image.asset(
+                          'assets/illustrations/onboarding_sync.png',
+                          width: 200,
+                          opacity: const AlwaysStoppedAnimation(0.8),
                         ),
                         CircularProgressIndicator(
                           value: _progress,
@@ -427,7 +469,7 @@ class _SyncRestoreScreenState extends ConsumerState<SyncRestoreScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Mohon jangan tutup aplikasi...',
+                    AppStrings.sync.dontCloseApp,
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: isDark ? Colors.white38 : Colors.black38,

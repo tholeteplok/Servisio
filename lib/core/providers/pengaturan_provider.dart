@@ -41,6 +41,7 @@ class SettingsState {
   final bool hasSeenOverscrollHint;
   final String? workshopLogoPath;
   final bool hasDismissedBiometricPrompt;
+  final bool isRestoreCompleted;
 
   SettingsState({
     required this.workshopName,
@@ -74,6 +75,7 @@ class SettingsState {
     this.hasSeenOverscrollHint = false,
     this.workshopLogoPath,
     this.hasDismissedBiometricPrompt = false,
+    this.isRestoreCompleted = false,
   });
 
   SettingsState copyWith({
@@ -108,6 +110,7 @@ class SettingsState {
     bool? hasSeenOverscrollHint,
     String? workshopLogoPath,
     bool? hasDismissedBiometricPrompt,
+    bool? isRestoreCompleted,
   }) {
     return SettingsState(
       workshopName: workshopName ?? this.workshopName,
@@ -141,6 +144,7 @@ class SettingsState {
       hasSeenOverscrollHint: hasSeenOverscrollHint ?? this.hasSeenOverscrollHint,
       workshopLogoPath: workshopLogoPath ?? this.workshopLogoPath,
       hasDismissedBiometricPrompt: hasDismissedBiometricPrompt ?? this.hasDismissedBiometricPrompt,
+      isRestoreCompleted: isRestoreCompleted ?? this.isRestoreCompleted,
     );
   }
 }
@@ -187,6 +191,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       hasSeenOverscrollHint: prefs.getBool(AppSettings.hasSeenOverscrollHint) ?? false,
       workshopLogoPath: prefs.getString(AppSettings.workshopLogoPath),
       hasDismissedBiometricPrompt: prefs.getBool(AppSettings.hasDismissedBiometricPrompt) ?? false,
+      isRestoreCompleted: prefs.getBool(AppSettings.isRestoreCompleted) ?? false,
     );
   }
 
@@ -349,6 +354,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setHasDismissedBiometricPrompt(bool value) async {
     await _prefs.setBool(AppSettings.hasDismissedBiometricPrompt, value);
     state = state.copyWith(hasDismissedBiometricPrompt: value);
+  }
+
+  Future<void> setRestoreCompleted(bool value) async {
+    await _prefs.setBool(AppSettings.isRestoreCompleted, value);
+    state = state.copyWith(isRestoreCompleted: value);
   }
 }
 

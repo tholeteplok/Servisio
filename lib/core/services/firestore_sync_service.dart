@@ -96,12 +96,63 @@ class FirestoreSyncService {
         .doc(effectiveWorkshopId);
   }
 
-  /// Reference ke koleksi dalam workshop aktif
-  CollectionReference<Map<String, dynamic>> _workshopCollection(String name, {String? workshopId}) {
-    return _workshopDoc(workshopId: workshopId).collection(name);
+  /// Map internal key to its respective decryptor.
+  Map<String, dynamic> Function(Map<String, dynamic>) _getDecryptorForKey(String key) {
+    switch (key) {
+      case 'transactions': return decryptTransaction;
+      case 'customers': return decryptCustomer;
+      case 'staff': return decryptStaff;
+      case 'vehicles': return decryptVehicle;
+      case 'sales': return decryptSale;
+      case 'service_master': return decryptServiceMaster;
+      default: return (d) => d; // No decryption for others
+    }
   }
 
-  /// Reference ke dokumen workshop lama (Phase 2) - untuk discovery & fallback
+  /// Reference ke koleksi dalam workshop aktif
+  CollectionReference<Map<String, dynamic>> _workshopCollection(String name, {String? workshopId}) {
+    // TAHAP 3.2 FIX: Gunakan mapping nama koleksi yang peka terhadap jalur (Legacy vs Nested)
+    final ownerId = _sessionManager?.activeWorkshopOwnerId;
+    final isLegacy = ownerId == null || ownerId.isEmpty;
+    return _workshopDoc(workshopId: workshopId).collection(_mapInternalToActualName(name, isLegacy: isLegacy));
+  }
+
+  /// Map internal keys to actual Firestore collection names.
+  /// Memastikan konsistensi antara nama di kode (English) dan di DB (Indonesian/English mix).
+  String _mapInternalToActualName(String key, {bool isLegacy = false}) {
+    if (isLegacy) {
+      const mapping = {
+        'transactions': 'transaksi',
+        'customers': 'pelanggan',
+        'inventory': 'stok',
+        'staff': 'staf',
+        'vehicles': 'kendaraan',
+        'sales': 'penjualan',
+        'expenses': 'pengeluaran',
+      };
+      return mapping[key] ?? key;
+    }
+    // Nested path defaults to English as per user structure
+    return key;
+  }
+
+  /// Returns possible collection names for a given internal key.
+  /// Used for discovery during restoration.
+  List<String> _getCollectionCandidates(String key) {
+    switch (key) {
+      case 'transactions': return ['transactions', 'transaksi'];
+      case 'customers': return ['customers', 'pelanggan'];
+      case 'inventory': return ['inventory', 'stok'];
+      case 'staff': return ['staff', 'staf'];
+      case 'vehicles': return ['vehicles', 'kendaraan'];
+      case 'sales': return ['sales', 'penjualan'];
+      case 'expenses': return ['expenses', 'pengeluaran'];
+      case 'inventory_history': return ['inventory_history', 'stok_history'];
+      case 'service_master': return ['service_master'];
+      default: return [key];
+    }
+  }
+
   DocumentReference<Map<String, dynamic>> _legacyWorkshopDoc(String workshopId) {
     return _firestore.collection('bengkel').doc(workshopId);
   }
@@ -410,7 +461,7 @@ class FirestoreSyncService {
       'costPrice': s.costPrice,
       'totalProfit': s.totalProfit,
       'stokUuid': s.stokUuid,
-      'customerName': s.customerName,
+      'customerName': _encryption.encryptText(s.customerName ?? ''),
       'paymentMethod': s.paymentMethod,
       'transactionId': s.transactionId,
       'trxNumber': s.trxNumber,
@@ -498,81 +549,108 @@ class FirestoreSyncService {
     bool hasMore = true;
 
     appLogger.info(
-      'Pulling collection: $collectionName from path: ${queryRoot.path}',
+      '=== _pullCollectionWithPagination START ===\n'
+      '  Collection: $collectionName\n'
+      '  Path: ${queryRoot.path}',
       context: 'FirestoreSyncService',
     );
 
-    while (hasMore) {
-      Query currentQuery = query;
-      if (lastDocument != null) {
-        currentQuery = currentQuery.startAfterDocument(lastDocument);
-      }
+    try {
+      while (hasMore) {
+        Query currentQuery = query;
+        if (lastDocument != null) {
+          currentQuery = currentQuery.startAfterDocument(lastDocument);
+        }
 
-      final snapshot = await currentQuery.get();
-      
-      appLogger.info(
-        'Collection $collectionName: fetched ${snapshot.docs.length} documents',
-        context: 'FirestoreSyncService',
-      );
-      
-      if (snapshot.docs.isEmpty) {
-        hasMore = false;
-        break;
-      }
+        final snapshot = await currentQuery.get();
+        
+        appLogger.info(
+          'Collection $collectionName: fetched ${snapshot.docs.length} documents',
+          context: 'FirestoreSyncService',
+        );
 
-      lastDocument = snapshot.docs.last;
+        if (collectionName == 'expenses') {
+          appLogger.info('RAW EXPENSES PAYLOAD: ${snapshot.docs.length} documents retrieved from Firestore.', context: 'FirestoreSyncService');
+        }
+        
+        if (snapshot.docs.isEmpty) {
+          hasMore = false;
+          break;
+        }
 
-      if (decryptItems && collectionName == 'transactions') {
-        final List<Future<void>> itemFetchers = [];
-        final failedItems = <String, dynamic>{};
-        final List<Map<String, dynamic>> currentBatch = [];
+        lastDocument = snapshot.docs.last;
 
-        for (var doc in snapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final mappedData = mapper(data);
-          final List<Map<String, dynamic>> items = [];
-          mappedData['items'] = items;
-          currentBatch.add(mappedData);
+        if (decryptItems && collectionName == 'transactions') {
+          final failedItems = <String, dynamic>{};
+          final List<Map<String, dynamic>> currentBatch = [];
 
-          itemFetchers.add(
-            doc.reference.collection('items').get().then((itemSnap) {
-              for (var itemDoc in itemSnap.docs) {
-                try {
-                  final itemData = itemDoc.data();
-                  items.add(decryptTransactionItem(itemData));
-                } catch (e) {
+          // FIX: Process in small chunks to avoid overwhelming the system (and avoid freezes)
+          const chunkSize = 15;
+          for (var i = 0; i < snapshot.docs.length; i += chunkSize) {
+            final end = (i + chunkSize < snapshot.docs.length) ? i + chunkSize : snapshot.docs.length;
+            final chunk = snapshot.docs.sublist(i, end);
+            final List<Future<void>> chunkFetchers = [];
+
+            for (var doc in chunk) {
+              final data = doc.data() as Map<String, dynamic>;
+              final mappedData = mapper(data);
+              final List<Map<String, dynamic>> items = [];
+              mappedData['items'] = items;
+              currentBatch.add(mappedData);
+
+              chunkFetchers.add(
+                doc.reference.collection('items').get().then((itemSnap) {
+                  for (var itemDoc in itemSnap.docs) {
+                    try {
+                      final itemData = itemDoc.data();
+                      items.add(decryptTransactionItem(itemData));
+                    } catch (e) {
+                      failedItems[doc.id] = e;
+                    }
+                  }
+                }).catchError((e) {
                   failedItems[doc.id] = e;
-                  appLogger.error('Failed to decrypt item for ${doc.id}', error: e);
-                }
-              }
-            }).catchError((e) {
-              failedItems[doc.id] = e;
-              appLogger.error('Failed to fetch items for ${doc.id}', error: e);
-            })
-          );
+                })
+              );
+            }
+            
+            if (chunkFetchers.isNotEmpty) {
+              await Future.wait(chunkFetchers, eagerError: false);
+            }
+          }
+          
+          if (failedItems.isNotEmpty) {
+            appLogger.warning('Failed to fetch items for ${failedItems.length} transactions', context: 'FirestoreSyncService');
+            SyncTelemetry().log(SyncEvent(
+              type: 'partial_sync_failure',
+              metadata: {'failedCount': failedItems.length},
+              level: TelemetryLevel.warning,
+              timestamp: DateTime.now(),
+            ));
+          }
+          allData.addAll(currentBatch);
+        } else {
+          allData.addAll(snapshot.docs.map((doc) => mapper(doc.data() as Map<String, dynamic>)));
         }
-        
-        if (itemFetchers.isNotEmpty) {
-          await Future.wait(itemFetchers, eagerError: false);
-        }
-        
-        if (failedItems.isNotEmpty) {
-          SyncTelemetry().log(SyncEvent(
-            type: 'partial_sync_failure',
-            metadata: {'failedCount': failedItems.length},
-            level: TelemetryLevel.warning,
-            timestamp: DateTime.now(),
-          ));
-        }
-        allData.addAll(currentBatch);
-      } else {
-        allData.addAll(snapshot.docs.map((doc) => mapper(doc.data() as Map<String, dynamic>)));
-      }
 
-      if (snapshot.docs.length < limit) {
-        hasMore = false;
+        if (snapshot.docs.length < limit) {
+          hasMore = false;
+        }
       }
+    } catch (e) {
+      appLogger.error(
+        'Error pulling collection $collectionName from ${queryRoot.path}',
+        error: e,
+      );
+      rethrow;
     }
+
+    appLogger.info(
+      '=== _pullCollectionWithPagination END ===\n'
+      '  Collection: $collectionName\n'
+      '  Total documents: ${allData.length}',
+      context: 'FirestoreSyncService',
+    );
 
     return allData;
   }
@@ -583,8 +661,16 @@ class FirestoreSyncService {
   /// FIX: Mendukung fallback ke legacy path jika ownerId tidak tersedia
   Future<Map<String, List<Map<String, dynamic>>>> pullAllData(
       String bengkelId) async {
+    appLogger.info('=== pullAllData STARTED ===', context: 'FirestoreSyncService');
+    appLogger.info('Input bengkelId: $bengkelId', context: 'FirestoreSyncService');
+    
     final activeWsId = _sessionManager?.activeWorkshopId ?? bengkelId;
     final ownerId = _sessionManager?.activeWorkshopOwnerId;
+    
+    appLogger.info(
+      'SessionManager state: activeWorkshopId=$activeWsId, ownerId=$ownerId',
+      context: 'FirestoreSyncService',
+    );
     
     // FIX: Jika ownerId null, gunakan legacy path sebagai fallback
     final useLegacyPath = ownerId == null || ownerId.isEmpty;
@@ -614,10 +700,14 @@ class FirestoreSyncService {
       DocumentReference<Map<String, dynamic>>? primaryRoot;
       DocumentReference<Map<String, dynamic>> legacyRoot = _legacyWorkshopDoc(activeWsId);
       
+      appLogger.info('Discovery phase: checking paths...', context: 'FirestoreSyncService');
+      
       if (!useLegacyPath) {
         try {
           primaryRoot = _workshopDoc();
+          appLogger.info('Checking primary path: ${primaryRoot.path}', context: 'FirestoreSyncService');
           final doc = await primaryRoot.get();
+          
           if (!doc.exists) {
             appLogger.info('Primary workshop doc missing, checking legacy path...', context: 'FirestoreSyncService');
             final legacyDoc = await legacyRoot.get();
@@ -626,15 +716,30 @@ class FirestoreSyncService {
               appLogger.info('Legacy workshop data detected for ID: $activeWsId', context: 'FirestoreSyncService');
             }
           } else {
-            // FIX: Cek apakah ada data di sub-koleksi nested path
-            // Jika tidak ada, coba cek legacy path
-            final transactionsSnapshot = await primaryRoot.collection('transactions').limit(1).get();
-            if (transactionsSnapshot.docs.isEmpty) {
-              appLogger.info('Primary path empty, checking legacy path for data...', context: 'FirestoreSyncService');
-              final legacyTransactionsSnapshot = await legacyRoot.collection('transactions').limit(1).get();
-              if (legacyTransactionsSnapshot.docs.isNotEmpty) {
-                useLegacyFallback = true;
-                appLogger.info('Data found in legacy path, using legacy for restore', context: 'FirestoreSyncService');
+            // LGK-06 FIX: Cek beberapa sub-koleksi, bukan hanya transactions.
+            // Bengkel baru mungkin belum punya transaksi tapi sudah punya
+            // pelanggan, staff, atau inventory.
+            final discoveryCollections = ['transactions', 'customers', 'staff', 'inventory'];
+            bool primaryHasData = false;
+
+            for (final col in discoveryCollections) {
+              final snap = await primaryRoot.collection(col).limit(1).get();
+              if (snap.docs.isNotEmpty) {
+                primaryHasData = true;
+                appLogger.info('Primary path has data in "$col"', context: 'FirestoreSyncService');
+                break;
+              }
+            }
+
+            if (!primaryHasData) {
+              appLogger.info('Primary path empty across all collections, checking legacy...', context: 'FirestoreSyncService');
+              for (final col in discoveryCollections) {
+                final snap = await legacyRoot.collection(col).limit(1).get();
+                if (snap.docs.isNotEmpty) {
+                  useLegacyFallback = true;
+                  appLogger.info('Data found in legacy path "$col", using legacy for restore', context: 'FirestoreSyncService');
+                  break;
+                }
               }
             }
           }
@@ -642,59 +747,69 @@ class FirestoreSyncService {
           appLogger.warning('Discovery phase error, defaulting to legacy path', error: e);
           useLegacyFallback = true;
         }
+      } else {
+        // Check if legacy path has data
+        appLogger.info('Checking legacy path: ${legacyRoot.path}', context: 'FirestoreSyncService');
+        final legacyDoc = await legacyRoot.get();
+        appLogger.info('Legacy doc exists: ${legacyDoc.exists}', context: 'FirestoreSyncService');
       }
 
       // Gunakan legacy root jika ownerId null atau discovery menemukan data legacy
       final effectiveRoot = useLegacyFallback ? legacyRoot : (primaryRoot ?? _workshopDoc());
       
       appLogger.info(
-        'Using path for restore: ${effectiveRoot.path}',
+        '=== USING PATH FOR RESTORE: ${effectiveRoot.path} ===',
         context: 'FirestoreSyncService',
       );
 
-      // 2. Process each collection sequentially or concurrently
-      // If using legacy fallback, we pull from the old top-level collection path
-      final futures = [
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('transactions'), 
-            'transactions', decryptTransaction, decryptItems: true),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('customers'), 
-            'customers', decryptCustomer),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('inventory'), 
-            'inventory', (d) => d),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('staff'), 
-            'staff', decryptStaff),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('vehicles'), 
-            'vehicles', decryptVehicle),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('inventory_history'), 
-            'inventory_history', (d) => d),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('service_master'), 
-            'service_master', decryptServiceMaster),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('sales'), 
-            'sales', decryptSale),
-        _pullCollectionWithPagination(
-            effectiveRoot.collection('expenses'), 
-            'expenses', (d) => d),
+      // 2. Process each collection with name discovery
+      appLogger.info('Starting to pull collections with name discovery...', context: 'FirestoreSyncService');
+      
+      final keysToPull = [
+        'transactions', 'customers', 'inventory', 'staff', 
+        'vehicles', 'inventory_history', 'service_master', 'sales', 'expenses'
       ];
 
-      final fetchedResults = await Future.wait(futures);
+      for (final key in keysToPull) {
+        final candidates = _getCollectionCandidates(key);
+        appLogger.info('Discovery for $key: candidates=$candidates', context: 'FirestoreSyncService');
+        
+        for (final colName in candidates) {
+          final decryptor = _getDecryptorForKey(key);
+          final hasItems = key == 'transactions';
+          final colRef = effectiveRoot.collection(colName);
 
-      results['transactions'] = fetchedResults[0];
-      results['customers'] = fetchedResults[1];
-      results['inventory'] = fetchedResults[2];
-      results['staff'] = fetchedResults[3];
-      results['vehicles'] = fetchedResults[4];
-      results['stok_history'] = fetchedResults[5];
-      results['service_master'] = fetchedResults[6];
-      results['sales'] = fetchedResults[7];
-      results['expenses'] = fetchedResults[8];
+          final data = await _pullCollectionWithPagination(
+            colRef, 
+            key, 
+            decryptor, 
+            decryptItems: hasItems
+          );
+
+          if (data.isNotEmpty) {
+            appLogger.info('Found data in $colName for $key (${data.length} docs)', context: 'FirestoreSyncService');
+            results[key] = data;
+            break; // Stop discovery for this key
+          }
+        }
+        
+        // Ensure result key exists even if empty
+        results[key] ??= [];
+      }
+
+      appLogger.info(
+        '=== pullAllData COMPLETE ===\n'
+        '  transactions=${results['transactions']?.length ?? 0}\n'
+        '  customers=${results['customers']?.length ?? 0}\n'
+        '  inventory=${results['inventory']?.length ?? 0}\n'
+        '  staff=${results['staff']?.length ?? 0}\n'
+        '  vehicles=${results['vehicles']?.length ?? 0}\n'
+        '  inventory_history=${results['inventory_history']?.length ?? 0}\n'
+        '  service_master=${results['service_master']?.length ?? 0}\n'
+        '  sales=${results['sales']?.length ?? 0}\n'
+        '  expenses=${results['expenses']?.length ?? 0}',
+        context: 'FirestoreSyncService',
+      );
 
       return results;
     } catch (e) {

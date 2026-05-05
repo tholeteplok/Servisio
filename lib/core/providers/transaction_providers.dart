@@ -12,6 +12,9 @@ import '../services/transaction_number_service.dart';
 import '../../domain/services/unit_of_work.dart';
 import '../../domain/services/invoice_number_generator.dart';
 import '../../domain/entities/invoice.dart';
+import 'pelanggan_provider.dart';
+import 'master_providers.dart';
+import 'stok_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction Notifiers
@@ -65,6 +68,22 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
       transaction.calculateTotals();
       repository.save(transaction);
       syncWorker?.enqueue(entityType: 'transaction', entityUuid: transaction.uuid, priority: SyncPriority.critical);
+
+      // Enqueue related entities agar pelanggan & vehicle juga ter-push ke Firestore
+      final pelanggan = transaction.pelanggan.target;
+      if (pelanggan != null && pelanggan.uuid.isNotEmpty) {
+        syncWorker?.enqueue(entityType: 'pelanggan', entityUuid: pelanggan.uuid);
+      }
+      final vehicle = transaction.vehicle.target;
+      if (vehicle != null && vehicle.uuid.isNotEmpty) {
+        syncWorker?.enqueue(entityType: 'vehicle', entityUuid: vehicle.uuid);
+      }
+
+      // Refresh related providers to ensure UI reflects new data
+      ref.read(pelangganListProvider.notifier).load();
+      ref.invalidate(vehicleListProvider);
+      ref.read(stokListProvider.notifier).loadStok();
+
       return repository.getAll();
     });
     _syncPaginated();
@@ -78,6 +97,12 @@ class TransactionListNotifier extends StateNotifier<AsyncValue<List<Transaction>
       transaction.calculateTotals();
       repository.save(transaction);
       syncWorker?.enqueue(entityType: 'transaction', entityUuid: transaction.uuid, priority: SyncPriority.normal);
+
+      // Refresh related providers to ensure UI reflects new data
+      ref.read(pelangganListProvider.notifier).load();
+      ref.invalidate(vehicleListProvider);
+      ref.read(stokListProvider.notifier).loadStok();
+
       return repository.getAll();
     });
     _syncPaginated();

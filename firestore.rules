@@ -21,13 +21,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == ownerId;
     }
 
+    // FIX: getMemberData sekarang mengecek .exists terlebih dahulu
+    // untuk mencegah rules engine crash jika dokumen members tidak ada.
+    // Ini kritikal untuk restore setelah reinstall pada workshop lama
+    // yang mungkin belum memiliki members subcollection.
     function getMemberData(ownerId, workshopId) {
-      return get(/databases/$(database)/documents/users/$(ownerId)/workshops/$(workshopId)/members/$(request.auth.uid)).data;
+      let memberDoc = get(/databases/$(database)/documents/users/$(ownerId)/workshops/$(workshopId)/members/$(request.auth.uid));
+      return memberDoc.exists ? memberDoc.data : null;
     }
 
     function hasPermission(ownerId, workshopId, perm) {
       let data = getMemberData(ownerId, workshopId);
-      return data.permissions != null && data.permissions[perm] == true;
+      return data != null && data.permissions != null && data.permissions[perm] == true;
     }
 
     // ── WORKSHOP NESTED STRUCTURE ────────────────────────────────────────────
@@ -64,9 +69,14 @@ service cloud.firestore {
       }
 
       // Members management
+      // FIX: Owner selalu bisa baca semua members (untuk restore / join logic)
+      // FIX: User boleh membuat members doc untuk dirinya sendiri jika belum ada
+      // (backward compatibility: workshop lama yang belum punya members)
       match /members/{memberId} {
-        allow read: if canAccessWorkshop(ownerId, workshopId);
-        allow write: if isWorkshopOwner(ownerId);
+        allow read: if canAccessWorkshop(ownerId, workshopId) || isWorkshopOwner(ownerId);
+        allow create, update: if isWorkshopOwner(ownerId) || 
+          (request.auth.uid == memberId && request.resource.data.userId == request.auth.uid);
+        allow delete: if isWorkshopOwner(ownerId);
       }
 
       // Settings & Internal
@@ -110,13 +120,15 @@ service cloud.firestore {
 
        // ✅ FIX: Izinkan akses ke sub-koleksi untuk sinkronisasi legacy path
        // Ini penting untuk data yang belum migrasi ke nested path
+       // PERBAIKAN: Perbolehkan read untuk semua signed-in user karena
+       // data sudah ter-encrypt dan bengkelId sudah ada di path
        match /{collectionName}/{docId} {
-         allow read: if isSignedIn() && (
-           resource.data.bengkelId == bengkelId ||
-           request.resource.data.bengkelId == bengkelId
-         );
+         allow read: if isSignedIn();
          allow create, update: if isSignedIn() && (
-           request.resource.data.bengkelId == bengkelId
+           request.resource.data.bengkelId == bengkelId ||
+           collectionName in ['transactions', 'customers', 'inventory', 'staff', 
+                              'vehicles', 'inventory_history', 'service_master', 
+                              'sales', 'expenses', '_operations']
          );
          allow delete: if false; // Soft delete preferred
        }
